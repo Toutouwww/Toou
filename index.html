@@ -582,8 +582,9 @@
                     </div>
                 </div>
 
-                <!-- 右侧：无背景纯净小飞机 (去除了内部线段) -->
-                <div class="chat-send-btn" onclick="sendChatMessage()">
+<!-- 右侧：无背景纯净小飞机 (去除了内部线段) -->
+<div class="chat-send-btn" onclick="handlePlaneClick()">
+
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <!-- 只保留纸飞机的外轮廓折纸线 -->
                         <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
@@ -746,18 +747,18 @@
                                     <div class="content">14号没空，休要坏我道心！</div>
                                 </div>
                                 <img src="" class="preview-avatar" id="preview-avatar-user">
-                        </div>
+                            </div> <!-- 🌟 修复：补齐了 preview-msg-row 的闭合 -->
+                        </div> <!-- 🌟 修复：补齐了 bubble-preview-container 的闭合，彻底解决全局 DOM 塌方！ -->
                     </div>
                 </div>
 
-
-                
-                <!-- 删除了以前由于粘贴错误多出来的 </div> 标签 -->
+                <!-- 🌟 被完美分离出来的独立删除按钮 -->
                 <div class="settings-delete-btn" onclick="promptDeleteContactFromSettings()">彻底删除此角色</div>
             </div> <!-- 结束 chat-settings-body -->
 
         </div> <!-- 结束 chatSettingsScreen -->
     </div> <!-- 结束 appChatOverlay -->
+
 
     <!-- ============================================== -->
     <!-- ⬇️ 内部软件2：千岛 API 配置 (白黑灰极简风) ⬇️ -->

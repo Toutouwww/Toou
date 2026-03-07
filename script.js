@@ -1539,8 +1539,15 @@ function confirmNcCustomPrompt() {
             saveToDB('contacts_data', JSON.stringify(contactsList)); // 保存到数据库
             renderMsgList(); // 重新渲染列表让它消失
             showToast('角色已彻底删除');
+            
+            // 🌟 核心：如果是从设置页深处删除的，智能退回桌面，关掉所有内页
+            if (currentChatContactId === contactIdToDelete) {
+                closeChatSettings();
+                closeChatRoom();
+            }
             contactIdToDelete = null;
         }
+
     } else {
         const val = document.getElementById('ncPromptInput').value.trim();
         if (ncCurrentPromptTarget === 'nc-avatar-url') {
@@ -1754,6 +1761,11 @@ function promptDeleteContact(id) {
 // ==========================================
 let currentChatContactId = null;
 
+function closeChatRoom() {
+    document.getElementById('chatRoomScreen').classList.remove('active');
+    currentChatContactId = null;
+}
+
 function openChatRoom(contactId) {
     currentChatContactId = contactId;
     const contact = contactsList.find(c => c.id === contactId);
@@ -1765,13 +1777,55 @@ function openChatRoom(contactId) {
     // 🔥 核心分离：如果这个角色有专门设置的“聊天室内大头像”就用它，没有就用列表小头像兜底
     const bigAvatar = contact.chatRoomAvatar || contact.avatar;
     document.getElementById('img-chat-init-avatar').src = bigAvatar;
+
+    // --- 🌟 渲染历史消息引擎 ---
+    const chatBody = document.getElementById('chatRoomBody');
+    // 第一步：清空除“打招呼占位区”以外的所有历史气泡，防止角色串门
+    Array.from(chatBody.children).forEach(child => {
+        if (child.id !== 'chatInitState') {
+            child.remove();
+        }
+    });
+
+    // 第二步：从数据库读取并渲染此角色的历史消息
+    if (contact.messages && contact.messages.length > 0) {
+        const myAvatar = document.getElementById('img-sidebar-avatar').src;
+        const charAvatar = bigAvatar;
+
+        contact.messages.forEach(msg => {
+            const safeText = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+            let msgHtml = '';
+            if (msg.sender === 'user') {
+                msgHtml = `
+                <div class="preview-msg-row right">
+                    <div class="Toutou-TT user">
+                        <span class="bubble-time">${msg.time}</span>
+                        <div class="content">${safeText}</div>
+                    </div>
+                    <img src="${myAvatar}" class="preview-avatar">
+                </div>
+                `;
+            } else {
+                msgHtml = `
+                <div class="preview-msg-row left">
+                    <img src="${charAvatar}" class="preview-avatar">
+                    <div class="Toutou-TT char">
+                        <div class="content">${safeText}</div>
+                        <span class="bubble-time">${msg.time}</span>
+                    </div>
+                </div>
+                `;
+            }
+            chatBody.insertAdjacentHTML('beforeend', msgHtml);
+        });
+
+        // 智能滚到底部查看最新消息
+        setTimeout(() => {
+            chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'auto' });
+        }, 10);
+    }
     
     document.getElementById('chatRoomScreen').classList.add('active');
-}
-
-function closeChatRoom() {
-    document.getElementById('chatRoomScreen').classList.remove('active');
-    currentChatContactId = null;
 }
 
 // 🌟 全新逻辑：聊天室内大型头像上传与菜单控制
@@ -1971,15 +2025,11 @@ function saveChatSettings() {
 }
 
 function promptDeleteContactFromSettings() {
-    if(confirm('确定要彻底删除此角色吗？所有聊天记录将丢失。')) {
-        contactsList = contactsList.filter(c => c.id !== currentChatContactId);
-        saveToDB('contacts_data', JSON.stringify(contactsList));
-        renderMsgList();
-        closeChatSettings();
-        closeChatRoom();
-        showToast('角色已删除');
-    }
+    contactIdToDelete = currentChatContactId;
+    // 全面接入统一超极简弹窗系统
+    openNcCustomPrompt('删除角色', 'action_delete_contact', '确定要彻底删除此角色吗？此操作将清除其相关资料与聊天记录（不影响世界书）。', 'confirm_delete');
 }
+
 
 // ====== 🌟 输入框自适应高度联动 & 回车发送联动 ======
 document.addEventListener('DOMContentLoaded', () => {
@@ -2001,28 +2051,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ==========================================
-// 🌟 发送消息逻辑 (DOM渲染 + 列表摘要更新)
-// ==========================================
+// 🌟 核心：补全丢失的用户发送消息引擎
 function sendChatMessage() {
+    if (!currentChatContactId) return;
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    if (!contact) return;
+
     const inputEl = document.getElementById('chatRoomInput');
-    let text = inputEl.value.trim();
-    if (!text || !currentChatContactId) return;
+    const text = inputEl.value.trim();
+    if (!text) return; // 如果没有输入文字就不发送
 
-    const contactIndex = contactsList.findIndex(c => c.id === currentChatContactId);
-    if (contactIndex === -1) return;
+    // 1. 立刻清空输入框并重置高度
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
 
-    // 获取当前时间
+    // 2. 组装消息数据
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    if (!contact.messages) contact.messages = [];
+    contact.messages.push({
+        id: 'msg_' + Date.now(),
+        sender: 'user',
+        text: text,
+        time: timeStr
+    });
 
-    // 获取我方（用户）头像
-    const myAvatar = document.getElementById('img-sidebar-avatar').src;
-
-    // 处理换行符，防注入并允许正常的文字排版
+    // 3. 渲染到聊天室屏幕上
+    const chatBody = document.getElementById('chatRoomBody');
+    // 获取“我的”资料头像（从侧边栏读取）
+    const mySidebarAvatar = document.getElementById('img-sidebar-avatar');
+    const myAvatar = mySidebarAvatar ? mySidebarAvatar.src : 'https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg';
+    
+    // 防注入 & 将换行符转换为真实换行
     const safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
-
-    // 构建消息 HTML (自带唯一指定的气泡样式和时间戳)
+    
     const msgHtml = `
     <div class="preview-msg-row right">
         <div class="Toutou-TT user">
@@ -2032,31 +2095,227 @@ function sendChatMessage() {
         <img src="${myAvatar}" class="preview-avatar">
     </div>
     `;
-
-    const chatBody = document.getElementById('chatRoomBody');
-    
-    // 将气泡追加到聊天室中
     chatBody.insertAdjacentHTML('beforeend', msgHtml);
-
-    // 平滑滚动到底部，确保能看到最新消息
+    
+    // 智能滚到底部查看最新发出的消息
     setTimeout(() => {
-        chatBody.scrollTo({
-            top: chatBody.scrollHeight,
-            behavior: 'smooth'
-        });
-    }, 50);
+        chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+    }, 10);
 
-    // 清空输入框并重置高度
-    inputEl.value = '';
-    inputEl.style.height = 'auto';
-
-    // 🌟 神级联动：你发出的消息会同步变成列表页外面的摘要，时间也会同步刷新！
-    contactsList[contactIndex].sign = text;
-    contactsList[contactIndex].time = timeStr;
+    // 4. 更新外层通讯录列表的最新一条消息摘要与时间，并存入数据库
+    contact.sign = text.replace(/\n/g, ' ');
+    contact.time = timeStr;
     saveToDB('contacts_data', JSON.stringify(contactsList));
     renderMsgList();
 }
 
+// ==========================================
+// 🌟 飞机按钮单击/双击中控器 & AI 回复调度器
+// ==========================================
+
+let planeClickTimer = 0;
+let isAiReplying = false; // 防止AI回复中途重复点击
+
+function handlePlaneClick() {
+    if (isAiReplying) return; // 正在回复时锁定按钮
+    
+    const now = Date.now();
+    // 判断是否为 400ms 内的双击
+    if (now - planeClickTimer < 400) {
+        // 识别为双击：触发 AI 回复
+        planeClickTimer = 0; // 清理时间
+        triggerAiReply();
+        return;
+    }
+    
+    // 记录本次点击时间，并在延时内触发单次发送
+    planeClickTimer = now;
+    
+    // 如果有文字，就当做发送消息处理
+    const text = document.getElementById('chatRoomInput').value.trim();
+    if (text) {
+        sendChatMessage();
+    }
+}
+
+// ==========================================
+// 🌟 AI 回复调度器与系统级 Prompt 组装引擎
+// ==========================================
+
+// 组装完美的系统提示词 (根据你的规定顺序)
+function buildSystemPrompt(contact) {
+    // 1. 获取 user 资料 (当前生效的身份资料卡)
+    let appliedProfile = profilePlans.find(p => p.id === currentActivePlanId) || profilePlans[0];
+    let ud = appliedProfile.data || {};
+    let userStr = `姓名: ${ud['text-profile-name']}\n性别: ${ud['text-detail-gender']}\n年龄: ${ud['text-detail-age']}\n`;
+    if(ud['text-secret-file']) userStr += `个人档案: ${ud['text-secret-file']}\n`;
+
+    // 2. 获取 char 资料
+    let cd = contact.details || {};
+    let charStr = `姓名: ${contact.realName || contact.name}\n对用户的备注: ${contact.remark}\n性别: ${cd.gender}\n年龄: ${cd.age}\n`;
+    if(cd.secretFile) charStr += `专属设定与回忆: ${cd.secretFile}\n`;
+
+    // 3. 组装世界书
+    let wbStr = "";
+    let charWbs = activeWorldbooks.filter(b => b.category === '已绑定' && b.subGroup === contact.name);
+    let commonWbs = activeWorldbooks.filter(b => b.category === '通用');
+    let otherWbs = activeWorldbooks.filter(b => b.category === '全部');
+
+    const parseEntries = (wbs) => {
+        let s = "";
+        wbs.forEach(wb => { wb.entries.forEach(e => { s += `- [${e.name}](${e.trigger}): ${e.content}\n`; }); });
+        return s;
+    };
+    if(charWbs.length > 0) wbStr += "【专属世界书】\n" + parseEntries(charWbs);
+    if(commonWbs.length > 0) wbStr += "【通用世界书】\n" + parseEntries(commonWbs);
+    if(otherWbs.length > 0) wbStr += "【全局世界书】\n" + parseEntries(otherWbs);
+
+    // 4. 终极 Prompt (严格执行人设、去油腻约束与分句排版要求)
+    return `你需要扮演 {char}，模拟真实生活中的聊天软件来回复我 {user}。
+
+【扮演与性格核心约束】
+1. 绝对生活化口语：使用大白话回复，拒绝文绉绉、拒绝说教、拒绝机械重复我的话。
+2. 情绪红线：不允许物化、打压我，不允许太过暴躁。尽量扮演让女性满意的角色，提供心动感与沉浸感。
+3. 展现潜台词：对话不一定要干巴巴地交代事件或信息，可以只是一句闲聊，也可以是胡说八道，甚至脑子一热说错话。善用潜台词（例如：一个爱逞强的人受伤后说话跟没事人一样，突然倒下）。
+4. 拒绝油腻与套路：不要油腻，拒绝霸总式、模板化、常规化的回复与人物理解。必须始终记住你服务的对象是女性，你要回复出女性所能接受的、自然且真诚的内容。
+5. 推动剧情与时间流动：每次说出的话，尽量要推动剧情和事件发展，而非停在原地不转、反复纠结一件事。比如：比如这时候晚上7:30在说吃饭，你可以模拟真人自然地说“准备去洗澡了”等生活行为，让对话具备真实的流动感。
+
+【user 设定相关 (我)】
+${userStr}
+【char 设定相关 (你)】
+${charStr}
+【世界观设定】
+${wbStr}
+
+【多条消息连发格式要求 (极为重要) 】
+为了模拟真实聊天中“连发多条短消息”的压迫感或生动感，如果你想分几次发送不同的话，请务必使用 ||| 作为消息分割符。
+例如：干嘛呢|||怎么不理我[生气]|||再不说话我挂了啊
+系统会自动将这段话切分成三个独立的聊天气泡。如果没有必要分开发送，直接正常回复即可，同一气泡内可以使用换行。千万不要自己带上“发送”等多余的动作词。`;
+}
+
+// 解析 AI 回复，切割出多气泡
+function handleAiResponse(text, contact) {
+    // 按照我们教给 AI 的特殊符号 ||| 来切割句子
+    const parts = text.split('|||').map(s => s.trim()).filter(s => s);
+    if(parts.length === 0) return;
+
+    const chatBody = document.getElementById('chatRoomBody');
+    const charAvatar = contact.chatRoomAvatar || contact.avatar;
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    // 利用稍微的延迟，实现多个气泡“接连弹出”的视觉体验
+    parts.forEach((part, index) => {
+        setTimeout(() => {
+            if (!contact.messages) contact.messages = [];
+            contact.messages.push({
+                id: 'msg_' + Date.now() + '_' + index, sender: 'char', text: part, time: timeStr
+            });
+            
+            // 防注入渲染，并将换行符替换为真正的 br 换行
+            const safeText = part.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+            const msgHtml = `
+            <div class="preview-msg-row left">
+                <img src="${charAvatar}" class="preview-avatar">
+                <div class="Toutou-TT char">
+                    <div class="content">${safeText}</div>
+                    <span class="bubble-time">${timeStr}</span>
+                </div>
+            </div>
+            `;
+            chatBody.insertAdjacentHTML('beforeend', msgHtml);
+            chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+
+            // 更新外层列表最后一条消息和时间 (以最后一个气泡为准)
+            if (index === parts.length - 1) {
+                contact.sign = part.replace(/\n/g, ' ');
+                contact.time = timeStr;
+                saveToDB('contacts_data', JSON.stringify(contactsList));
+                renderMsgList();
+            }
+        }, index * 400); // 每个气泡间隔 400ms 弹出
+    });
+}
+
+// 核心调度入口
+async function triggerAiReply() {
+    if (!currentChatContactId) return;
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    if (!contact) return;
+
+    if (!activeApiPlanId || apiPlans.length === 0) { showToast("请先在API设置中配置并应用方案！"); return; }
+    const apiConfig = apiPlans.find(p => p.id === activeApiPlanId)?.data;
+    if (!apiConfig || !apiConfig.apiKey) { showToast("未检测到有效的 API Key！"); return; }
+
+    isAiReplying = true;
+
+    // 🌟 核心交互：将原本的备注名替换为正在输入中，彻底删去底栏动画药丸
+    const titleEl = document.getElementById('chatRoomTitle');
+    const originalName = titleEl.innerText;
+    titleEl.innerText = "对方正在输入中...";
+
+    if (apiConfig.stream) {
+        showToast("流式渲染模块对接中...");
+        setTimeout(() => { 
+            titleEl.innerText = originalName; 
+            isAiReplying = false; 
+        }, 1000);
+        return; 
+    }
+
+    // --- 准备发送给 API 的数据 ---
+    let messagesPayload = [];
+    // 塞入世界观、身份卡和扮演规范
+    messagesPayload.push({ role: "system", content: buildSystemPrompt(contact) });
+    // 塞入你们俩的历史聊天记录
+    if (contact.messages && contact.messages.length > 0) {
+        contact.messages.forEach(m => {
+            messagesPayload.push({ role: m.sender === 'user' ? "user" : "assistant", content: m.text });
+        });
+    } else {
+        // 如果没有聊天记录，让AI主动破冰
+        messagesPayload.push({ role: "system", content: "这是你们的第一句话，请主动跟对方打招呼破冰。" });
+    }
+
+    try {
+        const response = await fetch(`${apiConfig.baseUrl}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiConfig.apiKey}`
+            },
+            body: JSON.stringify({
+                model: apiConfig.model,
+                messages: messagesPayload,
+                temperature: parseFloat(apiConfig.temp),
+                presence_penalty: parseFloat(apiConfig.pres),
+                frequency_penalty: parseFloat(apiConfig.freq),
+                top_p: parseFloat(apiConfig.topp)
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error?.message || "请求失败");
+        }
+
+        const data = await response.json();
+        const replyText = data.choices[0].message.content;
+
+        // 🌟 成功获取回复后，恢复顶栏备注名
+        titleEl.innerText = originalName;
+        
+        // 传递给多气泡处理引擎渲染
+        handleAiResponse(replyText, contact);
+
+    } catch (error) {
+        // 🌟 请求出错时，同样要恢复顶栏备注名
+        titleEl.innerText = originalName;
+        showToast("API 错误: " + error.message);
+    }
+
+    isAiReplying = false;
+}
 
 // ====== 🌟 角色专属聊天设置页 - 头像菜单与绝密档案 ======
 function toggleCsAvatarMenu(event) { event.stopPropagation(); document.getElementById('csAvatarActionMenu').classList.toggle('active'); }
