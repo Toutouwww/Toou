@@ -1833,7 +1833,6 @@ function openChatSettings() {
     document.getElementById('cs-tag1').value = details.tag1 || '';
     document.getElementById('cs-secret-file').value = details.secretFile || '';
 
-    
     // 渲染档案开关
     if(details.secretMode) {
         document.getElementById('cs-secretToggleSwitch').classList.add('active');
@@ -1851,6 +1850,18 @@ function openChatSettings() {
 
     tempBoundProfileId = contact.boundProfileId || 'default';
     renderCsProfileMenu();
+
+    // 🌟 动态联动预览区头像
+    // 左侧：读取当前角色的头像
+    const charAvatarEl = document.getElementById('preview-avatar-char');
+    if(charAvatarEl) charAvatarEl.src = contact.avatar;
+    
+    // 右侧：读取我方当前绑定的主头像（从侧边栏读取最准确）
+    const myAvatarEl = document.getElementById('preview-avatar-user');
+    const mySidebarAvatar = document.getElementById('img-sidebar-avatar');
+    if(myAvatarEl && mySidebarAvatar) {
+        myAvatarEl.src = mySidebarAvatar.src;
+    }
 
     document.getElementById('chatSettingsScreen').classList.add('active');
 }

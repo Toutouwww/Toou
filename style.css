@@ -1706,67 +1706,81 @@ body {
 .preview-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid #ddd; background: #fff; }
 
 /* ==========================================
-   🌟 基础气泡代码改造 (自定义前缀 Toutou & char)
+   🌟 终极气泡代码改造 (自定义前缀 Toutou-TT.user & Toutou-TT.char)
 ========================================== */
-.message-bubble.Toutou .content,
-.message-bubble.char .content {
+.Toutou-TT {
+    display: flex;
+    width: 100%;
+}
+.Toutou-TT.user {
+    justify-content: flex-end; /* 用户气泡整体靠右 */
+}
+.Toutou-TT.char {
+    justify-content: flex-start; /* 角色气泡整体靠左 */
+}
+
+.Toutou-TT .content {
   --top-left: 18px;
   --top-right: 18px;
   --bottom-right: 18px;
   --bottom-left: 18px;
   
-  padding: 8px 14px;
+  padding: 10px 14px;
   position: relative;
   word-wrap: break-word;
+  word-break: break-all;
   display: inline-block;
-  font-size: 13px;
-  line-height: 1.4;
-  max-width: 200px; /* 预览区限制宽度 */
+  font-size: 14px;
+  line-height: 1.5;
+  /* 🌟 核心：最大宽度控制在屏幕65%左右，超过自动换行 */
+  max-width: 65vw; 
+  /* 🌟 核心：强制内部文字从左到右阅读 */
+  text-align: left; 
 }
 
-/* --- Toutou (右侧用户) 气泡 (黑灰) --- */
-.message-bubble.Toutou .content {
+/* --- Toutou-TT.user (右侧用户) 气泡 (黑灰) --- */
+.Toutou-TT.user .content {
   background-color: #000;
   color: #fff;
-  border-radius: var(--top-left) var(--top-right) var(--bottom-right) var(--bottom-left);
+  border-radius: var(--top-left) var(--top-right) 6px var(--bottom-left); /* 右下角收紧，配合尾巴 */
 }
 
-.message-bubble.Toutou .content::after {
+.Toutou-TT.user .content::after {
   content: "";
   position: absolute;
   width: 12px;
   height: 15px;
-  background-color: #000;
-  right: 1px; 
-  bottom: 8px; 
+  background-color: inherit; /* 永远自动继承气泡本体的颜色 */
+  right: -5px; /* 移到气泡外部右侧 */
+  bottom: 0px; /* 🌟 绝杀：永远死死钉在气泡最底部，不受高度拉伸影响 */
   clip-path: path("M 13,1 Q 2,0 0,12 Q 3,7 11,12 L 8,4");
   z-index: 1;
   transform: rotate(236deg);
   transform-origin: bottom right;
 }
 
-/* --- char (左侧角色) 气泡 (黑灰) --- */
-.message-bubble.char .content {
-  background-color: #ffffff; /* 为了预览明显，修改为纯白加微阴影 */
+/* --- Toutou-TT.char (左侧角色) 气泡 (黑灰) --- */
+.Toutou-TT.char .content {
+  background-color: #ffffff; 
   color: #000;
-  border-radius: var(--top-left) var(--top-right) var(--bottom-right) var(--bottom-left);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border-radius: var(--top-left) var(--top-right) var(--bottom-right) 6px; /* 左下角收紧，配合尾巴 */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* 为了在浅灰背景下凸显白气泡 */
 }
 
-.message-bubble.char .content::after {
+.Toutou-TT.char .content::after {
   content: "";
   position: absolute;
   width: 12px;
   height: 15px;
-  background-color: #ffffff; 
-  left: -6px;
-  bottom: 8px;
+  background-color: inherit; /* 永远自动继承气泡本体的颜色 */
+  left: -5px; /* 移到气泡外部左侧 */
+  bottom: 0px; /* 🌟 绝杀：永远死死钉在气泡最底部，不受高度拉伸影响 */
   clip-path: path("M 13,2 Q 1,0 0,12 Q 3,7 11,12 L 19,3");
   z-index: 1;
   transform: scaleX(-1) rotate(236deg);
   transform-origin: bottom left;
 }
 
-.message-bubble.Toutou { text-align: right; }
-.message-bubble.char { text-align: left; }
-
+/* --- 预览区行容器排版修正 --- */
+.preview-msg-row { display: flex; align-items: flex-end; gap: 8px; width: 100%; }
+.preview-msg-row.right { justify-content: flex-end; flex-direction: row; }

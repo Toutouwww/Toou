@@ -273,18 +273,20 @@
 
                             <!-- 改造后的独立个人邮箱白卡 (完美收缩版) -->
                             <div class="detail-row-group" style="margin-top: 4px; margin-bottom: 8px;">
-                                <div class="detail-col-item full-width" style="flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 14px;">
-                                    <div style="display:flex; align-items:center;">
-                                        <span class="tag-label-prefix" style="margin:0; font-size:12px; color:#555; margin-right:6px;">个人邮箱：</span>
-                                        <div class="tag-capsule" style="padding: 4px 10px; display:flex; align-items:center; background:#111; border-radius: 20px; width: max-content;">
-                                            <div style="display: inline-grid; align-items: center; justify-items: start;">
-                                                <span id="measure-tag1" style="grid-area: 1/1; visibility: hidden; white-space: pre; font-size: 10px; font-weight: 500; pointer-events: none;">前缀</span>
-                                                <input type="text" id="input-tag-1" placeholder="前缀" onblur="saveInlineInput('text-tag-1', this.value)" onkeypress="handleEnterSave(event, this)" oninput="document.getElementById('measure-tag1').innerText = this.value || '前缀'" style="grid-area: 1/1; width: 100%; min-width: 0; background: transparent; border: none; color: #fff; font-size: 10px; font-weight: 500; outline: none; padding: 0; margin: 0; field-sizing: content;">
+                                <div class="detail-col-item full-width" style="flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 14px; gap: 15px;">
+                                    <div style="display:flex; align-items:center; flex: 1; overflow: hidden;">
+                                        <span class="tag-label-prefix" style="margin:0; font-size:10px; color:#777; margin-right:6px; flex-shrink:0;">个人邮箱：</span>
+                                        <div class="tag-capsule" style="padding: 4px 10px; display:flex; align-items:center; background:#111; border-radius: 20px; max-width: 100%;">
+                                            <!-- 🌟 终极手机兼容自适应方案：绝对定位覆盖层 -->
+                                            <div style="position: relative; display: inline-flex; align-items: center;">
+                                                <span id="measure-tag1" style="visibility: hidden; white-space: pre; font-size: 10px; font-weight: 500; min-width: 24px; padding: 0;">前缀</span>
+                                                <input type="text" id="input-tag-1" placeholder="前缀" onblur="saveInlineInput('text-tag-1', this.value)" onkeypress="handleEnterSave(event, this)" oninput="document.getElementById('measure-tag1').innerText = this.value || '前缀'" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: transparent; border: none; color: #fff; font-size: 10px; font-weight: 500; outline: none; padding: 0; margin: 0;">
                                             </div>
-                                            <span style="color:#fff; font-size:10px; font-weight:500; margin-left: 2px;">@Toutou.com</span>
+                                            <span style="color:#fff; font-size:10px; font-weight:500; margin-left: 2px; flex-shrink:0;">@Toutou.com</span>
                                         </div>
                                     </div>
-                                    <div class="secret-switch" id="secretToggleSwitch" onclick="toggleSecretFile()"><div class="switch-knob"></div></div>
+                                    <!-- 🌟 强制不缩水，并保持安全距离 -->
+                                    <div class="secret-switch" id="secretToggleSwitch" onclick="toggleSecretFile()" style="flex-shrink:0;"><div class="switch-knob"></div></div>
                                 </div>
                             </div>
 
@@ -429,18 +431,18 @@
 
                                 <!-- 独立的邮箱白卡 (完美收缩版) -->
                                 <div class="detail-row-group" style="margin-top: 4px; margin-bottom: 8px;">
-                                    <div class="detail-col-item full-width" style="flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 14px;">
-                                        <div style="display:flex; align-items:center;">
-                                            <span class="tag-label-prefix" style="margin:0; font-size:12px; color:#555; margin-right:6px;">个人邮箱：</span>
-                                            <div class="tag-capsule" style="padding: 4px 10px; display:flex; align-items:center; background:#111; border-radius: 20px; width: max-content;">
-                                                <div style="display: inline-grid; align-items: center; justify-items: start;">
-                                                    <span id="measure-nc-tag1" style="grid-area: 1/1; visibility: hidden; white-space: pre; font-size: 10px; font-weight: 500; pointer-events: none;">前缀</span>
-                                                    <input type="text" id="input-nc-tag1" placeholder="前缀" oninput="document.getElementById('measure-nc-tag1').innerText = this.value || '前缀'" style="grid-area: 1/1; width: 100%; min-width: 0; background: transparent; border: none; color: #fff; font-size: 10px; font-weight: 500; outline: none; padding: 0; margin: 0; field-sizing: content;">
+                                    <div class="detail-col-item full-width" style="flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 14px; gap: 15px;">
+                                        <div style="display:flex; align-items:center; flex: 1; overflow: hidden;">
+                                            <span class="tag-label-prefix" style="margin:0; font-size:10px; color:#777; margin-right:6px; flex-shrink:0;">个人邮箱：</span>
+                                            <div class="tag-capsule" style="padding: 4px 10px; display:flex; align-items:center; background:#111; border-radius: 20px; max-width: 100%;">
+                                                <div style="position: relative; display: inline-flex; align-items: center;">
+                                                    <span id="measure-nc-tag1" style="visibility: hidden; white-space: pre; font-size: 10px; font-weight: 500; min-width: 24px; padding: 0;">前缀</span>
+                                                    <input type="text" id="input-nc-tag1" placeholder="前缀" oninput="document.getElementById('measure-nc-tag1').innerText = this.value || '前缀'" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: transparent; border: none; color: #fff; font-size: 10px; font-weight: 500; outline: none; padding: 0; margin: 0;">
                                                 </div>
-                                                <span style="color:#fff; font-size:10px; font-weight:500; margin-left: 2px;">@Toutou.com</span>
+                                                <span style="color:#fff; font-size:10px; font-weight:500; margin-left: 2px; flex-shrink:0;">@Toutou.com</span>
                                             </div>
                                         </div>
-                                        <div class="secret-switch" id="nc-secretToggleSwitch" onclick="toggleNcSecretFile()"><div class="switch-knob"></div></div>
+                                        <div class="secret-switch" id="nc-secretToggleSwitch" onclick="toggleNcSecretFile()" style="flex-shrink:0;"><div class="switch-knob"></div></div>
                                     </div>
                                 </div>
 
@@ -646,19 +648,19 @@
                     </div>
                 </div>
 
-                 <!-- 卡片3：个人邮箱与档案开关 (完美收缩版) -->
-                <div class="settings-white-card" style="padding: 12px 15px; flex-direction: row; align-items: center; justify-content: space-between;">
-                    <div style="display:flex; align-items:center;">
-                        <span class="tag-label-prefix" style="margin:0; font-size:12px; color:#555; margin-right:6px;">个人邮箱：</span>
-                        <div class="tag-capsule" style="padding: 4px 10px; display:flex; align-items:center; background:#111; border-radius: 20px; width: max-content;">
-                            <div style="display: inline-grid; align-items: center; justify-items: start;">
-                                <span id="measure-cs-tag1" style="grid-area: 1/1; visibility: hidden; white-space: pre; font-size: 10px; font-weight: 500; pointer-events: none;">前缀</span>
-                                <input type="text" id="cs-tag1" placeholder="前缀" oninput="document.getElementById('measure-cs-tag1').innerText = this.value || '前缀'" style="grid-area: 1/1; width: 100%; min-width: 0; background: transparent; border: none; color: #fff; font-size: 10px; font-weight: 500; outline: none; padding: 0; margin: 0; field-sizing: content;">
+                  <!-- 卡片3：个人邮箱与档案开关 (完美收缩版) -->
+                <div class="settings-white-card" style="padding: 12px 15px; flex-direction: row; align-items: center; justify-content: space-between; gap: 15px;">
+                    <div style="display:flex; align-items:center; flex: 1; overflow: hidden;">
+                        <span class="tag-label-prefix" style="margin:0; font-size:10px; color:#777; margin-right:6px; flex-shrink:0;">个人邮箱：</span>
+                        <div class="tag-capsule" style="padding: 4px 10px; display:flex; align-items:center; background:#111; border-radius: 20px; max-width: 100%;">
+                            <div style="position: relative; display: inline-flex; align-items: center;">
+                                <span id="measure-cs-tag1" style="visibility: hidden; white-space: pre; font-size: 10px; font-weight: 500; min-width: 24px; padding: 0;">前缀</span>
+                                <input type="text" id="cs-tag1" placeholder="前缀" oninput="document.getElementById('measure-cs-tag1').innerText = this.value || '前缀'" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: transparent; border: none; color: #fff; font-size: 10px; font-weight: 500; outline: none; padding: 0; margin: 0;">
                             </div>
-                            <span style="color:#fff; font-size:10px; font-weight:500; margin-left: 2px;">@Toutou.com</span>
+                            <span style="color:#fff; font-size:10px; font-weight:500; margin-left: 2px; flex-shrink:0;">@Toutou.com</span>
                         </div>
                     </div>
-                    <div class="secret-switch" id="cs-secretToggleSwitch" onclick="toggleCsSecretFile()"><div class="switch-knob"></div></div>
+                    <div class="secret-switch" id="cs-secretToggleSwitch" onclick="toggleCsSecretFile()" style="flex-shrink:0;"><div class="switch-knob"></div></div>
                 </div>
 
 
@@ -723,23 +725,23 @@
                 </div>
 
                 <!-- 新增卡片6：气泡预览展示区 -->
-                <div class="settings-white-card" style="padding: 12px;">
+                <div class="settings-white-card" style="padding: 12px; min-height: 220px; height: auto;">
                     <div class="settings-input-group" style="margin-bottom: 0;">
                         <label style="margin-left: 5px;">效果预览</label>
                         <div class="bubble-preview-container" id="bubble-preview-container">
-                            <!-- 角色发出的消息 (左) -->
+                            <!-- 角色发出的消息 (左侧) -->
                             <div class="preview-msg-row left">
-                                <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" class="preview-avatar" id="preview-avatar-char">
-                                <div class="message-bubble char">
-                                    <div class="content">你好呀，来找我有什么事吗？</div>
+                                <img src="" class="preview-avatar" id="preview-avatar-char">
+                                <div class="Toutou-TT char">
+                                    <div class="content">你好呀！最近怎么样？如果你打字很多的话，它就会像这样自动换行哦，并且阅读顺序依然是从左到右的。</div>
                                 </div>
                             </div>
-                            <!-- 用户发出的消息 (右) -->
+                            <!-- 用户发出的消息 (右侧) -->
                             <div class="preview-msg-row right">
-                                <div class="message-bubble Toutou">
-                                    <div class="content">没什么，只是想给你看看新买的聊天气泡！</div>
+                                <div class="Toutou-TT user">
+                                    <div class="content">太棒了！你看我这边的长文本，也会在超过屏幕一半时自动换行，而且我的小尾巴也死死钉在右下角，完全没有错位！</div>
                                 </div>
-                                <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" class="preview-avatar" id="preview-avatar-toutou">
+                                <img src="" class="preview-avatar" id="preview-avatar-user">
                             </div>
                         </div>
                     </div>
