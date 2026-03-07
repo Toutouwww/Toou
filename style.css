@@ -1498,6 +1498,7 @@ body {
     position: relative;
     padding-top: 12px; 
     z-index: 10;
+    min-height: 0; /* 🔥 核心：打破 Flex 默认的无限延伸，激活内部滚动条 */
 }
 
 /* 3. 最内层：极简扁平切割的纯白主体层 (彻底去除阴影) */
@@ -1509,6 +1510,7 @@ body {
     display: flex; flex-direction: column;
     overflow: hidden; 
     z-index: 20;
+    min-height: 0; /* 🔥 核心：打破 Flex 默认的无限延伸，激活内部滚动条 */
 }
 
 /* 聊天内容区 */
@@ -1752,19 +1754,19 @@ body {
 /* 严格还原你的原始气泡底层代码 */
 .Toutou-TT.user .content,
 .Toutou-TT.char .content {
-  --top-left: 16px; /* 🔥 圆角同步调小，配合内边距 */
+  --top-left: 16px; 
   --top-right: 16px;
   --bottom-right: 16px;
   --bottom-left: 16px;
   
-  padding: 6px 10px; /* 🔥 核心修改：内边距明显缩小，气泡紧凑但字体不变 */
+  padding: 3px 7px; /* 🔥 核心缩小：字号不变，把四周的内边距缩减 3px，实现主体壳子的收缩 */
   position: relative;
   word-wrap: break-word;
-  word-break: break-all; /* 防止长串英文不换行 */
+  word-break: break-all; 
   display: inline-block;
   font-size: 14px; /* 🔥 字体大小坚决不动 */
   line-height: 1.5;
-  max-width: 65vw; /* 超过屏幕一半多一点自动从左到右换行 */
+  max-width: 65vw; 
   text-align: left; 
 }
 
@@ -1776,12 +1778,13 @@ body {
     --bubble-char-text: #000000;
 }
 
-/* --- Toutou-TT.user (右侧用户) 气泡 --- */
+/* --- Toutou-TT.user (右侧用户 - 我方) 气泡 --- */
 .Toutou-TT.user .content {
   background-color: var(--bubble-user-bg);
   color: var(--bubble-user-text);
   border-radius: var(--top-left) var(--top-right) var(--bottom-right) var(--bottom-left);
   transition: background-color 0.3s, color 0.3s;
+  transform: translate(3px, -3px); /* 🔥 整体气泡主体：往右 3px，往上 3px */
 }
 
 .Toutou-TT.user .content::after {
@@ -1790,21 +1793,22 @@ body {
   width: 12px;
   height: 15px;
   background-color: inherit; 
-  right: 1px; 
-  bottom: 11px; /* 配合高度调整尾巴位置 */
+  right: -1px; /* 🔥 尾巴往右移动 3px (原来是 1px) */
+  bottom: 12px; /* 🔥 尾巴往上移动 3px (原来是 11px) */
   clip-path: path("M 13,1 Q 2,0 0,12 Q 3,7 11,12 L 8,4");
   z-index: 1;
-  transform: rotate(236deg);
+  transform: rotate(236deg) scale(0.8); /* 🔥 增加 scale(0.8) 将小尾巴本身缩小约 3px */
   transform-origin: bottom right;
   transition: background-color 0.3s;
 }
 
-/* --- Toutou-TT.char (左侧角色) 气泡 --- */
+/* --- Toutou-TT.char (左侧角色 - 对方) 气泡 --- */
 .Toutou-TT.char .content {
   background-color: var(--bubble-char-bg);
   color: var(--bubble-char-text);
   border-radius: var(--top-left) var(--top-right) var(--bottom-right) var(--bottom-left);
   transition: background-color 0.3s, color 0.3s;
+  transform: translate(-3px, 3px); /* 🔥 整体气泡主体依然保持：往左 3px，往上 3px */
 }
 
 .Toutou-TT.char .content::after {
@@ -1813,11 +1817,11 @@ body {
   width: 12px;
   height: 15px;
   background-color: inherit; 
-  left: -6px;
-  bottom: 1.5px; /* 配合高度调整尾巴位置 */
+  left: -6px; /* 🔥 尾巴往右退回 3px，重新贴紧气泡主体边缘 */
+  bottom: 5px; /* 🔥 尾巴往下退回 3px，回到正确的底部位置 */
   clip-path: path("M 13,2 Q 1,0 0,12 Q 3,7 11,12 L 19,3");
   z-index: 1;
-  transform: scaleX(-1) rotate(236deg);
+  transform: scaleX(-1) rotate(236deg) scale(0.8); /* 🔥 保留尾巴缩小的效果 */
   transform-origin: bottom left;
   transition: background-color 0.3s;
 }
@@ -1826,6 +1830,7 @@ body {
 .preview-msg-row { 
     display: flex; align-items: flex-end; gap: 8px; width: 100%; 
     transform: translateY(-5px); /* 🔥 物理位移神技：强行让这一整行（包含头像、时间戳和气泡）向上移动 5px */
+    flex-shrink: 0; /* 🔥 核心保护：防止消息数量超过一屏幕时，气泡被 Flex 强行挤压变形 */
 }
 .preview-msg-row.right { justify-content: flex-end; flex-direction: row; }
 .preview-msg-row.left { justify-content: flex-start; }
