@@ -2031,7 +2031,7 @@ function promptDeleteContactFromSettings() {
 }
 
 
-// ====== 🌟 输入框自适应高度联动 & 回车发送联动 ======
+/// ====== 🌟 输入框自适应高度联动 (已去除回车发送，纯粹换行) ======
 document.addEventListener('DOMContentLoaded', () => {
     const chatInput = document.getElementById('chatRoomInput');
     if (chatInput) {
@@ -2040,16 +2040,10 @@ document.addEventListener('DOMContentLoaded', () => {
             this.style.height = 'auto'; 
             this.style.height = this.scrollHeight + 'px';
         });
-        
-        // 支持电脑端 Enter 键快速发送（Shift+Enter换行）
-        chatInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault(); // 阻止默认回车换行
-                sendChatMessage();
-            }
-        });
+        // 🌟 已经彻底删除了键盘回车拦截，现在敲击回车只会老老实实地在输入框内换行！
     }
 });
+
 
 // 🌟 核心：补全丢失的用户发送消息引擎
 function sendChatMessage() {
