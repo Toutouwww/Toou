@@ -591,12 +591,16 @@ function openCharSelectModal() {
     const list = document.getElementById('charSelectList');
     list.innerHTML = '';
     document.querySelector('#charSelectOverlay .custom-prompt-title').innerText = '选择要绑定的角色';
-    
-    // 如果没有角色，展示暂无角色
+
+    // 🌟 核心串联：从通讯录实时拉取已创建的角色名字列表，去重去空
+    // 🌟 修复Bug：去掉了严苛的 `n !== '未命名角色'` 拦截，允许新手即时不改名字也能顺利绑定角色
+    const availableChars = [...new Set(contactsList.map(c => c.name))].filter(n => n);
+
+    // 如果没有角色，展示暂无角色提示
     if (availableChars.length === 0) {
-        list.innerHTML = `<div style="text-align:center; padding: 20px 10px; color:#999; font-size:13px; font-weight:500;">暂无角色</div>`;
+        list.innerHTML = `<div style="text-align:center; padding: 20px 10px; color:#999; font-size:13px; font-weight:500;">暂无已创建的角色，请先去通讯录新建单人</div>`;
     } else {
-        // 如果有角色则正常渲染列表
+        // 动态渲染真实的聊天角色列表
         availableChars.forEach(char => {
             const item = document.createElement('div');
             item.className = 'model-item-btn'; item.innerText = char;
@@ -604,9 +608,10 @@ function openCharSelectModal() {
             list.appendChild(item);
         });
     }
-    
+
     document.getElementById('charSelectOverlay').classList.add('active');
 }
+
 function closeCharSelectModal() { document.getElementById('charSelectOverlay').classList.remove('active'); }
 
 function updateCharBtnUI() {
@@ -732,7 +737,7 @@ function saveWorldbook() {
     
     let subGroup = '';
     if (currentSelectedCategory === '已绑定') {
-        if(!currentSelectedSubGroup) { showToast('请选择绑定的角色'); return; }
+        if(!currentSelectedSubGroup) { showToast('请选择绑定的通讯录角色'); return; }
         subGroup = currentSelectedSubGroup;
     } else if (currentSelectedCategory === '通用') {
         if(!currentSelectedSubGroup) { showToast('请新建或选择一个分组'); return; }
@@ -1564,9 +1569,11 @@ function saveNewContact() {
     const remark = document.getElementById('text-nc-remark').innerText.trim();
     
     // 识别有没有认真填
-    const finalRealName = (realName === '新角色' || realName === '在这里输入真实名称' || realName === '') ? '未命名角色' : realName;
+    // 🌟 修复Bug：将默认占位名从生硬的“未命名角色”统一改为顺耳的“新角色”，彻底解决被过滤的问题
+    const finalRealName = (realName === '新角色' || realName === '在这里输入真实名称' || realName === '') ? '新角色' : realName;
     
     // UI 显示逻辑：主标题大字 (如果有备注，优先显示备注，否则显示真名)
+
     let displayTitle = finalRealName;
     if (remark !== '点击设置备注' && remark !== '') {
         displayTitle = remark;
@@ -1914,14 +1921,16 @@ function saveChatSettings() {
     const remark = document.getElementById('cs-remark').value.trim();
     
     // 逻辑：有备注优先显示备注，没备注显示真名
-    let finalDisplayName = remark !== '' ? remark : (realName !== '' ? realName : '未命名角色');
+    let finalDisplayName = remark !== '' ? remark : (realName !== '' ? realName : '新角色');
+    const oldName = contactsList[contactIndex].name; // 记录旧名字
+
 
     contactsList[contactIndex].avatar = document.getElementById('cs-avatar').src; 
     contactsList[contactIndex].realName = realName;
     contactsList[contactIndex].remark = remark;
     contactsList[contactIndex].name = finalDisplayName; 
     contactsList[contactIndex].boundProfileId = tempBoundProfileId; 
-    contactsList[contactIndex].group = csSelectedGroup; // 写入当前设定的分组
+    contactsList[contactIndex].group = csSelectedGroup; 
 
     contactsList[contactIndex].details = {
         gender: document.getElementById('cs-gender').value.trim(),
@@ -1935,6 +1944,22 @@ function saveChatSettings() {
     };
 
     saveToDB('contacts_data', JSON.stringify(contactsList));
+
+    // 🌟 核心串联：如果角色改名了，自动把世界书里绑定的名字也同步改过来！防止脱节
+    if (oldName && oldName !== finalDisplayName) {
+        let wbUpdated = false;
+        activeWorldbooks.forEach(wb => {
+            if (wb.category === '已绑定' && wb.subGroup === oldName) {
+                wb.subGroup = finalDisplayName;
+                wbUpdated = true;
+            }
+        });
+        if (wbUpdated) {
+            saveToDB('worldbooks_data', JSON.stringify(activeWorldbooks));
+            recalcCategories(); // 刷新世界书里的分类白球
+        }
+    }
+
     renderMsgList(); // 同步列表页
     
     // 同步刷新当前聊天室内的名称
@@ -1995,14 +2020,37 @@ function toggleCsSecretFile() {
 /* ==========================================
    🌟 唯一关键词：【气泡主题选择交互】
 ========================================== */
+// 录入你提供的所有专属色卡数据
+const bubbleThemes = {
+    '黑灰': { ub: '#000000', ut: '#ffffff', cb: '#F1F1F3', ct: '#000000' },
+    '薄巧': { ub: '#D0ECEA', ut: '#56515D', cb: '#81716F', ct: '#ffffff' },
+    '黄绿': { ub: '#FBFDE6', ut: '#C0C2A9', cb: '#F4F9F5', ct: '#999E94' },
+    '紫紫': { ub: '#E6E1FF', ut: '#747379', cb: '#F5F4FF', ct: '#747379' },
+    '黑粉': { ub: '#FFF4F8', ut: '#585858', cb: '#000000', ct: '#ffffff' },
+    '蓝粉': { ub: '#FFEFF2', ut: '#31363C', cb: '#EBF4FD', ct: '#31363C' }
+};
+
 function selectBubbleTheme(themeName, el) {
+    // UI 高亮切换
     const items = document.querySelectorAll('.bubble-theme-item');
     items.forEach(item => item.classList.remove('active'));
-    el.classList.add('active');
+    if(el) el.classList.add('active');
     
-    // 提示当前选择
-    showToast(`已选择：${themeName} 气泡`);
+    // 获取选中颜色
+    const t = bubbleThemes[themeName];
+    if(t) {
+        // 实时修改全局 CSS 颜色引擎，秒换装
+        document.documentElement.style.setProperty('--bubble-user-bg', t.ub);
+        document.documentElement.style.setProperty('--bubble-user-text', t.ut);
+        document.documentElement.style.setProperty('--bubble-char-bg', t.cb);
+        document.documentElement.style.setProperty('--bubble-char-text', t.ct);
+        
+        // 🌟 神级逻辑：存入本地数据库，刷新永久保存且自动读取！
+        saveToDB('color_bubble-user-bg', t.ub);
+        saveToDB('color_bubble-user-text', t.ut);
+        saveToDB('color_bubble-char-bg', t.cb);
+        saveToDB('color_bubble-char-text', t.ct);
+    }
     
-    // TODO: 后续核心聊天逻辑推进后，此处将配合 CSS 变量实时改变预览区和真正聊天室的气泡颜色！
+    showToast(`已应用：${themeName} 配色`);
 }
-

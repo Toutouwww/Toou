@@ -467,7 +467,8 @@
                                             <span id="nc-bound-profile-name">系统默认身份</span>
                                             <svg viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                         </div>
-                                        <div class="cs-profile-menu" id="ncProfileMenu" style="width: 100%; box-sizing: border-box; display:none; max-height: 150px; overflow-y: auto;"></div>
+                                        <!-- 🌟 修复Bug：去除了内联的 display:none 防止盖死弹窗不出 -->
+                                        <div class="cs-profile-menu" id="ncProfileMenu" style="width: 100%; box-sizing: border-box; max-height: 150px; overflow-y: auto;"></div>
                                     </div>
                                 </div>
 
@@ -475,11 +476,12 @@
                         </div>
                         
                         <!-- 🌟 按钮区提取到容器最底部：永远贴边，绝不被遮挡 -->
-                        <div class="sheet-action-row" style="padding: 10px 15px 25px 15px; margin-top: 0; background: #F5F5F5; border-top: 1px solid #eaeaea; flex-shrink: 0;">
+                        <!-- 🌟 修复Bug：增加 position 和 z-index 提权，防止被隐形层遮挡导致点不动取消 -->
+                        <div class="sheet-action-row" style="position: relative; z-index: 10; padding: 10px 15px 25px 15px; margin-top: 0; background: #F5F5F5; border-top: 1px solid #eaeaea; flex-shrink: 0;">
                             <div class="sheet-btn cancel" onclick="closeNewContactSheet()">取消</div>
                             <div class="sheet-btn confirm" onclick="saveNewContact()">创建角色</div>
                         </div>
-                    </div>
+                    </div> <!-- 🌟 核心修复：补回遗漏的闭合标签，拯救全盘 DOM 塌方！！！ -->
 
                     <!-- 🌟 优化后：直接出列表的分组菜单 -->
 
@@ -724,7 +726,7 @@
                     </div>
                 </div>
 
-                <!-- 新增卡片6：气泡预览展示区 -->
+                 <!-- 新增卡片6：气泡预览展示区 -->
                 <div class="settings-white-card" style="padding: 12px; min-height: 220px; height: auto;">
                     <div class="settings-input-group" style="margin-bottom: 0;">
                         <label style="margin-left: 5px;">效果预览</label>
@@ -733,19 +735,20 @@
                             <div class="preview-msg-row left">
                                 <img src="" class="preview-avatar" id="preview-avatar-char">
                                 <div class="Toutou-TT char">
-                                    <div class="content">你好呀！最近怎么样？如果你打字很多的话，它就会像这样自动换行哦，并且阅读顺序依然是从左到右的。</div>
+                                    <div class="content">师妹就是嗯啊，14号那天你有空吗？其实我也不是想的你了，只是那天我剑送去山下养护了。哎多说无益，你觉得如何？</div>
                                 </div>
                             </div>
                             <!-- 用户发出的消息 (右侧) -->
                             <div class="preview-msg-row right">
                                 <div class="Toutou-TT user">
-                                    <div class="content">太棒了！你看我这边的长文本，也会在超过屏幕一半时自动换行，而且我的小尾巴也死死钉在右下角，完全没有错位！</div>
+                                    <div class="content">14号没空，休要坏我道心！</div>
                                 </div>
                                 <img src="" class="preview-avatar" id="preview-avatar-user">
                             </div>
                         </div>
                     </div>
                 </div>
+
 
                 
                 <!-- 删除了以前由于粘贴错误多出来的 </div> 标签 -->
