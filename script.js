@@ -1981,7 +1981,7 @@ function promptDeleteContactFromSettings() {
     }
 }
 
-// ====== 🌟 输入框自适应高度联动 ======
+// ====== 🌟 输入框自适应高度联动 & 回车发送联动 ======
 document.addEventListener('DOMContentLoaded', () => {
     const chatInput = document.getElementById('chatRoomInput');
     if (chatInput) {
@@ -1990,8 +1990,72 @@ document.addEventListener('DOMContentLoaded', () => {
             this.style.height = 'auto'; 
             this.style.height = this.scrollHeight + 'px';
         });
+        
+        // 支持电脑端 Enter 键快速发送（Shift+Enter换行）
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault(); // 阻止默认回车换行
+                sendChatMessage();
+            }
+        });
     }
 });
+
+// ==========================================
+// 🌟 发送消息逻辑 (DOM渲染 + 列表摘要更新)
+// ==========================================
+function sendChatMessage() {
+    const inputEl = document.getElementById('chatRoomInput');
+    let text = inputEl.value.trim();
+    if (!text || !currentChatContactId) return;
+
+    const contactIndex = contactsList.findIndex(c => c.id === currentChatContactId);
+    if (contactIndex === -1) return;
+
+    // 获取当前时间
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    // 获取我方（用户）头像
+    const myAvatar = document.getElementById('img-sidebar-avatar').src;
+
+    // 处理换行符，防注入并允许正常的文字排版
+    const safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+
+    // 构建消息 HTML (自带唯一指定的气泡样式和时间戳)
+    const msgHtml = `
+    <div class="preview-msg-row right">
+        <div class="Toutou-TT user">
+            <span class="bubble-time">${timeStr}</span>
+            <div class="content">${safeText}</div>
+        </div>
+        <img src="${myAvatar}" class="preview-avatar">
+    </div>
+    `;
+
+    const chatBody = document.getElementById('chatRoomBody');
+    
+    // 将气泡追加到聊天室中
+    chatBody.insertAdjacentHTML('beforeend', msgHtml);
+
+    // 平滑滚动到底部，确保能看到最新消息
+    setTimeout(() => {
+        chatBody.scrollTo({
+            top: chatBody.scrollHeight,
+            behavior: 'smooth'
+        });
+    }, 50);
+
+    // 清空输入框并重置高度
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+
+    // 🌟 神级联动：你发出的消息会同步变成列表页外面的摘要，时间也会同步刷新！
+    contactsList[contactIndex].sign = text;
+    contactsList[contactIndex].time = timeStr;
+    saveToDB('contacts_data', JSON.stringify(contactsList));
+    renderMsgList();
+}
 
 
 // ====== 🌟 角色专属聊天设置页 - 头像菜单与绝密档案 ======
@@ -2020,7 +2084,6 @@ function toggleCsSecretFile() {
 /* ==========================================
    🌟 唯一关键词：【气泡主题选择交互】
 ========================================== */
-// 录入你提供的所有专属色卡数据
 const bubbleThemes = {
     '黑灰': { ub: '#000000', ut: '#ffffff', cb: '#F1F1F3', ct: '#000000' },
     '薄巧': { ub: '#D0ECEA', ut: '#56515D', cb: '#81716F', ct: '#ffffff' },
@@ -2031,26 +2094,21 @@ const bubbleThemes = {
 };
 
 function selectBubbleTheme(themeName, el) {
-    // UI 高亮切换
     const items = document.querySelectorAll('.bubble-theme-item');
     items.forEach(item => item.classList.remove('active'));
     if(el) el.classList.add('active');
     
-    // 获取选中颜色
     const t = bubbleThemes[themeName];
     if(t) {
-        // 实时修改全局 CSS 颜色引擎，秒换装
         document.documentElement.style.setProperty('--bubble-user-bg', t.ub);
         document.documentElement.style.setProperty('--bubble-user-text', t.ut);
         document.documentElement.style.setProperty('--bubble-char-bg', t.cb);
         document.documentElement.style.setProperty('--bubble-char-text', t.ct);
         
-        // 🌟 神级逻辑：存入本地数据库，刷新永久保存且自动读取！
         saveToDB('color_bubble-user-bg', t.ub);
         saveToDB('color_bubble-user-text', t.ut);
         saveToDB('color_bubble-char-bg', t.cb);
         saveToDB('color_bubble-char-text', t.ct);
     }
-    
     showToast(`已应用：${themeName} 配色`);
 }

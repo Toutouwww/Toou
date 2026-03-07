@@ -1538,9 +1538,9 @@ body {
    🌟 全新聊天页高级底栏系统 (极致对齐版)
 ========================================== */
 .chat-room-input-bar {
-    /* 核心修改：底部距缩减5px，顶部距增加5px，实现整体元素下沉5px */
-    padding-bottom: calc(5px + env(safe-area-inset-bottom, 15px));
-    padding-top: 20px; 
+    /* 核心修改：基于真实物理边界 10px + 安全区自适应，彻底解决真机遮挡/悬空问题 */
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    padding-top: 15px; 
     background: #ffffff; 
     display: flex; 
     align-items: flex-start; 
@@ -1550,6 +1550,7 @@ body {
     flex-shrink: 0;
     z-index: 30;
 }
+
 
 /* 左侧加号按钮 & 右侧发送按钮通用布局 */
 .chat-add-btn, .chat-send-btn {
@@ -1711,6 +1712,18 @@ body {
 .Toutou-TT {
     display: flex;
     width: 100%;
+    align-items: flex-end; /* 确保时间戳始终与气泡底部贴齐 */
+}
+
+/* 聊天气泡旁侧的时间戳样式 */
+.bubble-time {
+    font-size: 10px;
+    color: #b3b3b3;
+    margin: 0 6px 2px 6px; /* 紧贴气泡，距离底部微调2px实现完美视觉对齐 */
+    font-weight: 600;
+    flex-shrink: 0;
+    user-select: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
 }
 .Toutou-TT.user {
     justify-content: flex-end; 
