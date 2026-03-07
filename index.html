@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Toutou小手机">
+    <meta name="format-detection" content="telephone=no">
+
+    <title>Toutou小手机</title>
+    
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- 主桌面容器 -->
+    <div class="mobile-container">
+        
+        <div class="white-card" id="display-white-card">
+            <div class="profile-name" id="text-top-name">千岛</div>
+        </div>
+
+        <div class="floating-section">
+            <div class="avatar-wrapper">
+                <div class="quote-circle" id="display-quote-l"><span class="quote-mark">“</span></div>
+                <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" class="avatar-img" id="img-main-avatar" alt="Avatar">
+                <div class="quote-circle" id="display-quote-r"><span class="quote-mark">”</span></div>
+            </div>
+            <div class="profile-id" id="text-bottom-id">2025#1104</div>
+        </div>
+
+        <div class="chat-list">
+            <div class="message-row right">
+                <span class="time-stamp" id="chat-time-1">--:--</span>
+                <div class="bubble gray" id="text-bubble-r1">要是谁到学校欺负你就吱一声</div>
+            </div>
+            <div class="message-row right">
+                <span class="time-stamp" id="chat-time-2">--:--</span>
+                <div class="bubble gray" id="text-bubble-r2">我肯定火速赶到</div>
+            </div>
+            <div>
+                <div class="sender-name" id="text-chat-name">千岛</div>
+                <div class="message-row left">
+                    <div class="left-info">
+                        <div class="small-avatar">
+                            <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" id="img-chat-avatar" alt="千岛">
+                        </div>
+                    </div>
+                    <div class="bubble white" id="text-bubble-l1">就算你不来，我也会埋了他的</div>
+                    <span class="read-status">已读</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="music-player">
+            <div class="music-lyric">暂无歌词</div>
+            <div class="progress-container">
+                <span class="time-text">5:20</span>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill">
+                        <div class="slider-dot"></div>
+                    </div>
+                </div>
+                <span class="time-text">13:14</span>
+            </div>
+        </div>
+
+        <div class="middle-mix-section">
+            <div class="blog-wrapper">
+                <div class="blog-card">
+                    <div class="browser-bar">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="12" rx="2" ry="2"></rect>
+                            <line x1="3" y1="21" x2="21" y2="21"></line>
+                        </svg>
+                        <span class="browser-text">https://api2.qiandao.mom</span>
+                        <span class="refresh-icon">↻</span>
+                    </div>
+                    <div class="blog-header">
+                        <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" class="blog-avatar" id="img-blog-avatar" alt="User">
+                        <div class="blog-info">
+                            <span class="blog-user" id="text-blog-name">千岛</span>
+                            <span class="blog-date" id="text-blog-date">11-04</span>
+                        </div>
+                        <div class="blog-menu">⋮</div>
+                    </div>
+                    <div class="blog-content">
+                        <div class="gray-line"></div>
+                        <div class="blog-text">
+                            <div id="text-blog-line1">第一句</div>
+                            <div id="text-blog-line2">第二句</div>
+                            <div id="text-blog-line3">第三句</div>
+                            <div id="text-blog-line4">第四句</div>
+                            <div id="text-blog-line5">第五句</div>
+                        </div>
+                    </div>
+                    <div class="device-info" id="text-device-info">来自 iPhone 17 Pro Max</div>
+                    <div class="action-icons">
+                        <svg class="icon-svg heart-icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                        </svg>
+                        <svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                        </svg>
+                        <svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                            <polyline points="16 6 12 2 8 6"></polyline>
+                            <line x1="12" y1="2" x2="12" y2="15"></line>
+                        </svg>
+                    </div>
+                    <div class="polaroid-img">
+                        <img src="https://i.pinimg.com/564x/1e/8a/92/1e8a9248c89c72c91836371cb843c054.jpg" id="img-polaroid" alt="Polaroid">
+                    </div>
+                </div>
+            </div>
+
+            <div class="apps-grid">
+                <!-- 绑定打开“世界书”的事件 -->
+                <div class="app-item" onclick="openWorldbookApp(event)">
+                    <div class="app-icon-card"><img id="img-app1" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=" alt="Icon"></div>
+                    <span class="app-name">世界书</span>
+                </div>
+                <div class="app-item">
+                    <div class="app-icon-card"><img id="img-app2" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=" alt="Icon"></div>
+                    <span class="app-name">克劳德</span>
+                </div>
+                <div class="app-item">
+                    <div class="app-icon-card"><img id="img-app3" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=" alt="Icon"></div>
+                    <span class="app-name">其他</span>
+                </div>
+                <div class="app-item" onclick="openApiApp(event)">
+                    <div class="app-icon-card"><img id="img-app4" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=" alt="Icon"></div>
+                    <span class="app-name">千岛API</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="search-section">
+            <div class="search-capsule">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888888" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <span class="search-text">搜索</span>
+            </div>
+        </div>
+
+        <!-- 底部 Dock 栏 -->
+        <div class="dock-container">
+            <div class="dock-bar">
+                <div class="dock-icon" onclick="openAppChat(event)"><img id="img-dock1" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></div>
+                <div class="dock-icon"><img id="img-dock2" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></div>
+                <div class="dock-icon"><img id="img-dock3" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></div>
+                <div class="dock-icon"><img id="img-dock4" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ============================================== -->
+    <!-- ⬇️ 内部软件1：通讯应用界面 (白主黑灰辅助风) ⬇️ -->
+    <!-- ============================================== -->
+    <div class="app-overlay" id="appChatOverlay">
+        <div class="app-close-btn" onclick="closeAppChat()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </div>
+        <div class="app-container">
+            <div class="app-sidebar">
+                <div class="sidebar-top">
+                    <div class="sidebar-avatar-wrapper" onclick="switchTab('tab-profile', this)">
+                        <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" class="sidebar-avatar" id="img-sidebar-avatar" alt="User">
+                        <span class="sidebar-avatar-text" id="text-sidebar-name">暂定</span>
+                    </div>
+                    <div class="nav-buttons-group">
+                        <div class="nav-btn active" onclick="switchTab('tab-msg', this)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                        </div>
+                        <div class="nav-btn" onclick="switchTab('tab-contacts', this)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        </div>
+                        <div class="nav-btn" onclick="switchTab('tab-moments', this)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5Z"/><path d="M5.5 10c-1.4 0-2.5-1.1-2.5-2.5S4.1 5 5.5 5 8 6.1 8 7.5 6.9 10 5.5 10Z"/><path d="M18.5 10c-1.4 0-2.5-1.1-2.5-2.5S17.1 5 18.5 5 21 6.1 21 7.5 19.9 10 18.5 10Z"/><path d="M12 6.5c-1.4 0-2.5-1.1-2.5-2.5S10.6 1.5 12 1.5 14.5 2.6 14.5 4 13.4 6.5 12 6.5Z"/>
+                            </svg>
+                        </div>
+                        <div class="nav-btn" onclick="switchTab('tab-mailbox', this)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                        </div>
+                        <div class="nav-btn" onclick="switchTab('tab-tbd2', this)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="sidebar-bottom">
+                    <div class="nav-btn" onclick="switchTab('tab-settings', this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="app-main-content">
+                <div class="screen-tab" id="tab-profile">
+                    <div class="profile-plan-manager">
+                        <div class="plan-capsule" onclick="togglePlanMenu()">
+                            <span id="current-plan-name">我的个人介绍</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron-down"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                        <div class="plan-menu" id="planActionMenu">
+                            <div class="plan-action-btn" onclick="openProfileDataModal()">我的资料</div>
+                            <div class="plan-action-btn" onclick="createNewPlan()">新建</div>
+                            <div class="plan-action-btn" onclick="saveCurrentPlan()">保存</div>
+                            <div class="plan-action-btn apply" onclick="promptApplyPlan()">应用</div>
+                            <div class="plan-action-btn delete" onclick="deleteCurrentPlan()">删除</div>
+                        </div>
+                    </div>
+
+                    <div class="screen-body screen-body-profile">
+                        <div class="profile-header-card mini-card">
+                            <div class="profile-avatar-container">
+                                <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" class="profile-avatar-img" id="img-profile-avatar" onclick="toggleAvatarMenu()">
+                                <div class="avatar-action-menu" id="avatarActionMenu">
+                                    <div class="avatar-action-btn" onclick="changeAvatarLink()">链接</div>
+                                    <div class="avatar-action-btn" onclick="triggerLocalAvatar()">本地</div>
+                                </div>
+                                <input type="file" id="localAvatarInput" style="display:none" accept="image/*" onchange="uploadLocalAvatar(this)">
+                            </div>
+                            <div class="profile-text-info">
+                                <div class="profile-name-row" onclick="openCustomPrompt('编辑昵称', 'text-profile-name', '在这里输入你的新昵称', 'input')">
+                                    Hello, <span id="text-profile-name">某某</span>
+                                </div>
+                                <!-- 🌟 唯一关键词：【修复编辑备注文案】 -->
+                                 <div class="profile-sign-row" onclick="openCustomPrompt('编辑备注', 'text-profile-sign', '编辑角色对你的专属备注', 'input')">
+                                    <span id="text-profile-sign">编辑角色对你的专属备注</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="profile-detail-section">
+                            <div class="detail-row-group">
+                                <div class="detail-col-item" onclick="focusInlineInput('input-detail-gender')">
+                                    <div class="detail-label-stack"><span class="eng">Gender</span><span class="chn">/ 性别</span></div>
+                                    <input type="text" class="inline-detail-input" id="input-detail-gender" placeholder="-" onblur="saveInlineInput('text-detail-gender', this.value)" onkeypress="handleEnterSave(event, this)">
+                                </div>
+                                <div class="detail-col-item" onclick="focusInlineInput('input-detail-age')">
+                                    <div class="detail-label-stack"><span class="eng">Age</span><span class="chn">/ 年龄</span></div>
+                                    <input type="text" class="inline-detail-input" id="input-detail-age" placeholder="-" onblur="saveInlineInput('text-detail-age', this.value)" onkeypress="handleEnterSave(event, this)">
+                                </div>
+                            </div>
+
+                            <div class="detail-row-group">
+                                <div class="detail-col-item date-picker-container">
+                                    <div class="detail-label-stack"><span class="eng">Birthday</span><span class="chn">/ 生日</span></div>
+                                    <div class="bday-input-wrapper">
+                                        <input type="text" class="inline-detail-input" id="display-detail-birthday" placeholder="-" readonly>
+                                        <input type="date" class="real-date-picker" id="input-detail-birthday" onchange="handleBirthdayChange(this.value)">
+                                    </div>
+                                </div>
+                                <div class="detail-col-item">
+                                    <div class="detail-label-stack"><span class="eng">Zodiac</span><span class="chn">/ 星座</span></div>
+                                    <input type="text" class="inline-detail-input" id="input-detail-zodiac" placeholder="-" readonly>
+                                </div>
+                            </div>
+                            
+                            <div class="detail-row-group">
+                                <div class="detail-col-item full-width" onclick="focusInlineInput('input-detail-location')">
+                                    <div class="detail-label-stack"><span class="eng">Location</span><span class="chn">/ 地区</span></div>
+                                    <input type="text" class="inline-detail-input" id="input-detail-location" placeholder="Unknown Location" onblur="saveInlineInput('text-detail-location', this.value)" onkeypress="handleEnterSave(event, this)">
+                                </div>
+                            </div>
+
+                            <!-- 改造后的独立个人邮箱白卡 (完美收缩版) -->
+                            <div class="detail-row-group" style="margin-top: 4px; margin-bottom: 8px;">
+                                <div class="detail-col-item full-width" style="flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 14px;">
+                                    <div style="display:flex; align-items:center;">
+                                        <span class="tag-label-prefix" style="margin:0; font-size:12px; color:#555; margin-right:6px;">个人邮箱：</span>
+                                        <div class="tag-capsule" style="padding: 4px 10px; display:flex; align-items:center; background:#111; border-radius: 20px; width: max-content;">
+                                            <div style="display: inline-grid; align-items: center; justify-items: start;">
+                                                <span id="measure-tag1" style="grid-area: 1/1; visibility: hidden; white-space: pre; font-size: 10px; font-weight: 500; pointer-events: none;">前缀</span>
+                                                <input type="text" id="input-tag-1" placeholder="前缀" onblur="saveInlineInput('text-tag-1', this.value)" onkeypress="handleEnterSave(event, this)" oninput="document.getElementById('measure-tag1').innerText = this.value || '前缀'" style="grid-area: 1/1; width: 100%; min-width: 0; background: transparent; border: none; color: #fff; font-size: 10px; font-weight: 500; outline: none; padding: 0; margin: 0; field-sizing: content;">
+                                            </div>
+                                            <span style="color:#fff; font-size:10px; font-weight:500; margin-left: 2px;">@Toutou.com</span>
+                                        </div>
+                                    </div>
+                                    <div class="secret-switch" id="secretToggleSwitch" onclick="toggleSecretFile()"><div class="switch-knob"></div></div>
+                                </div>
+                            </div>
+
+
+
+                            <!-- 下面的绝密档案卡片 (增加了独有头像列表ID) -->
+                            <div class="secret-file-card closed" id="secretFileCard">
+                                <div class="secret-watermark">TOP SECRET</div>
+                                <div class="secret-content-wrapper">
+                                    <textarea class="secret-textarea" id="input-secret-file" placeholder="请输入详尽的个人专属档案..." onblur="saveInlineInput('text-secret-file', this.value)"></textarea>
+                                </div>
+                                <div class="avatar-notch-overlay">
+                                    <div class="notch-avatars" id="profile-bound-avatars">
+                                        <!-- JS 将会动态把这里变成你绑定的角色头像 -->
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div style="display:none;">
+                            <span id="text-detail-gender">-</span><span id="text-detail-age">-</span><span id="text-detail-birthday"></span>
+                            <span id="text-detail-zodiac">-</span><span id="text-detail-location">Unknown Location</span>
+                            <span id="text-tag-1">标签</span><span id="text-tag-2">标签</span><span id="text-tag-3">标签</span><span id="text-secret-file"></span>
+                        </div>
+                    </div>
+
+                    <div class="profile-data-modal" id="profileDataModal">
+                        <div class="modal-handle-bar"></div>
+                        <div class="modal-title">我的个人资料方案</div>
+                        <div class="modal-content" id="profilePlansList"></div>
+                    </div>
+                </div>
+
+                <div class="app-phone-frame" id="phone-frame-wrapper">
+                    <div class="phone-notch"></div>
+                    <div class="screen-tab active" id="tab-msg">
+                        <!-- 白底头部，包含 MESSAGES 和 凹陷的圆+ -->
+                        <div class="screen-header msg-custom-header">
+                            <div class="msg-header-title">MESSAGES</div>
+                            <div class="msg-add-btn" onclick="toggleMsgAddMenu(event)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            </div>
+                            <!-- + 按钮触发的小白窗 -->
+                            <div class="msg-popover-menu" id="msg-popover-menu">
+                                                                <div class="msg-popover-item" onclick="openNewContactSheet()">新建单人</div>
+                                <div class="msg-popover-item" onclick="showToast('拉取群聊')">拉取群聊</div>
+                                <div class="msg-popover-item danger" onclick="showToast('删除聊天')">删除聊天</div>
+                            </div>
+                        </div>
+
+                        <!-- 聊天列表主滚动区 -->
+                        <div class="screen-body msg-list-container" id="msg-list-body">
+                            
+                            <!-- 1. 极简潮牌排版搜索入口 -->
+                            <div class="msg-new-search-bar">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                <div class="msg-search-label">
+                                    搜索
+                                    <div class="msg-search-line"></div>
+                                </div>
+                            </div>
+
+                             <!-- 2. 动态置顶聊天区 (使用了自定义分组的角色会变成独立卡片出现在这里) -->
+                            <div id="msg-pinned-list" style="display: flex; flex-direction: column;"></div>
+
+
+
+
+                            <!-- 3. 四个分类标签 (夹在中间) -->
+                            <div class="msg-sub-tabs">
+                                <div class="msg-sub-tab active" onclick="switchMsgSubTab(this, 'ALL')">ALL</div>
+                                <div class="msg-sub-tab" onclick="switchMsgSubTab(this, 'FRIENDS')">FRIENDS</div>
+                                <div class="msg-sub-tab" onclick="switchMsgSubTab(this, 'GROUPS')">GROUPS</div>
+                                <div class="msg-sub-tab" onclick="switchMsgSubTab(this, 'OTHERS')">OTHERS</div>
+                            </div>
+
+                            <!-- 下方动态文字占位 (仅当非ALL时展示) -->
+                            <div id="msg-placeholder-text" style="display:none; text-align:center; color:#bbb; font-size:11px; margin-top:10px; font-weight:bold;"></div>
+
+                            <!-- 4. 动态渲染区 (包裹在同一个大白卡片中，无分割线) -->
+                            <div class="msg-group-card" id="msg-unpinned-list" style="display: none;">
+                            </div>
+                            
+                        </div>
+                    </div>
+
+
+                    <div class="screen-tab" id="tab-contacts"><div class="screen-header">联系人</div><div class="screen-body">这里是联系人列表 (待开发)</div></div>
+                    <div class="screen-tab" id="tab-moments"><div class="screen-header">朋友圈</div><div class="screen-body">这里是朋友圈动态 (待开发)</div></div>
+                    <div class="screen-tab" id="tab-mailbox"><div class="screen-header">匿名邮箱</div><div class="screen-body">这里是匿名邮箱功能 (待开发)</div></div>
+                    <div class="screen-tab" id="tab-tbd2"><div class="screen-header">页面 5</div><div class="screen-body">待定功能 2</div></div>
+                    <div class="screen-tab" id="tab-settings"><div class="screen-header">设置</div><div class="screen-body">这里是设置选项 (待开发)</div></div>
+                    
+                     <!-- 🚀 新建单人专属系统（被封印在手机壳内部，100%独立运行） -->
+                    <div class="wb-sheet-overlay" id="nc-sheet-overlay" onclick="closeNewContactSheet()" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); z-index: 200;"></div>
+                    
+                    <!-- 🌟 修复遮挡：引入 Flex 强分布局 -->
+                    <div class="wb-bottom-sheet" id="nc-bottom-sheet" style="position: absolute; background-color: #F5F5F5; z-index: 210; display: flex; flex-direction: column;">
+                        <div class="sheet-handle-bar"></div>
+                        <div class="sheet-title">新建单人聊天</div>
+                        
+                        <!-- 🌟 独立滚动区 -->
+                        <div class="sheet-body" style="padding: 0 15px 20px 15px; flex: 1; overflow-y: auto;">
+                            
+                            <!-- 独立的头像与昵称区 -->
+                            <div class="profile-header-card mini-card" style="margin-top: 5px;">
+                                <div class="profile-avatar-container">
+                                    <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" class="profile-avatar-img" id="img-nc-avatar" onclick="toggleNcAvatarMenu()">
+                                    <!-- 新建单人专属的头像菜单 -->
+                                    <div class="avatar-action-menu" id="ncAvatarActionMenu" style="top: 45px; left: 0;">
+                                        <div class="avatar-action-btn" onclick="changeNcAvatarLink()">链接</div>
+                                        <div class="avatar-action-btn" onclick="triggerNcLocalAvatar()">本地</div>
+                                    </div>
+                                    <input type="file" id="ncLocalAvatarInput" style="display:none" accept="image/*" onchange="uploadNcLocalAvatar(this)">
+                                </div>
+                                <div class="profile-text-info">
+                                    <div class="profile-name-row" onclick="openNcCustomPrompt('编辑真实名称', 'text-nc-name', '在这里输入真实名称')">
+                                        Hello, <span id="text-nc-name">新角色</span>
+                                    </div>
+                                    <div class="profile-sign-row" onclick="openNcCustomPrompt('编辑备注', 'text-nc-remark', '点击设置备注')">
+                                        <span id="text-nc-remark">点击设置备注</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 详细设定区 -->
+                            <div class="profile-detail-section" style="width: 100%; margin-top: 15px;">
+                                <div class="detail-row-group">
+                                    <div class="detail-col-item"><div class="detail-label-stack"><span class="eng">Gender</span><span class="chn">/ 性别</span></div><input type="text" class="inline-detail-input" id="input-nc-gender" placeholder="-"></div>
+                                    <div class="detail-col-item"><div class="detail-label-stack"><span class="eng">Age</span><span class="chn">/ 年龄</span></div><input type="text" class="inline-detail-input" id="input-nc-age" placeholder="-"></div>
+                                </div>
+                                <div class="detail-row-group">
+                                    <div class="detail-col-item date-picker-container"><div class="detail-label-stack"><span class="eng">Birthday</span><span class="chn">/ 生日</span></div>
+                                        <div class="bday-input-wrapper"><input type="text" class="inline-detail-input" id="display-nc-birthday" placeholder="-" readonly><input type="date" class="real-date-picker" id="input-nc-birthday" onchange="document.getElementById('display-nc-birthday').value = this.value"></div>
+                                    </div>
+                                    <div class="detail-col-item"><div class="detail-label-stack"><span class="eng">Zodiac</span><span class="chn">/ 星座</span></div><input type="text" class="inline-detail-input" id="input-nc-zodiac" placeholder="-"></div>
+                                </div>
+                                <div class="detail-row-group">
+                                    <div class="detail-col-item full-width"><div class="detail-label-stack"><span class="eng">Location</span><span class="chn">/ 地区</span></div><input type="text" class="inline-detail-input" id="input-nc-location" placeholder="Unknown Location"></div>
+                                </div>
+
+                                <!-- 独立的邮箱白卡 (完美收缩版) -->
+                                <div class="detail-row-group" style="margin-top: 4px; margin-bottom: 8px;">
+                                    <div class="detail-col-item full-width" style="flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 14px;">
+                                        <div style="display:flex; align-items:center;">
+                                            <span class="tag-label-prefix" style="margin:0; font-size:12px; color:#555; margin-right:6px;">个人邮箱：</span>
+                                            <div class="tag-capsule" style="padding: 4px 10px; display:flex; align-items:center; background:#111; border-radius: 20px; width: max-content;">
+                                                <div style="display: inline-grid; align-items: center; justify-items: start;">
+                                                    <span id="measure-nc-tag1" style="grid-area: 1/1; visibility: hidden; white-space: pre; font-size: 10px; font-weight: 500; pointer-events: none;">前缀</span>
+                                                    <input type="text" id="input-nc-tag1" placeholder="前缀" oninput="document.getElementById('measure-nc-tag1').innerText = this.value || '前缀'" style="grid-area: 1/1; width: 100%; min-width: 0; background: transparent; border: none; color: #fff; font-size: 10px; font-weight: 500; outline: none; padding: 0; margin: 0; field-sizing: content;">
+                                                </div>
+                                                <span style="color:#fff; font-size:10px; font-weight:500; margin-left: 2px;">@Toutou.com</span>
+                                            </div>
+                                        </div>
+                                        <div class="secret-switch" id="nc-secretToggleSwitch" onclick="toggleNcSecretFile()"><div class="switch-knob"></div></div>
+                                    </div>
+                                </div>
+
+
+
+                                <!-- 专属档案卡片 -->
+                                <div class="secret-file-card closed" id="nc-secretFileCard" style="min-height: 120px; margin-bottom: 8px;">
+                                    <div class="secret-watermark">TOP SECRET</div>
+                                    <div class="secret-content-wrapper">
+                                        <textarea class="secret-textarea" id="input-nc-secret-file" placeholder="请输入详尽的专属档案..."></textarea>
+                                    </div>
+                                    <div class="avatar-notch-overlay" style="padding: 0 10px;">
+                                        <span class="msg-dog-tag" id="nc-group-dogtag" onclick="openNcGroupInitMenu()" style="cursor:pointer; position:relative; top:0; margin:0; box-shadow: inset 2px 2px 4px rgba(0,0,0,0.08), inset -2px -2px 4px rgba(255,255,255,1);">未分组</span>
+                                    </div>
+                                </div>
+
+                                <!-- 绑定身份卡模块 (增加底部缓冲空间与独立滚轮，防遮挡) -->
+                                <div class="detail-row-group">
+                                    <div class="detail-col-item full-width" style="padding: 12px 14px; display:flex; flex-direction:column; gap:6px; margin-bottom: 40px;">
+                                        <div style="font-size: 11px; font-weight: 800; color: #a0a0a0;">绑定我的身份卡</div>
+                                        <div class="settings-select-capsule" onclick="toggleNcProfileMenu()" style="width: 100%; box-sizing: border-box; background: #f5f5f5;">
+                                            <span id="nc-bound-profile-name">系统默认身份</span>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </div>
+                                        <div class="cs-profile-menu" id="ncProfileMenu" style="width: 100%; box-sizing: border-box; display:none; max-height: 150px; overflow-y: auto;"></div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                        
+                        <!-- 🌟 按钮区提取到容器最底部：永远贴边，绝不被遮挡 -->
+                        <div class="sheet-action-row" style="padding: 10px 15px 25px 15px; margin-top: 0; background: #F5F5F5; border-top: 1px solid #eaeaea; flex-shrink: 0;">
+                            <div class="sheet-btn cancel" onclick="closeNewContactSheet()">取消</div>
+                            <div class="sheet-btn confirm" onclick="saveNewContact()">创建角色</div>
+                        </div>
+                    </div>
+
+                    <!-- 🌟 优化后：直接出列表的分组菜单 -->
+
+                    <div class="custom-prompt-overlay" id="ncGroupInitMenuOverlay" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; border-radius: 24px; z-index: 1000;">
+                        <div class="custom-prompt-box">
+                            <div class="custom-prompt-title">选择或管理分组</div>
+                            <div style="font-size: 11px; color: #666; margin-bottom: 10px; font-weight: 500;">当前选择: <span id="nc-current-group-display-init" style="color:#000; font-weight:800;">未分组</span></div>
+                            
+                            <!-- 分组列表容器 -->
+                            <div class="model-list-modal" id="ncGroupListDirect" style="max-height: 180px; width: 100%; margin-bottom: 10px;"></div>
+
+                            <div class="sheet-char-add-btn" onclick="triggerNewNcGroup()" style="width: 100%; margin-bottom: 15px; background: #111; color: #fff; border: none;">新建分组</div>
+                            
+                            <div class="custom-prompt-actions">
+                                <div class="prompt-btn cancel" onclick="closeNcGroupInitMenu()">取消</div>
+                            </div>
+                        </div>
+                    </div>
+
+                     <!-- 🌟 弹窗 3：超级小白通用确认弹窗 (支持打字输入 / 二次确认删除) -->
+                    <div class="custom-prompt-overlay" id="ncCustomPromptOverlay" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; border-radius: 24px; z-index: 1020;">
+                        <div class="custom-prompt-box">
+                            <div class="custom-prompt-title" id="ncPromptTitle">编辑内容</div>
+                            <input type="text" class="custom-prompt-input" id="ncPromptInput" autocomplete="off">
+                            <div class="custom-prompt-msg" id="ncPromptMsg" style="display: none; font-size: 13px; color: #666; margin-bottom: 20px; text-align: center; line-height: 1.5;">确认操作？</div>
+                            <div class="custom-prompt-actions">
+                                <div class="prompt-btn cancel" onclick="closeNcCustomPrompt()">取消</div>
+                                <div class="prompt-btn confirm" id="ncPromptConfirmBtn" onclick="confirmNcCustomPrompt()">确定</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div> <!-- 结束 phone-frame-wrapper -->
+            </div> <!-- 结束 app-main-content -->
+        </div> <!-- 结束 app-container -->
+
+        <!-- 🌟 唯一关键词：【嵌套圆角顶栏聊天室】彻底修复并提权到最外层 -->
+        <div class="chat-room-screen" id="chatRoomScreen">
+            
+            <!-- 第一层：最顶端纯白顶栏背景 -->
+            <div class="chat-room-header">
+                <div class="chat-back-btn" onclick="closeChatRoom()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </div>
+                <div class="chat-room-title" id="chatRoomTitle">加载中...</div>
+                <div class="chat-more-btn" onclick="openChatSettings()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+                </div>
+            </div>
+
+            <!-- 第二层：世界书弹窗般的弧度浅灰垫底层 -->
+            <div class="chat-room-gray-layer">
+                
+                <!-- 第三层：世界书弹窗般的弧度纯白主体层 -->
+                <div class="chat-room-white-layer">
+                    <div class="chat-room-body" id="chatRoomBody">
+                        
+                        <!-- 🌟 全新的初始打招呼占位区 (大型头像 + 磨砂药丸) -->
+                        <div class="chat-init-state" id="chatInitState">
+                            <!-- 动态可更换的大头像 -->
+                            <div class="chat-init-avatar-container">
+                                <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" class="chat-init-avatar" id="img-chat-init-avatar" onclick="toggleChatInitAvatarMenu(event)">
+                                <div class="avatar-action-menu" id="chatInitAvatarMenu" style="top: 95px; left: 50%; transform: translateX(-50%);">
+                                    <div class="avatar-action-btn" onclick="changeChatInitAvatarLink()">链接</div>
+                                    <div class="avatar-action-btn" onclick="triggerChatInitLocalAvatar()">本地</div>
+                                </div>
+                                <input type="file" id="chatInitLocalAvatarInput" style="display:none" accept="image/*" onchange="uploadChatInitLocalAvatar(this)">
+                            </div>
+                            <!-- 磨砂好友提示药丸 -->
+                            <div class="chat-init-pill">
+                                你与 <strong id="chat-init-name-display">某某</strong> 已添加好友，快来聊天吧！
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 🌟 极简主义高级底栏 (强制居中对齐、去除飞机底圈及内线) -->
+            <div class="chat-room-input-bar">
+                
+                <!-- 左侧：极简 + 号按钮 -->
+                <div class="chat-add-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </div>
+
+                <!-- 中间：正在输入框 + 专属悬浮底线 -->
+                <div class="chat-input-wrapper">
+                    <textarea rows="1" class="chat-room-input" id="chatRoomInput" placeholder="正在输入中…"></textarea>
+                    <div class="toutou-line-container">
+                        <div class="t-line-left"></div>
+                        <div class="t-line-text">Toutou</div>
+                        <div class="t-line-right"></div>
+                    </div>
+                </div>
+
+                <!-- 右侧：无背景纯净小飞机 (去除了内部线段) -->
+                <div class="chat-send-btn" onclick="sendChatMessage()">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <!-- 只保留纸飞机的外轮廓折纸线 -->
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </div>
+
+            </div>
+
+        </div> <!-- 结束 chatRoomScreen -->
+
+        <!-- 🌟 唯一关键词：【角色专属聊天设置页】 -->
+        <div class="chat-settings-screen" id="chatSettingsScreen">
+            <!-- 🌟 补回遗漏的设置页纯白顶栏 -->
+            <div class="chat-room-header">
+                <div class="chat-back-btn" onclick="closeChatSettings()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </div>
+                <div class="chat-room-title" style="flex: 1; text-align: center;">角色设定</div>
+                <div class="chat-save-btn" onclick="saveChatSettings()">保存</div>
+            </div>
+
+            <div class="chat-settings-body">
+                
+                <!-- 卡片1：基础信息 (修改列表头像与名字) -->
+                <div class="settings-white-card">
+                    <div class="settings-avatar-row">
+                        <!-- 支持弹出菜单的独立头像容器 -->
+                        <div class="settings-avatar-container" style="position: relative;">
+                            <img src="" class="settings-avatar" id="cs-avatar" onclick="toggleCsAvatarMenu(event)">
+                            <div class="avatar-action-menu" id="csAvatarActionMenu" style="top: 70px; left: 50%; transform: translateX(-50%);">
+                                <div class="avatar-action-btn" onclick="changeCsAvatarLink()">链接</div>
+                                <div class="avatar-action-btn" onclick="triggerCsLocalAvatar()">本地</div>
+                            </div>
+                            <input type="file" id="csLocalAvatarInput" style="display:none" accept="image/*" onchange="uploadCsLocalAvatar(this)">
+                        </div>
+                    </div>
+                    <!-- 姓名与备注并排显示 -->
+                    <div class="settings-row-group">
+                        <div class="settings-input-group" style="flex:1;">
+                            <label>真实姓名</label>
+                            <input type="text" class="settings-input" id="cs-realname" placeholder="真名...">
+                        </div>
+                        <div class="settings-input-group" style="flex:1;">
+                            <label>专属备注</label>
+                            <input type="text" class="settings-input" id="cs-remark" placeholder="优先显示...">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 卡片2：详细人设 (提前到身份卡上方，加入生日星座) -->
+                <div class="settings-white-card">
+                    <div class="detail-row-group">
+                        <div class="detail-col-item"><div class="detail-label-stack"><span class="eng">Gender</span><span class="chn">/ 性别</span></div><input type="text" class="inline-detail-input" id="cs-gender" placeholder="-"></div>
+                        <div class="detail-col-item"><div class="detail-label-stack"><span class="eng">Age</span><span class="chn">/ 年龄</span></div><input type="text" class="inline-detail-input" id="cs-age" placeholder="-"></div>
+                    </div>
+                    <div class="detail-row-group" style="margin-top: 8px;">
+                        <div class="detail-col-item date-picker-container"><div class="detail-label-stack"><span class="eng">Birthday</span><span class="chn">/ 生日</span></div>
+                            <div class="bday-input-wrapper"><input type="text" class="inline-detail-input" id="display-cs-birthday" placeholder="-" readonly><input type="date" class="real-date-picker" id="input-cs-birthday" onchange="document.getElementById('display-cs-birthday').value = this.value"></div>
+                        </div>
+                        <div class="detail-col-item"><div class="detail-label-stack"><span class="eng">Zodiac</span><span class="chn">/ 星座</span></div><input type="text" class="inline-detail-input" id="cs-zodiac" placeholder="-"></div>
+                    </div>
+                    <div class="detail-row-group" style="margin-top: 8px;">
+                        <div class="detail-col-item full-width"><div class="detail-label-stack"><span class="eng">Location</span><span class="chn">/ 地区</span></div><input type="text" class="inline-detail-input" id="cs-location" placeholder="Unknown Location"></div>
+                    </div>
+                </div>
+
+                 <!-- 卡片3：个人邮箱与档案开关 (完美收缩版) -->
+                <div class="settings-white-card" style="padding: 12px 15px; flex-direction: row; align-items: center; justify-content: space-between;">
+                    <div style="display:flex; align-items:center;">
+                        <span class="tag-label-prefix" style="margin:0; font-size:12px; color:#555; margin-right:6px;">个人邮箱：</span>
+                        <div class="tag-capsule" style="padding: 4px 10px; display:flex; align-items:center; background:#111; border-radius: 20px; width: max-content;">
+                            <div style="display: inline-grid; align-items: center; justify-items: start;">
+                                <span id="measure-cs-tag1" style="grid-area: 1/1; visibility: hidden; white-space: pre; font-size: 10px; font-weight: 500; pointer-events: none;">前缀</span>
+                                <input type="text" id="cs-tag1" placeholder="前缀" oninput="document.getElementById('measure-cs-tag1').innerText = this.value || '前缀'" style="grid-area: 1/1; width: 100%; min-width: 0; background: transparent; border: none; color: #fff; font-size: 10px; font-weight: 500; outline: none; padding: 0; margin: 0; field-sizing: content;">
+                            </div>
+                            <span style="color:#fff; font-size:10px; font-weight:500; margin-left: 2px;">@Toutou.com</span>
+                        </div>
+                    </div>
+                    <div class="secret-switch" id="cs-secretToggleSwitch" onclick="toggleCsSecretFile()"><div class="switch-knob"></div></div>
+                </div>
+
+
+
+                <!-- 卡片3.5：专属档案 (单独白卡，去掉了大外壳线) -->
+                <div class="settings-white-card" style="padding: 0; background: transparent; box-shadow: none;">
+                    <div class="secret-file-card closed" id="cs-secretFileCard" style="min-height: 120px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border-radius: 12px;">
+                        <div class="secret-watermark">TOP SECRET</div>
+                        <div class="secret-content-wrapper">
+                            <textarea class="secret-textarea" id="cs-secret-file" placeholder="请输入详尽的专属档案..."></textarea>
+                        </div>
+                        <div class="avatar-notch-overlay" style="padding: 0 10px;">
+                            <span class="msg-dog-tag" id="cs-group-dogtag" onclick="openNcGroupInitMenu('cs')" style="cursor:pointer; position:relative; top:0; margin:0; box-shadow: inset 2px 2px 4px rgba(0,0,0,0.08), inset -2px -2px 4px rgba(255,255,255,1);">未分组</span>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- 卡片4：我的身份绑定 (降至底部) -->
+                <div class="settings-white-card">
+                    <div class="settings-input-group" style="margin-bottom: 0;">
+                        <label>绑定我的身份卡</label>
+                        <div class="settings-select-capsule" onclick="toggleCsProfileMenu()">
+                            <span id="cs-bound-profile-name">系统默认身份</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                        <div class="cs-profile-menu" id="csProfileMenu"></div>
+                    </div>
+                </div>
+                
+                <!-- 新增卡片5：选择气泡主题 -->
+                <div class="settings-white-card">
+                    <div class="settings-input-group" style="margin-bottom: 0;">
+                        <label>选择聊天气泡</label>
+                        <div class="bubble-theme-grid">
+                            <div class="bubble-theme-item active" onclick="selectBubbleTheme('黑灰', this)">
+                                <div class="theme-color-preview" style="background: linear-gradient(135deg, #000 50%, #f0f0f0 50%);"></div>
+                                <span>黑灰</span>
+                            </div>
+                            <div class="bubble-theme-item" onclick="selectBubbleTheme('薄巧', this)">
+                                <div class="theme-color-preview" style="background: linear-gradient(135deg, #78c2c4 50%, #5d3f3a 50%);"></div>
+                                <span>薄巧</span>
+                            </div>
+                            <div class="bubble-theme-item" onclick="selectBubbleTheme('黄绿', this)">
+                                <div class="theme-color-preview" style="background: linear-gradient(135deg, #f0e68c 50%, #90ee90 50%);"></div>
+                                <span>黄绿</span>
+                            </div>
+                            <div class="bubble-theme-item" onclick="selectBubbleTheme('紫紫', this)">
+                                <div class="theme-color-preview" style="background: linear-gradient(135deg, #9370db 50%, #d8bfd8 50%);"></div>
+                                <span>紫紫</span>
+                            </div>
+                            <div class="bubble-theme-item" onclick="selectBubbleTheme('黑粉', this)">
+                                <div class="theme-color-preview" style="background: linear-gradient(135deg, #000 50%, #ffb6c1 50%);"></div>
+                                <span>黑粉</span>
+                            </div>
+                            <div class="bubble-theme-item" onclick="selectBubbleTheme('蓝粉', this)">
+                                <div class="theme-color-preview" style="background: linear-gradient(135deg, #add8e6 50%, #ffb6c1 50%);"></div>
+                                <span>蓝粉</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 新增卡片6：气泡预览展示区 -->
+                <div class="settings-white-card" style="padding: 12px;">
+                    <div class="settings-input-group" style="margin-bottom: 0;">
+                        <label style="margin-left: 5px;">效果预览</label>
+                        <div class="bubble-preview-container" id="bubble-preview-container">
+                            <!-- 角色发出的消息 (左) -->
+                            <div class="preview-msg-row left">
+                                <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" class="preview-avatar" id="preview-avatar-char">
+                                <div class="message-bubble char">
+                                    <div class="content">你好呀，来找我有什么事吗？</div>
+                                </div>
+                            </div>
+                            <!-- 用户发出的消息 (右) -->
+                            <div class="preview-msg-row right">
+                                <div class="message-bubble Toutou">
+                                    <div class="content">没什么，只是想给你看看新买的聊天气泡！</div>
+                                </div>
+                                <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" class="preview-avatar" id="preview-avatar-toutou">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <!-- 删除了以前由于粘贴错误多出来的 </div> 标签 -->
+                <div class="settings-delete-btn" onclick="promptDeleteContactFromSettings()">彻底删除此角色</div>
+            </div> <!-- 结束 chat-settings-body -->
+
+        </div> <!-- 结束 chatSettingsScreen -->
+    </div> <!-- 结束 appChatOverlay -->
+
+    <!-- ============================================== -->
+    <!-- ⬇️ 内部软件2：千岛 API 配置 (白黑灰极简风) ⬇️ -->
+    <!-- ============================================== -->
+    <div class="app-overlay api-app-overlay" id="apiAppOverlay">
+        
+        <div class="app-close-btn" onclick="closeApiApp()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </div>
+
+        <div class="api-main-container">
+            <div class="api-header-title">API Settings</div>
+            <div class="api-header-subtitle">OpenAI 自定义连接协议设置</div>
+
+            <!-- 卡片1：核心连接配置 -->
+            <div class="api-card" style="padding-top: 5px;">
+                
+                <!-- Base URL -->
+                <div class="api-input-group" style="position:relative; z-index: 20;">
+                    <label>BASE URL</label>
+                    <input type="text" class="api-input locked" id="api-base-url-input" value="https://api2.qiandao.mom/v1" readonly onclick="toggleUrlMenu()" style="cursor: pointer;">
+                    
+                    <!-- 纯白简约下拉层 -->
+                    <div class="url-dropdown-menu" id="urlDropdownMenu">
+                        <div class="url-option" onclick="selectUrl('https://api2.qiandao.mom/v1')">https://api2.qiandao.mom/v1</div>
+                        <div class="url-option" onclick="selectUrl('https://api.qiandao.mom/v1')">https://api.qiandao.mom/v1</div>
+                    </div>
+                </div>
+
+                <!-- API Key & Buy Btn -->
+                <div class="api-input-group">
+                    <label>API KEY</label>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <input type="password" class="api-input" id="api-key-input" placeholder="sk-..." style="flex: 1; padding-right: 10px;">
+                        <div class="api-buy-btn-mini" onclick="window.open('https://api2.qiandao.mom', '_blank')">购买额度</div>
+                    </div>
+                </div>
+
+                <!-- Model & Fetch Btn -->
+                <div class="api-input-group" style="padding-bottom: 20px;">
+                    <label style="display:flex; align-items:center;">
+                        MODEL
+                        <div class="api-model-fetch-btn-mini" onclick="fetchModelList()">↓</div>
+                    </label>
+                    <input type="text" class="api-input" id="api-model-input" value="[千岛-C Cli]gemini-3.1-pro-preview" placeholder="输入你想使用的模型">
+                </div>
+
+            </div>
+
+            <!-- 流式传输开关 -->
+            <div class="api-stream-toggle-container">
+                <div class="api-stream-btn" id="stream-toggle-btn" onclick="toggleStream()">流式传输</div>
+                <div class="api-stream-desc">开启后，AI 回复将像打字机一样逐字显示，减少等待时间。</div>
+            </div>
+
+            <!-- 卡片2：参数滑动配置 -->
+            <div class="api-card" style="padding-top: 5px;">
+                <!-- 顺序调整：Temp -> Freq -> Pres -> TopP -->
+                <div class="api-slider-group">
+                    <div class="slider-header">
+                        <span class="slider-label">Temperature</span>
+                        <span class="slider-val" id="val-temp">1.0</span>
+                    </div>
+                    <input type="range" class="api-range" id="slider-temp" min="0.0" max="2.0" step="0.1" value="1.0" oninput="updateSliderVal(this, 'val-temp')">
+                </div>
+
+                <div class="api-slider-group">
+                    <div class="slider-header">
+                        <span class="slider-label">Frequency Penalty</span>
+                        <span class="slider-val" id="val-freq">0.0</span>
+                    </div>
+                    <input type="range" class="api-range" id="slider-freq" min="-2.0" max="2.0" step="0.1" value="0.0" oninput="updateSliderVal(this, 'val-freq')">
+                </div>
+
+                <div class="api-slider-group">
+                    <div class="slider-header">
+                        <span class="slider-label">Presence Penalty</span>
+                        <span class="slider-val" id="val-pres">0.0</span>
+                    </div>
+                    <input type="range" class="api-range" id="slider-pres" min="-2.0" max="2.0" step="0.1" value="0.0" oninput="updateSliderVal(this, 'val-pres')">
+                </div>
+
+                <div class="api-slider-group">
+                    <div class="slider-header">
+                        <span class="slider-label">Top P</span>
+                        <span class="slider-val" id="val-topp">0.9</span>
+                    </div>
+                    <input type="range" class="api-range" id="slider-topp" min="0.0" max="1.0" step="0.05" value="0.9" oninput="updateSliderVal(this, 'val-topp')">
+                </div>
+            </div>
+
+            <!-- 卡片3：方案保存与选择 -->
+            <div class="api-card" style="padding-top: 15px; padding-bottom: 5px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                    <span style="font-size: 11px; font-weight: 800; color: #a0a0a0; letter-spacing: 1.5px; text-transform: uppercase;">PLAN</span>
+                    <div class="api-buy-btn-mini" onclick="saveApiPlanPrompt()">保存当前设置方案</div>
+                </div>
+                
+                <div class="api-input-group" style="padding-top: 5px; padding-bottom: 10px; position:relative;">
+                    <input type="text" class="api-input locked" id="api-plan-input" value="请先保存一个方案" readonly onclick="toggleApiPlanMenu()" style="cursor: pointer; font-size: 13px;">
+                    <!-- 纯白简约下拉层 -->
+                    <div class="url-dropdown-menu" id="apiPlanDropdownMenu">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部操作按钮 -->
+            <div class="api-bottom-actions">
+                <div class="api-action-btn-3d danger" onclick="deleteApiPlan()">删除方案</div>
+                <div class="api-action-btn-3d primary" onclick="applyApiPlan()">应用方案</div>
+            </div>
+
+        </div>
+    </div>
+
+
+     <!-- ============================================== -->
+    <!-- ⬇️ 内部软件3：世界书 (真实数据联动版) ⬇️ -->
+    <!-- ============================================== -->
+    <div class="app-overlay wb-app-overlay" id="worldbookAppOverlay">
+        
+        <div class="wb-blur-overlay" id="wb-blur-overlay" onclick="closeCharSelector()"></div>
+
+        <div class="app-close-btn" onclick="closeWorldbookApp()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </div>
+        
+        <div class="wb-main-container" id="wb-main-container">
+            <!-- 顶部的星球按钮轨道 -->
+            <div class="wb-header">
+                <div class="wb-planet-track" id="wb-planet-track">
+                    <div class="wb-planet left" onclick="handlePlanetClick(this)">已绑定</div>
+                    <div class="wb-planet center" onclick="handlePlanetClick(this)">全部</div>
+                    <div class="wb-planet right" onclick="handlePlanetClick(this)">通用</div>
+                </div>
+            </div>
+
+            <!-- 下方U型弧形滚动盘 -->
+            <div class="wb-char-selector-area" id="wb-char-selector-area">
+                <div class="char-scroll-track" id="char-scroll-track"></div>
+            </div>
+            
+            <!-- 下方白卡内容呈现区 -->
+            <div class="wb-content-area" id="wb-content-area">
+                <div class="wb-content-header" style="position: relative;">
+                    <span class="wb-view-title"><span id="wb-current-view">全部</span> 世界书</span>
+                    
+                    <div class="wb-add-btn" id="wb-add-btn" onclick="toggleAddMenu(event)">+</div>
+                    
+                    <!-- 极简双语气泡菜单 (去除缝隙、Emoji) -->
+                    <div class="wb-popover-menu" id="wb-popover-menu">
+                        <div class="wb-popover-item" onclick="openWorldbookSheet()">
+                            <span class="eng">NEW</span><span class="chn">新建</span>
+                        </div>
+                        <div class="wb-popover-item" onclick="importWorldbook()">
+                            <span class="eng">IMPORT</span><span class="chn">导入</span>
+                        </div>
+                        <div class="wb-popover-item danger" onclick="toggleWbDeleteMode()">
+                            <span class="eng">DELETE</span><span class="chn">删除</span>
+                        </div>
+
+                    </div>
+                </div>
+                
+                <div class="wb-list-container" id="wb-list-container">
+                    <!-- JS 动态渲染保存的真实数据 -->
+                    <div class="wb-empty-state">当前暂无世界书</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🚀 底部滑动弹窗 (添加/编辑世界书) -->
+        <div class="wb-sheet-overlay" id="wb-sheet-overlay" onclick="closeWorldbookSheet()"></div>
+        <div class="wb-bottom-sheet" id="wb-bottom-sheet">
+            <div class="sheet-handle-bar"></div>
+            <div class="sheet-title">构建世界书</div>
+            
+            <div class="sheet-body">
+                <div class="sheet-input-group">
+                    <div class="sheet-label-stack"><span class="eng">BOOK NAME</span><span class="chn">/ 设定名称</span></div>
+                    <input type="text" class="sheet-input" id="sheet-input-name" placeholder="请输入这本世界书的名称...">
+                </div>
+
+                <div class="sheet-input-group">
+                    <div class="sheet-label-stack"><span class="eng">CATEGORY</span><span class="chn">/ 归属分类</span></div>
+                    <div class="sheet-capsule-group" id="sheet-group-toggles">
+                        <div class="sheet-capsule active" onclick="toggleSheetGroup('全部')">全部</div>
+                        <div class="sheet-capsule" onclick="toggleSheetGroup('已绑定')">已绑定</div>
+                        <div class="sheet-capsule" onclick="toggleSheetGroup('通用')">通用</div>
+                    </div>
+                    
+                    <!-- 替代手动输入的：角色选择+号按钮 -->
+                    <div class="sheet-char-add-btn" id="sheet-char-add-btn" onclick="openCharSelectModal()" style="display: none;">
+                        + 选择要绑定的角色
+                    </div>
+                    
+                    <!-- 【新增】通用分组交互区 -->
+                    <div class="sheet-common-group-btns" id="sheet-common-group-btns" style="display: none;">
+                        <div class="common-group-btn" onclick="openNewGroupPrompt()">新建分组</div>
+                        <div class="common-group-btn" onclick="openManageGroupModal()">管理分组</div>
+                    </div>
+                    <div id="sheet-current-group-display" style="display:none; font-size:12px; color:#666; margin-top:10px; font-weight:500;">
+                        当前选定: <span id="current-group-name" style="color:#000;font-weight:700;">未选择</span>
+                    </div>
+                </div>
+
+                <!-- 动态内容条目区 -->
+                <div class="sheet-input-group" style="margin-top: 10px;">
+                    <div class="sheet-label-stack" style="margin-bottom: 12px;">
+                        <span class="eng">ENTRIES</span><span class="chn">/ 内容条目</span>
+                    </div>
+                    <div id="sheet-entries-container"></div>
+                    <div class="sheet-add-entry-btn" onclick="addSheetEntry()">
+                        <span>+ 添加一条新设定</span>
+                    </div>
+                </div>
+
+                <div class="sheet-action-row">
+                    <div class="sheet-btn cancel" onclick="closeWorldbookSheet()">取消</div>
+                    <div class="sheet-btn confirm" onclick="saveWorldbook()">保存世界书</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 选择绑定角色的小白弹窗 (世界书专属) -->
+    <div class="custom-prompt-overlay" id="charSelectOverlay">
+        <div class="custom-prompt-box">
+            <div class="custom-prompt-title">选择要绑定的角色</div>
+            <div class="model-list-modal" id="charSelectList"></div>
+            <div class="custom-prompt-actions">
+                <div class="prompt-btn cancel" onclick="closeCharSelectModal()">取消</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 极简小白通用确认弹窗 (个人资料、全局删除专属，绝对不干扰新建联系人) -->
+    <div class="custom-prompt-overlay" id="customPromptOverlay">
+        <div class="custom-prompt-box">
+            <div class="custom-prompt-title" id="promptTitle">编辑内容</div>
+            <input type="text" class="custom-prompt-input" id="promptInput" autocomplete="off" style="display: none;">
+            <div class="custom-prompt-msg" id="promptMsg" style="display: none;">确定要执行此操作吗？</div>
+            <div class="custom-prompt-actions">
+                <div class="prompt-btn cancel" onclick="closeCustomPrompt()">取消</div>
+                <div class="prompt-btn confirm" id="promptConfirmBtn" onclick="confirmCustomPrompt()">确定</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 专属模型列表小白弹窗 (API专属) -->
+    <div class="custom-prompt-overlay" id="modelListOverlay">
+        <div class="custom-prompt-box">
+            <div class="custom-prompt-title">选择可用模型</div>
+            <div class="model-list-modal" id="modelListContent"></div>
+            <div class="custom-prompt-actions">
+                <div class="prompt-btn cancel" onclick="closeModelList()">取消</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部全局透明小弹窗 -->
+    <div class="toast-msg" id="globalToast">操作成功</div>
+
+    <script src="script.js"></script>
+</body>
+</html>
