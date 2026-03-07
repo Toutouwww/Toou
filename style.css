@@ -1808,7 +1808,7 @@ body {
   color: var(--bubble-char-text);
   border-radius: var(--top-left) var(--top-right) var(--bottom-right) var(--bottom-left);
   transition: background-color 0.3s, color 0.3s;
-  transform: translate(-3px, 3px); /* 🔥 整体气泡主体依然保持：往左 3px，往上 3px */
+  transform: translate(-3px, -3.5px); /* 🔥 整体气泡主体依然保持：往左 3px，往上 3px */
 }
 
 .Toutou-TT.char .content::after {
