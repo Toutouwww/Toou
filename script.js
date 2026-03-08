@@ -1906,7 +1906,6 @@ function openChatRoom(contactId) {
         textEl.innerHTML = `你与 <strong id="chat-init-name-display">${contact.name}</strong> 已添加好友，快来聊天吧！`;
     }
 
-    
     // 🔥 核心分离：如果这个角色有专门设置的“聊天室内大头像”就用它，没有就用列表小头像兜底
     const bigAvatar = contact.chatRoomAvatar || contact.avatar;
     document.getElementById('img-chat-init-avatar').src = bigAvatar;
@@ -1936,29 +1935,36 @@ function openChatRoom(contactId) {
     // 第二步：从数据库读取并渲染此角色的历史消息
     if (contact.messages && contact.messages.length > 0) {
         const myAvatar = document.getElementById('img-sidebar-avatar').src;
-        // 🌟 核心解绑：气泡头像强制使用 contact.avatar（即列表/设定头像），绝对不用大头像
         const charAvatar = contact.avatar; 
 
-        // 🌟 全新逻辑：根据设定的记忆轮数，进行初次视觉截断与向上无缝加载
-        let rounds = contact.memoryRounds || 50;
-        let limit = rounds * 2; // 一轮约等于两条消息
+        // 🌟 修改：放弃粗暴的 rounds 截断，直接保留可视记录
         let allMsgs = contact.messages;
-        let currentRenderStartIndex = Math.max(0, allMsgs.length - limit); // 定位初始加载的起点
+        let limit = 100; // 初次渲染 100 条保证流畅
+        let currentRenderStartIndex = Math.max(0, allMsgs.length - limit); 
 
         // 内部复用的区间渲染器
         const renderRange = (start, end, prepend = false) => {
             let htmlStr = '';
             for (let i = start; i < end; i++) {
                 let msg = allMsgs[i];
+                
+                // 🌟 添加剧本已归档视觉分割线，且这些文字绝对不发给AI
+                if (contact.lastSummaryMsgIndex && i === contact.lastSummaryMsgIndex) {
+                    htmlStr += `<div style="text-align:center; margin: 15px 0; font-size:10px; color:#ccc; letter-spacing:1px; font-weight:bold;">—— 以上消息已生成记忆总结并折叠归档 ——</div>`;
+                }
+                
                 const safeText = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+                
+                // 🌟 新增长按事件触控群
+                let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msg.id}', '${msg.sender}', '${msg.time}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msg.id}', '${msg.sender}', '${msg.time}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
+
                 if (msg.sender === 'user') {
-                    htmlStr += `<div class="preview-msg-row right"><div class="Toutou-TT user"><span class="bubble-time">${msg.time}</span><div class="content">${safeText}</div></div><img src="${myAvatar}" class="preview-avatar"></div>`;
+                    htmlStr += `<div class="preview-msg-row right" ${touchEvents}><div class="Toutou-TT user"><span class="bubble-time">${msg.time}</span><div class="content">${safeText}</div></div><img src="${myAvatar}" class="preview-avatar"></div>`;
                 } else {
-                    htmlStr += `<div class="preview-msg-row left"><img src="${charAvatar}" class="preview-avatar"><div class="Toutou-TT char"><div class="content">${safeText}</div><span class="bubble-time">${msg.time}</span></div></div>`;
+                    htmlStr += `<div class="preview-msg-row left" ${touchEvents}><img src="${charAvatar}" class="preview-avatar"><div class="Toutou-TT char"><div class="content">${safeText}</div><span class="bubble-time">${msg.time}</span></div></div>`;
                 }
             }
             if (prepend) {
-                // 如果是往上翻加载的，插入到打招呼占位区之后
                 const initState = document.getElementById('chatInitState');
                 initState.insertAdjacentHTML('afterend', htmlStr);
             } else {
@@ -1966,35 +1972,24 @@ function openChatRoom(contactId) {
             }
         };
 
-        // 首屏仅渲染被截断后的最新部分
+        // 首屏渲染
         renderRange(currentRenderStartIndex, allMsgs.length, false);
 
-        // 绑定滚动加载历史记录事件 (一直往上翻才能看到隐藏的)
-        chatBody.onscroll = null; // 清理旧绑定防止多次触发
+        chatBody.onscroll = null;
         let isLoadingHistory = false;
-        
         chatBody.onscroll = function() {
             if (chatBody.scrollTop <= 20 && currentRenderStartIndex > 0 && !isLoadingHistory) {
                 isLoadingHistory = true;
-                let oldHeight = chatBody.scrollHeight; // 记录插入前的高度
-                
+                let oldHeight = chatBody.scrollHeight; 
                 let nextStart = Math.max(0, currentRenderStartIndex - limit);
                 let nextEnd = currentRenderStartIndex;
-                
                 renderRange(nextStart, nextEnd, true);
-                currentRenderStartIndex = nextStart; // 更新起点指针
-                
-                // 恢复滚动条位置，防止插入后画面瞬间闪跳到最上面
+                currentRenderStartIndex = nextStart; 
                 chatBody.scrollTop = chatBody.scrollHeight - oldHeight;
-                
-                setTimeout(() => { isLoadingHistory = false; }, 300); // 节流
+                setTimeout(() => { isLoadingHistory = false; }, 300); 
             }
         };
-
-        // 智能滚到底部查看最新消息
-        setTimeout(() => {
-            chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'auto' });
-        }, 10);
+        setTimeout(() => { chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'auto' }); }, 10);
     }
     
     document.getElementById('chatRoomScreen').classList.add('active');
@@ -2228,21 +2223,24 @@ function calculateTokens(contact) {
     });
 
     let chatToken = 0;
-    let rounds = contact.memoryRounds || 50;
-    let recentMsgs = (contact.messages || []).slice(-rounds);
+    // 🌟 核心：只计算“未被总结”的新聊天记录 Token
+    let lastSumIndex = contact.lastSummaryMsgIndex || 0;
+    let recentMsgs = (contact.messages || []).slice(lastSumIndex);
     recentMsgs.forEach(m => { chatToken += (m.text||'').length; });
     
-    // 🌟 核心：计算历史记忆库里所有的 Token
+    // 🌟 核心：将所有已被压缩为“历史记忆”的文本纳入“其他”
+    let otherToken = 0;
     if (contact.historySummaries && contact.historySummaries.length > 0) {
-        contact.historySummaries.forEach(s => { chatToken += (s.content || '').length; });
+        contact.historySummaries.forEach(s => { otherToken += (s.content || '').length; });
     } else if (contact.memorySummary) {
-        chatToken += contact.memorySummary.length; // 兼容老数据
+        otherToken += contact.memorySummary.length;
     }
 
     document.getElementById('token-count-base').innerText = baseToken;
     document.getElementById('token-count-wb').innerText = wbToken;
     document.getElementById('token-count-chat').innerText = chatToken;
-    document.getElementById('token-count-total').innerText = baseToken + wbToken + chatToken;
+    document.getElementById('token-count-other').innerText = otherToken;
+    document.getElementById('token-count-total').innerText = baseToken + wbToken + chatToken + otherToken;
 }
 
 // 🌟 功能 3：打开历史记忆总结库大页面
@@ -2612,7 +2610,7 @@ function buildSystemPrompt(contact) {
 1. 使用大白话、符合角色设定性格的来回复，
 2. 不允许物化、打压，不允许太过暴躁。拒绝文绉绉、拒绝说教、拒绝机械重复我的话、拒绝反问、拒绝总是重复同一个话题与无进展的对话。最后一句话要开放式结尾，而非总是威胁性或俗套
 3. 对话不一定要干巴巴地交代事件或信息，可以只是一句闲聊，也可以是胡说八道，甚至脑子一热说错话。善用潜台词（例如：一个爱逞强的人受伤后说话跟没事人一样，突然倒下）。
-4. 不要油腻，拒绝霸总式、模板化（刻板印象的人物塑造）、常规化的回复与人物理解。在角色设定允许的情况下，你可以只回复一句话或一个标点符号。比如发很多省略号，句号，逗号等。每个人物都必须遵循一个真实人类“最本真”的原则——有自己的口癖，腔调，生闷气时话少，高兴时话多，平时能说则说，不会装高冷不理人，偶尔说错话。同时也可以发送颜文字和网络热梗以及表情包（人物设定允许的情况下）。
+4. 不要油腻，拒绝霸总式、模板化（刻板印象的人物塑造）、常规化的回复与人物理解。在角色设定允许的情况下，你可以只回复一句话或一个标点符号。比如发很多省略号，句号，逗号等。每个人物都必须遵循一个真实人类“最本真”的原则——有自己的口癖，腔调，生闷气时话少，高兴时话多，平时能说则说，不会装高冷不理人，偶尔说错话。另外，作为真实聊天软件，对方会撤回消息，你作为角色也同样拥有撤回消息的能力。同时也可以发送颜文字和网络热梗以及表情包（人物设定允许的情况下）。
 5. 每次说出的话，尽量要推动剧情和事件发展，而非停在原地不转、反复纠结一件事。比如（你参考这个）：比如这时候晚上7:30在说吃饭，你可以模拟真人自然地说“准备去洗澡了”等生活行为，让对话具备真实的流动感。但不要总重复之前（短时间内）说过/相似的话。
 输出之前请思考：你查阅完所有资料后，对于人物的理解是什么，如何抓住人物性格特点，去创作一个不俗套且不OOC让人有对话欲望的对话呢？
 
@@ -2686,15 +2684,14 @@ async function triggerAiReply() {
 
 
      if (contact.messages && contact.messages.length > 0) {
-        // 🌟 核心截断：按照设定的轮数，只提取最近的聊天记录发给 AI (一轮包含一来一回，所以 *2)
-        let rounds = contact.memoryRounds || 50;
-        let recentMsgs = contact.messages.slice(-(rounds * 2));
+        // 🌟 核心截断闸门：已总结的内容不再重叠发送！
+        let lastSumIndex = contact.lastSummaryMsgIndex || 0;
+        let recentMsgs = contact.messages.slice(lastSumIndex);
         
         recentMsgs.forEach(m => {
             messagesPayload.push({ role: m.sender === 'user' ? "user" : "assistant", content: m.text });
         });
     } else {
-
         messagesPayload.push({ role: "system", content: "这是你们的第一句话，请主动跟对方打招呼破冰。" });
     }
 
@@ -3654,4 +3651,148 @@ function showMindContent(contact) {
     document.getElementById('mind-login-view').style.display = 'none';
     document.getElementById('mind-quiz-view').style.display = 'none';
     document.getElementById('mind-content-view').style.display = 'block';
+}
+
+// ==========================================
+// 🌟 左下角 + 号半屏菜单
+// ==========================================
+function toggleChatPlusMenu(event) {
+    if (event) event.stopPropagation();
+    const overlay = document.getElementById('chat-plus-overlay');
+    const menu = document.getElementById('chat-plus-menu');
+    const screen = document.getElementById('chatRoomScreen');
+    
+    if (menu.classList.contains('active')) {
+        closeChatPlusMenu();
+    } else {
+        if (document.activeElement) document.activeElement.blur(); 
+        overlay.classList.add('active');
+        menu.classList.add('active');
+        screen.classList.add('plus-active');
+    }
+}
+
+function closeChatPlusMenu() {
+    document.getElementById('chat-plus-overlay').classList.remove('active');
+    document.getElementById('chat-plus-menu').classList.remove('active');
+    document.getElementById('chatRoomScreen').classList.remove('plus-active');
+}
+
+// ==========================================
+// 🌟 气泡长按菜单引擎 (动态定位支持)
+// ==========================================
+let bubblePressTimer = null;
+let currentActionBubbleId = null;
+let currentActionBubbleSender = null;
+let currentActionBubbleTimeStr = null;
+let currentBubbleEventTarget = null; // 🌟 记录被长按的目标元素容器
+
+function bubbleTouchStart(event, msgId, sender, timeStr) {
+    event.stopPropagation();
+    currentBubbleEventTarget = event.currentTarget; // 捕捉当前行的容器
+    bubblePressTimer = setTimeout(() => {
+        openBubbleMenu(msgId, sender, timeStr);
+    }, 600);
+}
+
+function bubbleTouchEnd(event) {
+    if (bubblePressTimer) clearTimeout(bubblePressTimer);
+}
+
+function openBubbleMenu(msgId, sender, timeStr) {
+    if (bubblePressTimer) clearTimeout(bubblePressTimer);
+    if (!currentChatContactId) return;
+    
+    if (document.activeElement) document.activeElement.blur();
+    
+    currentActionBubbleId = msgId;
+    currentActionBubbleSender = sender;
+    currentActionBubbleTimeStr = timeStr;
+    
+    const overlay = document.getElementById('bubble-action-overlay');
+    const menu = document.getElementById('bubble-action-menu');
+    const recallBtn = document.getElementById('b-action-recall');
+    
+    // 🌟 核心定位系统：将浮窗自动移动到气泡的正上方
+    if (currentBubbleEventTarget) {
+        // 尝试从行容器中抓出真正的带有颜色的气泡内容框，以它为准
+        let bubbleEl = currentBubbleEventTarget.querySelector('.content') || currentBubbleEventTarget;
+        const rect = bubbleEl.getBoundingClientRect();
+        
+        // 算出气泡水平中点与顶端高度
+        let centerX = rect.left + rect.width / 2;
+        let topY = rect.top - 8; // 定位在气泡顶部，留出 8px 缓冲
+        
+        // 防左右越界处理 (菜单大致需要220px宽度)
+        const menuWidthEst = 220; 
+        if (centerX < menuWidthEst / 2 + 10) centerX = menuWidthEst / 2 + 10;
+        if (centerX > window.innerWidth - (menuWidthEst / 2 + 10)) centerX = window.innerWidth - (menuWidthEst / 2 + 10);
+        
+        // 如果上面空间不够了（被顶栏挡住），智能翻转挂载到气泡下方
+        if (topY < 60) {
+            topY = rect.bottom + 8;
+            menu.classList.add('top-arrow');
+            menu.classList.remove('bottom-arrow');
+        } else {
+            menu.classList.add('bottom-arrow');
+            menu.classList.remove('top-arrow');
+        }
+
+        // 注入绝对坐标
+        menu.style.left = `${centerX}px`;
+        menu.style.top = `${topY}px`;
+    }
+
+    // 🌟 撤回限制核心：仅我方，且不超过3分钟
+    if (sender === 'user') {
+        const now = new Date();
+        const msgTimeParts = timeStr.split(':');
+        if (msgTimeParts.length === 2) {
+            const msgDate = new Date();
+            msgDate.setHours(parseInt(msgTimeParts[0]), parseInt(msgTimeParts[1]), 0, 0);
+            
+            if (now.getTime() - msgDate.getTime() > 3 * 60 * 1000 || now.getTime() < msgDate.getTime()) {
+                recallBtn.style.display = 'none';
+            } else {
+                recallBtn.style.display = 'block';
+            }
+        } else {
+            recallBtn.style.display = 'none';
+        }
+    } else {
+        recallBtn.style.display = 'none'; 
+    }
+    
+    overlay.classList.add('active');
+}
+
+function closeBubbleMenu() {
+    document.getElementById('bubble-action-overlay').classList.remove('active');
+}
+
+function bubbleAction(action) {
+    closeBubbleMenu();
+    if (!currentChatContactId || !currentActionBubbleId) return;
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    if (!contact || !contact.messages) return;
+    
+    const msgIndex = contact.messages.findIndex(m => m.id === currentActionBubbleId);
+    if (msgIndex === -1) return;
+    const msg = contact.messages[msgIndex];
+
+    if (action === 'copy') {
+        navigator.clipboard.writeText(msg.text).then(() => showToast('已复制')).catch(() => showToast('复制失败'));
+    } else if (action === 'delete') {
+        contact.messages.splice(msgIndex, 1);
+        saveToDB('contacts_data', JSON.stringify(contactsList));
+        showToast('已删除');
+        openChatRoom(currentChatContactId); // 暴力刷新
+    } else if (action === 'recall') {
+        contact.messages.splice(msgIndex, 1);
+        saveToDB('contacts_data', JSON.stringify(contactsList));
+        showToast('你撤回了一条消息');
+        openChatRoom(currentChatContactId); 
+    } else if (action === 'reply' || action === 'translate' || action === 'multi') {
+        showToast('该拓展功能建设中...');
+    }
 }

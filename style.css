@@ -1581,46 +1581,62 @@ body {
    🌟 全新聊天页高级底栏系统 (极致对齐版)
 ========================================== */
 .chat-room-input-bar {
-    /* 核心修改：基于真实物理边界 10px + 安全区自适应，彻底解决真机遮挡/悬空问题 */
+    width: 100%; 
+    box-sizing: border-box; 
     padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
     padding-top: 15px; 
     background: #ffffff; 
     display: flex; 
-    align-items: flex-start; 
+    align-items: flex-end; /* 🌟 修复: 底部部件贴地对齐更好看 */
     padding-left: 12px; 
     padding-right: 15px; 
     gap: 12px; 
     flex-shrink: 0;
     z-index: 30;
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+.chat-room-screen.plus-active .chat-room-input-bar {
+    transform: translateY(-260px);
+}
+.chat-room-screen.plus-active .chat-room-body {
+    transform: translateY(-260px);
+}
+.chat-room-body {
+    flex: 1; 
+    padding: 0 15px 15px 15px; 
+    overflow-y: auto; 
+    display: flex; flex-direction: column; 
+    gap: 28px; 
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
 
-/* 左侧加号按钮 & 右侧发送按钮通用布局 */
-.chat-add-btn, .chat-send-btn {
-    width: 32px; height: 32px; 
+/* 🌟 修复：固定加号按钮大小与对齐 */
+.chat-add-btn {
+    width: 32px; height: 32px;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; 
-    /* 🔥 核心微调：从原来的 -6px 往下移动 5px，变为 -1px，实现视觉上的绝对持平 */
-    margin-top: -1px; 
-    transition: transform 0.2s;
-    background: transparent; /* 彻底去除灰色药丸底色 */
+    cursor: pointer; transition: transform 0.1s;
+    margin-bottom: 5px; flex-shrink: 0;
 }
-.chat-add-btn:active, .chat-send-btn:active { transform: scale(0.85); opacity: 0.6; }
+.chat-add-btn:active { transform: scale(0.9); }
 
-/* 中间输入区包裹层 */
+/* 🌟 核心修复：抢占所有剩余空间，修复底栏被挤压缩小一大半的问题 */
 .chat-input-wrapper {
-    flex: 1;
+    flex: 1; 
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: flex-end;
 }
 
-/* 隐形的原生输入框 */
-.chat-room-input {
-    width: 100%; background: transparent; border: none; outline: none;
-    font-size: 15px; color: #111; font-weight: 500;
-    padding: 0 0 8px 0; /* 这里的 8px 是控制文字底部与 Toutou 线条之间的空隙距离 */
+/* 🌟 修复：固定发送飞机按钮大小与对齐 */
+.chat-send-btn {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: transform 0.1s;
+    margin-bottom: 5px; flex-shrink: 0;
 }
+.chat-send-btn:active { transform: scale(0.9); }
+
 .chat-room-input::placeholder { color: #ccc; }
 
 /* 🔥 核心视觉：左短右长 Toutou 悬浮线 */
@@ -1839,7 +1855,13 @@ body {
   line-height: 1.5;
   max-width: 65vw; 
   text-align: left; 
+  
+  /* 🌟 核心：屏蔽系统原生自带的选择与长按菜单 */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
+
 
 /* --- 用户气泡 --- */
 .Toutou-TT.user .content {
@@ -2046,3 +2068,90 @@ body {
 }
 
 .mind-black-toast.active { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+
+/* ==========================================
+   🌟 聊天加号底部菜单与长按气泡菜单
+========================================== */
+.chat-plus-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: transparent; z-index: 2010; display: none;
+}
+.chat-plus-overlay.active { display: block; }
+
+.chat-plus-menu {
+    position: absolute; bottom: 0; left: 0; width: 100%; height: 260px;
+    background: #f5f5f5; border-top: 1px solid #e0e0e0; z-index: 2020;
+    transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    display: flex; flex-direction: column; padding: 20px 15px; box-sizing: border-box;
+}
+.chat-plus-menu.active { transform: translateY(0); }
+
+.plus-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px 10px;
+}
+.plus-item {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+}
+.plus-icon {
+    width: 50px; height: 50px; background: #fff; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center; font-size: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: transform 0.1s;
+}
+.plus-item:active .plus-icon { transform: scale(0.9); background: #f0f0f0; }
+.plus-item span { font-size: 11px; color: #666; font-weight: 500; }
+
+/* ==========================================
+   🌟 气泡长按菜单引擎 (微信同款动态悬浮磨砂窗)
+========================================== */
+.bubble-action-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: transparent; z-index: 2500; display: none;
+}
+.bubble-action-overlay.active { display: block; }
+
+.bubble-action-menu {
+    position: absolute;
+    background: rgba(35, 35, 35, 0.85); 
+    backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+    border-radius: 10px; box-shadow: 0 5px 25px rgba(0,0,0,0.15);
+    display: flex; flex-direction: row; padding: 4px 8px; gap: 4px;
+    opacity: 0;
+    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    white-space: nowrap; z-index: 2510;
+}
+/* 🌟 核心：默认在气泡正上方（带底部居中三角箭头） */
+.bubble-action-menu.bottom-arrow {
+    transform: translate(-50%, calc(-100% + 15px)) scale(0.9);
+    transform-origin: center bottom;
+}
+.bubble-action-overlay.active .bubble-action-menu.bottom-arrow {
+    transform: translate(-50%, -100%) scale(1); opacity: 1; 
+}
+
+/* 🌟 核心：如果屏幕顶部越界，翻转挂载在气泡下方（带顶部居中三角箭头） */
+.bubble-action-menu.top-arrow {
+    transform: translate(-50%, -15px) scale(0.9);
+    transform-origin: center top;
+}
+.bubble-action-overlay.active .bubble-action-menu.top-arrow {
+    transform: translate(-50%, 0) scale(1); opacity: 1; 
+}
+
+/* 动态下箭头 */
+.bubble-action-menu.bottom-arrow::after {
+    content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
+    border-width: 6px 6px 0 6px; border-style: solid; border-color: rgba(35, 35, 35, 0.85) transparent transparent transparent;
+}
+/* 动态上箭头 (防遮挡翻转) */
+.bubble-action-menu.top-arrow::after {
+    content: ''; position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+    border-width: 0 6px 6px 6px; border-style: solid; border-color: transparent transparent rgba(35, 35, 35, 0.85) transparent;
+}
+
+.b-action-item {
+    padding: 8px 12px; font-size: 12px; font-weight: 600; color: #fff;
+    cursor: pointer; border-radius: 6px; transition: background 0.1s;
+    display: flex; align-items: center; justify-content: center;
+}
+.b-action-item:active { background: rgba(255,255,255,0.2); }
+.b-action-item.danger { color: #ff5e5e; }

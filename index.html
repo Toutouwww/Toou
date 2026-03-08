@@ -568,7 +568,7 @@
             <div class="chat-room-input-bar">
                 
                 <!-- 左侧：极简 + 号按钮 -->
-                <div class="chat-add-btn">
+                <div class="chat-add-btn" onclick="toggleChatPlusMenu(event)">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -778,6 +778,7 @@
                             <div class="token-stat-row"><span>角色基础设定</span><span id="token-count-base">0</span></div>
                             <div class="token-stat-row"><span>世界书设定</span><span id="token-count-wb">0</span></div>
                             <div class="token-stat-row"><span>历史聊天记录</span><span id="token-count-chat">0</span></div>
+                            <div class="token-stat-row"><span>其他 (历史提纯记忆)</span><span id="token-count-other">0</span></div>
                             <div class="token-stat-row total"><span>预计总消耗 (单次)</span><span id="token-count-total">0</span></div>
                         </div>
                         
@@ -789,7 +790,6 @@
                             <input type="number" id="cs-auto-summary-rounds" value="30" style="width:50px; background:#f0f0f0; border:none; border-radius:6px; padding:4px; text-align:center; font-size:12px; font-weight:700; outline:none;">
                         </div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px;">
-                            <span style="font-size:12px; color:#555; font-weight:600;">保留最近聊天轮数</span>
                             <input type="number" id="cs-memory-rounds" value="50" style="width:50px; background:#f0f0f0; border:none; border-radius:6px; padding:4px; text-align:center; font-size:12px; font-weight:700; outline:none;">
                         </div>
                         <div style="font-size:10px; color:#999; line-height:1.4; margin-bottom:12px;">聊天达到指定频率后，将在后台自动提取剧情细节并保存到记忆库。</div>
@@ -1186,8 +1186,103 @@
         </div>
     </div>
 
+    <!-- 🌟 心声系统 (极简工业风打印机 + 登录保险箱) -->
+    <div class="custom-prompt-overlay" id="inner-voice-overlay" style="z-index: 3000; background: rgba(245,245,245,0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);" onclick="closeInnerVoice(event)">
+        <div class="voice-layout-wrapper" onclick="event.stopPropagation()">
+            
+            <!-- 打印机本体 (保留，作为背景氛围) -->
+            <div class="printer-machine">
+                <div class="printer-top-bar">Mind Spool.</div>
+                <div class="printer-slot"></div>
+            </div>
+            
+            <!-- 下方的密码箱 / 心声展示盒 -->
+            <div class="mind-box" id="mind-box">
+                
+                <!-- 状态 1：登录界面 -->
+                <div id="mind-login-view">
+                    <div class="mind-box-title">SYSTEM LOGIN.</div>
+                    
+                    <div class="mind-input-group">
+                        <label>ID.</label>
+                        <!-- ID 现已改为只读，由系统自动填入邮箱 -->
+                        <input type="text" id="mind-id-input" readonly style="color:#888;">
+                    </div>
+                    <div class="mind-input-group" style="margin-top: 15px;">
+                        <label>PWD.</label>
+                        <input type="password" id="mind-pwd-input" placeholder="PASSWORD" autocomplete="off">
+                    </div>
+
+                    <!-- 记住密码开关 -->
+                    <div class="mind-remember-row" onclick="toggleMindRemember()">
+                        <div class="mind-checkbox" id="mind-remember-chk"></div>
+                        <span>REMEMBER PWD.</span>
+                    </div>
+                    
+                    <div class="mind-btn" onclick="verifyVoiceLogin()">ACCESS</div>
+                </div>
+
+                <!-- 状态 1.5：专属回忆选择题界面 (默认隐藏) -->
+                <div id="mind-quiz-view" style="display: none;">
+                    <div class="mind-box-title">SECURITY QUIZ.</div>
+                    <div class="mind-quiz-q" id="voice-quiz-q">加载题目中...</div>
+                    <div class="mind-quiz-options">
+                        <div class="mind-quiz-opt" onclick="checkVoiceQuiz(1)" id="voice-quiz-opt1">A. ...</div>
+                        <div class="mind-quiz-opt" onclick="checkVoiceQuiz(2)" id="voice-quiz-opt2">B. ...</div>
+                        <div class="mind-quiz-opt" onclick="checkVoiceQuiz(3)" id="voice-quiz-opt3">C. ...</div>
+                    </div>
+                </div>
+
+                <!-- 状态 2：心声展示界面 (默认隐藏) -->
+                <div id="mind-content-view" style="display: none;">
+                    <div class="mind-box-title">INNER VOICE.</div>
+                    <div class="mind-row">
+                        <span class="m-label">LOC.</span>
+                        <span class="m-val" id="voice-location">未知</span>
+                    </div>
+                    <div class="mind-row">
+                        <span class="m-label">ACT.</span>
+                        <span class="m-val" id="voice-action">发呆</span>
+                    </div>
+                    <div class="mind-row" style="margin-top: 12px;">
+                        <span class="m-label">THOUGHT.</span>
+                        <span class="m-val handwritten" id="voice-thought">...</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
     <!-- 🌟 黑色报错小弹窗 (全局绝对居中) -->
     <div id="mind-black-toast" class="mind-black-toast"></div>
 
+    <!-- 🌟 聊天 + 号底部半屏菜单 -->
+    <div class="chat-plus-overlay" id="chat-plus-overlay" onclick="closeChatPlusMenu()"></div>
+    <div class="chat-plus-menu" id="chat-plus-menu">
+        <div class="plus-grid">
+            <div class="plus-item" onclick="showToast('敬请期待')"><div class="plus-icon">🖼️</div><span>相册</span></div>
+            <div class="plus-item" onclick="showToast('敬请期待')"><div class="plus-icon">📷</div><span>拍摄</span></div>
+            <div class="plus-item" onclick="showToast('敬请期待')"><div class="plus-icon">📞</div><span>语音通话</span></div>
+            <div class="plus-item" onclick="showToast('敬请期待')"><div class="plus-icon">📹</div><span>视频通话</span></div>
+            <div class="plus-item" onclick="showToast('敬请期待')"><div class="plus-icon">📍</div><span>位置</span></div>
+            <div class="plus-item" onclick="showToast('敬请期待')"><div class="plus-icon">📁</div><span>文件</span></div>
+            <div class="plus-item" onclick="showToast('敬请期待')"><div class="plus-icon">💸</div><span>转账</span></div>
+            <div class="plus-item" onclick="showToast('敬请期待')"><div class="plus-icon">🖥️</div><span>屏幕分享</span></div>
+            <div class="plus-item" onclick="showToast('敬请期待')"><div class="plus-icon">🎵</div><span>一起听歌</span></div>
+        </div>
+    </div>
+
+    <!-- 🌟 气泡长按菜单弹窗 -->
+    <div class="bubble-action-overlay" id="bubble-action-overlay" onclick="closeBubbleMenu()">
+        <div class="bubble-action-menu" id="bubble-action-menu" onclick="event.stopPropagation()">
+            <div class="b-action-item" onclick="bubbleAction('copy')">复制</div>
+            <div class="b-action-item" onclick="bubbleAction('reply')">引用</div>
+            <div class="b-action-item" onclick="bubbleAction('translate')">翻译</div>
+            <div class="b-action-item" onclick="bubbleAction('multi')">多选</div>
+            <div class="b-action-item" id="b-action-recall" onclick="bubbleAction('recall')">撤回</div>
+            <div class="b-action-item danger" onclick="bubbleAction('delete')">删除</div>
+        </div>
+    </div>
 </body>
 </html>
