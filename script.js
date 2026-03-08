@@ -2714,12 +2714,17 @@ async function triggerAiReply() {
 
     isAiReplying = false;
 
-    setTimeout(() => {
-        chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
-    }, 50);
+    // 🌟 核心Bug修复：补充未定义的 chatBody 变量，防止 JS 线程直接崩溃导致总结系统瘫痪！！
+    const chatBody = document.getElementById('chatRoomBody');
+    if (chatBody) {
+        setTimeout(() => {
+            chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+        }, 50);
+    }
 
     // 🌟 检查并触发自动总结
     checkAndTriggerAutoSummary(contact.id);
+
 }
 
 

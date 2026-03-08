@@ -337,14 +337,16 @@ body {
     opacity: 0;
     transform: scale(0.2); 
     pointer-events: none;
-    transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.15s ease-out;
+    visibility: hidden; /* 🌟 加入物理隐身，绝杀 Safari 残留渲染导致主页白屏、点不动 Bug */
+    transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.15s ease-out, visibility 0.4s;
 }
 
 .app-overlay.active {
     opacity: 1;
     transform: scale(1);
     pointer-events: auto;
-    transition: transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.05), opacity 0.2s ease-in;
+    visibility: visible;
+    transition: transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.05), opacity 0.2s ease-in, visibility 0s;
 }
 
 .app-close-btn {
@@ -711,22 +713,20 @@ body {
 .plan-list-item.active { border-color: #000; font-weight: 600; }
 
 /* --- 自定义小白弹窗 --- */
-.custom-prompt-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: rgba(0, 0, 0, 0.4); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
-.custom-prompt-overlay.active { opacity: 1; pointer-events: auto; }
+.custom-prompt-overlay { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100vh; 
+    background: rgba(0, 0, 0, 0.4); z-index: 1000; 
+    display: flex; align-items: center; justify-content: center; 
+    opacity: 0; pointer-events: none; visibility: hidden; /* 🌟 物理隐身 */
+    transition: opacity 0.2s, visibility 0.2s; 
+}
+.custom-prompt-overlay.active { 
+    opacity: 1; pointer-events: auto; visibility: visible; 
+    transition: opacity 0.2s, visibility 0s;
+}
 .custom-prompt-box { background: #fff; width: 280px; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transform: translateY(20px); transition: transform 0.2s; }
 .custom-prompt-overlay.active .custom-prompt-box { transform: translateY(0); }
 .custom-prompt-title { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 15px; }
-.custom-prompt-input { width: 100%; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px 12px; font-size: 14px; color: #333; background: #fafafa; outline: none; margin-bottom: 20px; text-align: center; }
-.custom-prompt-input:focus { border-color: #999; background: #fff; }
-.custom-prompt-msg { font-size: 13px; color: #666; margin-bottom: 20px; text-align: center; line-height: 1.5; }
-.custom-prompt-actions { display: flex; width: 100%; gap: 10px; }
-.prompt-btn { flex: 1; padding: 10px 0; border-radius: 8px; text-align: center; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
-.prompt-btn.cancel { background: #f0f0f0; color: #666; }
-.prompt-btn.cancel:active { background: #e0e0e0; }
-.prompt-btn.confirm { background: #333; color: #fff; }
-.prompt-btn.confirm:active { background: #000; }
-.prompt-btn.confirm.danger { background: #ff3b30; color: #fff; }
-.prompt-btn.confirm.danger:active { background: #d73329; }
 
 
 /* ======================================================== */
@@ -1407,9 +1407,15 @@ body {
 /* --- 🚀 底部滑出弹窗 --- */
 .wb-sheet-overlay {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.4); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    background: rgba(0,0,0,0.4); z-index: 200; 
+    opacity: 0; pointer-events: none; visibility: hidden; /* 🌟 物理隐身 */
+    transition: opacity 0.3s, visibility 0.3s;
 }
-.wb-sheet-overlay.active { opacity: 1; pointer-events: auto; }
+.wb-sheet-overlay.active { 
+    opacity: 1; pointer-events: auto; visibility: visible; 
+    transition: opacity 0.3s, visibility 0s; 
+}
+
 
 .wb-bottom-sheet {
     position: absolute; bottom: 0; left: 0; width: 100%; height: 86%;
