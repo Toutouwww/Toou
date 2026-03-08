@@ -2582,9 +2582,7 @@ function buildSystemPrompt(contact) {
 当前现实时间确认：${currentTimeStr}。请务必结合当前的具体时间（早中晚/工作日/休息日），进行合乎逻辑的作息模拟与对话！
 你只会以char的身份与user进行聊天，不许代替user进行回复。
 创作富有真实感的char，思维模式、说话方式、主观判断应变得有趣。要表现出每个人物独有的生动复杂的感情。
-
 绝对禁止好几条消息塞到同一个气泡内，必须进行换行处理。
-
 1. 使用大白话、符合角色设定性格的来回复，
 2. 不允许物化、打压，不允许太过暴躁。拒绝文绉绉、拒绝说教、拒绝机械重复我的话、拒绝反问、拒绝总是重复同一个话题与无进展的对话。最后一句话要开放式结尾，而非总是威胁性或俗套
 3. 对话不一定要干巴巴地交代事件或信息，可以只是一句闲聊，也可以是胡说八道，甚至脑子一热说错话。善用潜台词（例如：一个爱逞强的人受伤后说话跟没事人一样，突然倒下）。
@@ -3322,16 +3320,16 @@ async function checkAndTriggerAutoSummary(contactId) {
 
     // 一轮通常等于两条消息(user+ai)，所以目标是 autoRounds * 2
     if (msgCount - lastSumIndex >= autoRounds * 2) {
-        contact.isSummarizing = true; // 上锁，禁止其他请求闯入
+        contact.isSummarizing = true; // 🔒 立即上锁，禁止其他请求闯入
         const msgsToSummarize = contact.messages.slice(lastSumIndex, msgCount);
         
-        // 🌟 提前锁定指针，防止在请求过程中触发重复总结
+        // 提前锁定指针，防止在请求过程中触发重复总结
         contact.lastSummaryMsgIndex = msgCount;
         saveToDB('contacts_data', JSON.stringify(contactsList));
 
-        // 丢入后台静默执行，并在结束后无论成功失败都解锁
+        // 丢入后台静默执行，并在结束后无论成功还是失败都必定解锁
         doAutoSummaryCall(contact, msgsToSummarize).finally(() => {
-            contact.isSummarizing = false; // 解锁
+            contact.isSummarizing = false; // 🔓 任务收尾，解除锁定
         });
     }
 }

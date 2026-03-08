@@ -1414,10 +1414,16 @@ body {
 .wb-bottom-sheet {
     position: absolute; bottom: 0; left: 0; width: 100%; height: 86%;
     background: #ffffff; border-radius: 28px 28px 0 0; z-index: 210; box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
-    transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+    transform: translateY(100%); 
+    opacity: 0; pointer-events: none; visibility: hidden; /* 🌟 物理隐身，绝杀键盘顶飞 */
+    transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1), opacity 0.3s, visibility 0.4s;
     display: flex; flex-direction: column;
 }
-.wb-bottom-sheet.active { transform: translateY(0); }
+.wb-bottom-sheet.active { 
+    transform: translateY(0); 
+    opacity: 1; pointer-events: auto; visibility: visible; /* 🌟 激活时解除隐身 */
+    transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1), opacity 0.3s, visibility 0s;
+}
 
 .sheet-handle-bar { width: 40px; height: 5px; background: #e0e0e0; border-radius: 3px; margin: 12px auto; }
 .sheet-title { font-size: 18px; font-weight: 800; color: #000; text-align: center; margin-bottom: 20px; letter-spacing: 0.5px; }
