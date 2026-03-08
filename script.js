@@ -1,8 +1,30 @@
 // ==========================================
+// 🌟 终极防错位系统：底层锁定与软键盘强回收
+// ==========================================
+function lockDesktopScroll() {
+    const desktop = document.querySelector('.mobile-container');
+    if (desktop) desktop.classList.add('no-scroll');
+}
+
+function unlockDesktopScroll() {
+    const desktop = document.querySelector('.mobile-container');
+    if (desktop) {
+        desktop.classList.remove('no-scroll');
+        desktop.scrollTop = 0; // 🌟 绝杀：强制桌面回到最顶部，消除一切软键盘留下的错位！
+    }
+    // 强制全局失焦，防止返回桌面时还有隐藏输入框卡着键盘
+    if (document.activeElement && document.activeElement.blur) {
+        document.activeElement.blur();
+    }
+}
+
+
+// ==========================================
 // 软件1：通讯应用软件的打开、关闭与标签切换
 // ==========================================
 
 function openAppChat(event) {
+    lockDesktopScroll(); // 🌟 锁定桌面
     const overlay = document.getElementById('appChatOverlay');
     if (event && event.currentTarget) {
         const rect = event.currentTarget.getBoundingClientRect();
@@ -17,6 +39,7 @@ function openAppChat(event) {
 
 function closeAppChat() {
     document.getElementById('appChatOverlay').classList.remove('active');
+    unlockDesktopScroll(); // 🌟 解锁桌面并强制复位
 }
 
 function switchTab(tabId, btnElement) {
@@ -46,6 +69,7 @@ function switchTab(tabId, btnElement) {
 // ==========================================
 
 function openApiApp(event) {
+    lockDesktopScroll(); // 🌟 锁定桌面
     const overlay = document.getElementById('apiAppOverlay');
     if (event && event.currentTarget) {
         const rect = event.currentTarget.getBoundingClientRect();
@@ -69,6 +93,7 @@ function openApiApp(event) {
 
 function closeApiApp() {
     document.getElementById('apiAppOverlay').classList.remove('active');
+    unlockDesktopScroll(); // 🌟 解锁桌面并强制复位
 }
 
 // 全局 Toast 弹窗提示 
@@ -373,6 +398,7 @@ let lastPlanetClickTime = 0;
 
 
 function openWorldbookApp(event) {
+    lockDesktopScroll(); // 🌟 锁定桌面
     const overlay = document.getElementById('worldbookAppOverlay');
     if (event && event.currentTarget) {
         const rect = event.currentTarget.getBoundingClientRect();
@@ -381,11 +407,9 @@ function openWorldbookApp(event) {
         overlay.style.transformOrigin = 'center center';
     }
     
-    // --- 【新增】强制重置为默认的“全部”状态 ---
-    isWbDeleteMode = false; // 每次打开强制退出删除模式
-    document.getElementById('wb-popover-menu').classList.remove('active'); // 关掉可能遗留的气泡菜单
+    isWbDeleteMode = false; 
+    document.getElementById('wb-popover-menu').classList.remove('active'); 
     
-    // 强制把三个星球的位置归位
     const track = document.getElementById('wb-planet-track');
     if(track) {
         const planets = track.querySelectorAll('.wb-planet');
@@ -397,7 +421,6 @@ function openWorldbookApp(event) {
         });
     }
 
-    // 强制渲染“全部”视图的内容（如果没有，自然会显示暂无）
     document.getElementById('wb-current-view').innerText = '全部';
     renderWorldbookList('全部');
     
@@ -408,6 +431,7 @@ function closeWorldbookApp() {
     document.getElementById('worldbookAppOverlay').classList.remove('active');
     closeCharSelector(); 
     document.getElementById('wb-popover-menu').classList.remove('active');
+    unlockDesktopScroll(); // 🌟 解锁桌面并强制复位
 }
 
 function handlePlanetClick(clickedEl) {
@@ -1861,9 +1885,11 @@ function promptDeleteContact(id) {
 let currentChatContactId = null;
 
 function closeChatRoom() {
+    if (document.activeElement) document.activeElement.blur(); // 🌟 强制收起键盘
     document.getElementById('chatRoomScreen').classList.remove('active');
     currentChatContactId = null;
 }
+
 
 function openChatRoom(contactId) {
     currentChatContactId = contactId;

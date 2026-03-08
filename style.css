@@ -59,6 +59,10 @@ body {
 
 .mobile-container::-webkit-scrollbar { display: none; }
 
+/* 🌟 新增：底层锁死类，防止键盘顶飞与滚动穿透 */
+.mobile-container.no-scroll { overflow: hidden !important; }
+
+
 /* --- 1. 白色卡片区域 --- */
 .white-card {
     background: var(--white-card-bg);
