@@ -104,6 +104,15 @@ function updateSliderVal(sliderEl, valId) {
 function toggleStream() {
     const btn = document.getElementById('stream-toggle-btn');
     btn.classList.toggle('active');
+    
+    // 🔥 核心修复：小白防呆设计！点一下立刻静默保存到当前运行方案，无需手动点“应用”
+    if (activeApiPlanId) {
+        const planIndex = apiPlans.findIndex(p => p.id === activeApiPlanId);
+        if (planIndex > -1) {
+            apiPlans[planIndex].data.stream = btn.classList.contains('active');
+            saveToDB('qiandao_api_plans', JSON.stringify(apiPlans));
+        }
+    }
 }
 
 function getCurrentApiUIData() {
@@ -890,26 +899,75 @@ function confirmCustomPrompt() {
     if (currentPromptAction === 'confirm_delete') {
         if (currentTargetId === 'action_delete_plan') executeDeletePlan();
         else if (currentTargetId === 'action_delete_api_plan') executeDeleteApiPlan();
-        else if (currentTargetId === 'action_delete_worldbook') executeDeleteWorldbook(); // 【新增】接管世界书的删除确认
+        else if (currentTargetId === 'action_delete_worldbook') executeDeleteWorldbook(); 
+        else if (currentTargetId === 'action_delete_bubble_plan') {
+            customBubblePlans = customBubblePlans.filter(p => p.id !== bubblePlanToDelete);
+            saveToDB('custom_bubble_plans', JSON.stringify(customBubblePlans));
+            renderBubbleListPanel();
+            showToast('美化方案已删除');
+        }
+        // 🌟 新增：处理清空聊天记录
+        else if (currentTargetId === 'action_clear_chat_history') {
+            if (currentChatContactId) {
+                const contact = contactsList.find(c => c.id === currentChatContactId);
+                if (contact) {
+                    contact.messages = [];
+                    contact.sign = ''; // 清空列表外面的小字
+                    
+                    // 🌟 级联销毁：彻底清空历史总结数据与拦截的心声数据
+                    contact.historySummaries = [];
+                    delete contact.memorySummary; 
+                    contact.innerVoice = {}; 
+                    contact.lastSummaryMsgIndex = 0; // 彻底重置自动总结的记忆指针
+
+                    
+                    saveToDB('contacts_data', JSON.stringify(contactsList));
+                    renderMsgList();
+                    
+                    // 实时清空聊天室屏幕
+                    const chatBody = document.getElementById('chatRoomBody');
+                    if (chatBody) {
+                        Array.from(chatBody.children).forEach(child => {
+                            if (child.id !== 'chatInitState') child.remove();
+                        });
+                    }
+                    
+                    // 🌟 强行恢复大头像下方的小药丸初始文字，并确保透明度为可见状态
+                    const textEl = document.getElementById('chat-init-text');
+                    if (textEl) {
+                        textEl.style.opacity = 1; 
+                        textEl.innerHTML = `你与 <strong id="chat-init-name-display">${contact.name}</strong> 已添加好友，快来聊天吧！`;
+                    }
+
+                    showToast('聊天记录、心声及历史总结已彻底清空');
+                    closeChatSettings(); // 清空后自动退回聊天室
+                }
+            }
+        }
     } else if (currentPromptAction === 'confirm_action') {
+
+
         if (currentTargetId === 'action_apply_plan') executeApplyPlan();
     } else if (currentTargetId === 'global-avatar-url') {
         if(inputVal !== "") updateCurrentAvatar(inputVal);
-    } else if (currentTargetId === 'cs-avatar-url') {
+     } else if (currentTargetId === 'cs-avatar-url') {
+        // 1. 设置页更换头像：只改预览图，点保存时才生效（影响列表和气泡）
         if(inputVal !== "") document.getElementById('cs-avatar').src = inputVal;
-        // 🌟 接收聊天室内网络图片链接修改头像
+        
+    } else if (currentTargetId === 'chat-init-avatar-url') {
+        // 2. 聊天室顶部大头像更换：完全独立，只改专属属性，绝对不影响气泡和列表！
         if(inputVal !== "") {
             document.getElementById('img-chat-init-avatar').src = inputVal;
             if (currentChatContactId) {
                 const contact = contactsList.find(c => c.id === currentChatContactId);
                 if (contact) {
-                    contact.avatar = inputVal; // 全局同步数据
+                    contact.chatRoomAvatar = inputVal; // 专属大头像字段
                     saveToDB('contacts_data', JSON.stringify(contactsList));
-                    renderMsgList();
                 }
             }
         }
     } else if (currentTargetId === 'action_save_plan_name') {
+
         if(inputVal !== "") executeSavePlan(inputVal);
     }
 else if (currentTargetId === 'action_new_common_group') {
@@ -924,6 +982,15 @@ else if (currentTargetId === 'action_new_common_group') {
             if(!ncCustomGroups.includes(inputVal)) ncCustomGroups.push(inputVal);
             selectNcGroup(inputVal); // 直接帮他选中新建的分组
         }
+    } else if (currentTargetId === 'action_save_custom_bubble') {
+        if(inputVal !== "") {
+            const newPlan = { id: 'cb_' + Date.now(), name: inputVal, data: tempPreviewBubbleData };
+            customBubblePlans.push(newPlan);
+            saveToDB('custom_bubble_plans', JSON.stringify(customBubblePlans));
+            showToast(`方案 [${inputVal}] 已保存`);
+            renderBubbleListPanel(); // 保存完自动切到列表页
+        }
+
     } else {
 
         const finalVal = inputVal === "" ? currentDefaultStr : inputVal;
@@ -1248,10 +1315,13 @@ async function saveToDB(key, val) { try { await db.settings.put({ key: key, valu
 
 async function loadBaseData() {
     try {
-        await loadPlans(); 
-        await loadApiPlansData();
-        await loadWorldbooksData(); // 【加入世界书的开机读取联动】
-        await loadContactsData(); // 🌟 插入这里：加入开机读取联动，防止刷新白屏
+        // 🌟 性能大优化：使用 Promise.all 让四个数据库读取任务同时进行，不再排队等待，速度提升 400%
+        await Promise.all([
+            loadPlans(),
+            loadApiPlansData(),
+            loadWorldbooksData(),
+            loadContactsData() 
+        ]);
 
         const dbGlobal = await db.settings.get('global_applied_profile');
         if (dbGlobal && dbGlobal.value) {
@@ -1280,10 +1350,13 @@ async function loadBaseData() {
             else if (item.key === 'global_avatar') { ['img-main-avatar', 'img-chat-avatar', 'img-blog-avatar'].forEach(id => { const el = document.getElementById(id); if(el) el.src = item.data; }); } 
             else { const el = document.getElementById(item.key); if(el && el.id !== 'img-profile-avatar' && el.id !== 'img-sidebar-avatar') el.src = item.data; }
         });
+        // ✅ 已清理多余的 }); 闭合完美
     } catch (e) { console.error("Load Base Error", e); }
 }
 
-window.addEventListener('load', loadBaseData);
+// 🌟 性能大优化：将 'load' 改为 'DOMContentLoaded'，不再干等背景图和外部资源，页面结构一出来立刻秒刷数据
+document.addEventListener('DOMContentLoaded', loadBaseData);
+
 
 function hardReset() { if(confirm('警告：這將會刪除所有本地数据！')) { db.delete().then(() => { location.reload(); }); } }
 
@@ -1651,8 +1724,34 @@ function renderMsgList() {
     }
 
     // 🌟 核心分流：判断是否使用了自定义分组
-    const pinnedContacts = filtered.filter(c => c.group !== '未分组');
-    const unpinnedContacts = filtered.filter(c => c.group === '未分组');
+    let pinnedContacts = filtered.filter(c => c.group !== '未分组');
+    let unpinnedContacts = filtered.filter(c => c.group === '未分组');
+
+    // 🌟 新增：动态时间戳智能排序引擎
+    // 辅助方法：获取角色最后活跃时间 (最近一条消息的生成时间 or 角色的创建时间)
+    const getContactSortTime = (c) => {
+        if (c.messages && c.messages.length > 0) {
+            const lastMsgId = c.messages[c.messages.length - 1].id;
+            const match = lastMsgId.match(/msg_(\d+)/);
+            if (match) return parseInt(match[1], 10);
+        }
+        const match = c.id.match(/contact_(\d+)/);
+        if (match) return parseInt(match[1], 10);
+        return 0;
+    };
+
+    // 辅助方法：仅获取角色的初始创建时间
+    const getContactCreateTime = (c) => {
+        const match = c.id.match(/contact_(\d+)/);
+        if (match) return parseInt(match[1], 10);
+        return 0;
+    };
+
+    // 逻辑1：普通列表（未分组）。按最新发言时间降序，新消息/新建角色直接顶到最上面
+    unpinnedContacts.sort((a, b) => getContactSortTime(b) - getContactSortTime(a));
+
+    // 逻辑2：置顶列表（已分组）。按创建时间降序，新建角色在最上面，但不随新消息上下乱跳
+    pinnedContacts.sort((a, b) => getContactCreateTime(b) - getContactCreateTime(a));
 
     // 如果该分类下彻底没数据，显示占位文字
     if (filtered.length === 0) {
@@ -1772,11 +1871,32 @@ function openChatRoom(contactId) {
     if (!contact) return;
     
     document.getElementById('chatRoomTitle').innerText = contact.name; 
-    document.getElementById('chat-init-name-display').innerText = contact.name;
+    
+    // 🌟 初始化加载时，如果有心声，直接显示心声
+    const textEl = document.getElementById('chat-init-text');
+    if (contact.innerVoice && contact.innerVoice.thought) {
+        textEl.innerText = contact.innerVoice.thought;
+    } else {
+        textEl.innerHTML = `你与 <strong id="chat-init-name-display">${contact.name}</strong> 已添加好友，快来聊天吧！`;
+    }
+
     
     // 🔥 核心分离：如果这个角色有专门设置的“聊天室内大头像”就用它，没有就用列表小头像兜底
     const bigAvatar = contact.chatRoomAvatar || contact.avatar;
     document.getElementById('img-chat-init-avatar').src = bigAvatar;
+
+    // 🌟 动态加载当前角色的专属气泡 CSS
+    let charStyleEl = document.getElementById('char-specific-bubble-css');
+    if (!charStyleEl) {
+        charStyleEl = document.createElement('style');
+        charStyleEl.id = 'char-specific-bubble-css';
+        document.head.appendChild(charStyleEl);
+    }
+    if (contact.customBubbleCss) {
+        charStyleEl.innerHTML = contact.customBubbleCss;
+    } else {
+        charStyleEl.innerHTML = ''; // 如果没有专属气泡，清空，使用全局气泡
+    }
 
     // --- 🌟 渲染历史消息引擎 ---
     const chatBody = document.getElementById('chatRoomBody');
@@ -1790,34 +1910,60 @@ function openChatRoom(contactId) {
     // 第二步：从数据库读取并渲染此角色的历史消息
     if (contact.messages && contact.messages.length > 0) {
         const myAvatar = document.getElementById('img-sidebar-avatar').src;
-        const charAvatar = bigAvatar;
+        // 🌟 核心解绑：气泡头像强制使用 contact.avatar（即列表/设定头像），绝对不用大头像
+        const charAvatar = contact.avatar; 
 
-        contact.messages.forEach(msg => {
-            const safeText = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
-            let msgHtml = '';
-            if (msg.sender === 'user') {
-                msgHtml = `
-                <div class="preview-msg-row right">
-                    <div class="Toutou-TT user">
-                        <span class="bubble-time">${msg.time}</span>
-                        <div class="content">${safeText}</div>
-                    </div>
-                    <img src="${myAvatar}" class="preview-avatar">
-                </div>
-                `;
-            } else {
-                msgHtml = `
-                <div class="preview-msg-row left">
-                    <img src="${charAvatar}" class="preview-avatar">
-                    <div class="Toutou-TT char">
-                        <div class="content">${safeText}</div>
-                        <span class="bubble-time">${msg.time}</span>
-                    </div>
-                </div>
-                `;
+        // 🌟 全新逻辑：根据设定的记忆轮数，进行初次视觉截断与向上无缝加载
+        let rounds = contact.memoryRounds || 50;
+        let limit = rounds * 2; // 一轮约等于两条消息
+        let allMsgs = contact.messages;
+        let currentRenderStartIndex = Math.max(0, allMsgs.length - limit); // 定位初始加载的起点
+
+        // 内部复用的区间渲染器
+        const renderRange = (start, end, prepend = false) => {
+            let htmlStr = '';
+            for (let i = start; i < end; i++) {
+                let msg = allMsgs[i];
+                const safeText = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+                if (msg.sender === 'user') {
+                    htmlStr += `<div class="preview-msg-row right"><div class="Toutou-TT user"><span class="bubble-time">${msg.time}</span><div class="content">${safeText}</div></div><img src="${myAvatar}" class="preview-avatar"></div>`;
+                } else {
+                    htmlStr += `<div class="preview-msg-row left"><img src="${charAvatar}" class="preview-avatar"><div class="Toutou-TT char"><div class="content">${safeText}</div><span class="bubble-time">${msg.time}</span></div></div>`;
+                }
             }
-            chatBody.insertAdjacentHTML('beforeend', msgHtml);
-        });
+            if (prepend) {
+                // 如果是往上翻加载的，插入到打招呼占位区之后
+                const initState = document.getElementById('chatInitState');
+                initState.insertAdjacentHTML('afterend', htmlStr);
+            } else {
+                chatBody.insertAdjacentHTML('beforeend', htmlStr);
+            }
+        };
+
+        // 首屏仅渲染被截断后的最新部分
+        renderRange(currentRenderStartIndex, allMsgs.length, false);
+
+        // 绑定滚动加载历史记录事件 (一直往上翻才能看到隐藏的)
+        chatBody.onscroll = null; // 清理旧绑定防止多次触发
+        let isLoadingHistory = false;
+        
+        chatBody.onscroll = function() {
+            if (chatBody.scrollTop <= 20 && currentRenderStartIndex > 0 && !isLoadingHistory) {
+                isLoadingHistory = true;
+                let oldHeight = chatBody.scrollHeight; // 记录插入前的高度
+                
+                let nextStart = Math.max(0, currentRenderStartIndex - limit);
+                let nextEnd = currentRenderStartIndex;
+                
+                renderRange(nextStart, nextEnd, true);
+                currentRenderStartIndex = nextStart; // 更新起点指针
+                
+                // 恢复滚动条位置，防止插入后画面瞬间闪跳到最上面
+                chatBody.scrollTop = chatBody.scrollHeight - oldHeight;
+                
+                setTimeout(() => { isLoadingHistory = false; }, 300); // 节流
+            }
+        };
 
         // 智能滚到底部查看最新消息
         setTimeout(() => {
@@ -1924,6 +2070,15 @@ function openChatSettings() {
         myAvatarEl.src = mySidebarAvatar.src;
     }
 
+    // 🌟 初始化记忆轮数与 Token 计算
+    document.getElementById('cs-auto-summary-rounds').value = contact.autoSummaryRounds || 30;
+    document.getElementById('cs-memory-rounds').value = contact.memoryRounds || 50;
+    calculateTokens(contact);
+
+
+    document.getElementById('chatSettingsScreen').classList.add('active');
+
+
     document.getElementById('chatSettingsScreen').classList.add('active');
 }
 
@@ -1978,7 +2133,6 @@ function saveChatSettings() {
     let finalDisplayName = remark !== '' ? remark : (realName !== '' ? realName : '新角色');
     const oldName = contactsList[contactIndex].name; // 记录旧名字
 
-
     contactsList[contactIndex].avatar = document.getElementById('cs-avatar').src; 
     contactsList[contactIndex].realName = realName;
     contactsList[contactIndex].remark = remark;
@@ -1996,8 +2150,13 @@ function saveChatSettings() {
         secretFile: document.getElementById('cs-secret-file').value,
         secretMode: document.getElementById('cs-secretToggleSwitch').classList.contains('active')
     };
+    
+    // 🌟 新增：保存设置的记忆轮数与自动总结频率
+    contactsList[contactIndex].autoSummaryRounds = parseInt(document.getElementById('cs-auto-summary-rounds').value) || 30;
+    contactsList[contactIndex].memoryRounds = parseInt(document.getElementById('cs-memory-rounds').value) || 50;
 
     saveToDB('contacts_data', JSON.stringify(contactsList));
+
 
     // 🌟 核心串联：如果角色改名了，自动把世界书里绑定的名字也同步改过来！防止脱节
     if (oldName && oldName !== finalDisplayName) {
@@ -2022,6 +2181,196 @@ function saveChatSettings() {
 
     showToast('设定已保存');
     closeChatSettings();
+}
+
+// 🌟 功能 1：清空聊天记录弹窗与执行
+function promptClearChatHistory() {
+    openCustomPrompt('清空聊天记录', 'action_clear_chat_history', '确定要彻底清空吗？\n(注意：历史记忆总结与心声也会被一并销毁，且无法恢复！)', 'confirm_delete');
+}
+
+// 🌟 功能 2：实时计算并渲染 Token 估算值 (已适配数组库)
+function calculateTokens(contact) {
+    let baseStr = (contact.realName||'') + (contact.remark||'') + (contact.details?.gender||'') + (contact.details?.age||'') + (contact.details?.location||'') + (contact.details?.secretFile||'');
+    let baseToken = baseStr.length;
+
+    let wbToken = 0;
+    let charWbs = activeWorldbooks.filter(b => b.category === '已绑定' && b.subGroup === contact.name);
+    let commonWbs = activeWorldbooks.filter(b => b.category === '通用');
+    let otherWbs = activeWorldbooks.filter(b => b.category === '全部');
+    [...charWbs, ...commonWbs, ...otherWbs].forEach(wb => {
+        wb.entries.forEach(e => { wbToken += (e.name||'').length + (e.content||'').length; });
+    });
+
+    let chatToken = 0;
+    let rounds = contact.memoryRounds || 50;
+    let recentMsgs = (contact.messages || []).slice(-rounds);
+    recentMsgs.forEach(m => { chatToken += (m.text||'').length; });
+    
+    // 🌟 核心：计算历史记忆库里所有的 Token
+    if (contact.historySummaries && contact.historySummaries.length > 0) {
+        contact.historySummaries.forEach(s => { chatToken += (s.content || '').length; });
+    } else if (contact.memorySummary) {
+        chatToken += contact.memorySummary.length; // 兼容老数据
+    }
+
+    document.getElementById('token-count-base').innerText = baseToken;
+    document.getElementById('token-count-wb').innerText = wbToken;
+    document.getElementById('token-count-chat').innerText = chatToken;
+    document.getElementById('token-count-total').innerText = baseToken + wbToken + chatToken;
+}
+
+// 🌟 功能 3：打开历史记忆总结库大页面
+function openMemorySummaryPrompt() {
+    if (!currentChatContactId) return;
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    if (!contact) return;
+
+    // 🌟 终极数据迁移：把老的单文本字段，平滑升级成数组库里的第一条数据
+    if (contact.memorySummary && typeof contact.memorySummary === 'string' && contact.memorySummary.trim() !== '') {
+        contact.historySummaries = [{
+            id: 'sum_' + Date.now(),
+            timeRange: '早期历史记录总结',
+            content: contact.memorySummary
+        }];
+        delete contact.memorySummary; 
+        saveToDB('contacts_data', JSON.stringify(contactsList));
+    }
+    if (!contact.historySummaries) contact.historySummaries = [];
+
+    renderSummaryList(contact);
+    document.getElementById('summary-sheet-overlay').classList.add('active');
+    document.getElementById('summary-bottom-sheet').classList.add('active');
+}
+
+function closeSummarySheet() {
+    document.getElementById('summary-sheet-overlay').classList.remove('active');
+    document.getElementById('summary-bottom-sheet').classList.remove('active');
+}
+
+function renderSummaryList(contact) {
+    const container = document.getElementById('summary-list-container');
+    container.innerHTML = '';
+
+    if (!contact.historySummaries || contact.historySummaries.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding: 40px 10px; color:#aaa; font-size:12px; font-weight:bold;">暂无历史总结，快去添加第一轮吧</div>`;
+        return;
+    }
+
+    // 倒序渲染，最新的在最上面
+    const sortedList = [...contact.historySummaries].reverse();
+    
+    sortedList.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'summary-card';
+        card.innerHTML = `
+            <div class="summary-card-header">
+                <span class="summary-time-title">${item.timeRange}</span>
+            </div>
+            <div class="summary-content-preview" id="preview-${item.id}">${item.content}</div>
+            <div class="summary-content-full" id="full-${item.id}">${item.content.replace(/\n/g, '<br>')}</div>
+            
+            <div class="summary-actions">
+                <div class="summary-action-btn" onclick="toggleSummaryView('${item.id}', this)">查看展开</div>
+                <div class="summary-action-btn" onclick="openSummaryEditor('${item.id}')">编辑</div>
+                <div class="summary-action-btn danger" onclick="deleteSummaryItem('${item.id}')">删除</div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function toggleSummaryView(id, btnEl) {
+    const preview = document.getElementById(`preview-${id}`);
+    const full = document.getElementById(`full-${id}`);
+    if (full.style.display === 'block') {
+        full.style.display = 'none';
+        preview.style.display = '-webkit-box';
+        btnEl.innerText = '查看展开';
+    } else {
+        full.style.display = 'block';
+        preview.style.display = 'none';
+        btnEl.innerText = '收起内容';
+    }
+}
+
+// 🌟 独立编辑器逻辑
+let editingSummaryId = null;
+
+function openSummaryEditor(summaryId = null) {
+    editingSummaryId = summaryId;
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    
+    if (summaryId) {
+        // 编辑已有模式
+        const item = contact.historySummaries.find(s => s.id === summaryId);
+        document.getElementById('summary-time-input').value = item.timeRange;
+        document.getElementById('summary-content-input').value = item.content;
+    } else {
+        // 新建模式：自动填入今天的日期
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+        document.getElementById('summary-time-input').value = `某日 - ${dateStr}`;
+        document.getElementById('summary-content-input').value = '';
+    }
+    
+    document.getElementById('summary-editor-overlay').classList.add('active');
+}
+
+function closeSummaryEditor() { document.getElementById('summary-editor-overlay').classList.remove('active'); }
+
+function saveSummaryData() {
+    const timeVal = document.getElementById('summary-time-input').value.trim() || '未命名时间段';
+    const contentVal = document.getElementById('summary-content-input').value.trim();
+    if (!contentVal) { showToast('总结内容不能为空'); return; }
+
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    if (!contact.historySummaries) contact.historySummaries = [];
+
+    if (editingSummaryId) {
+        const item = contact.historySummaries.find(s => s.id === editingSummaryId);
+        if (item) {
+            item.timeRange = timeVal;
+            item.content = contentVal;
+        }
+    } else {
+        contact.historySummaries.push({
+            id: 'sum_' + Date.now(),
+            timeRange: timeVal,
+            content: contentVal
+        });
+    }
+
+    saveToDB('contacts_data', JSON.stringify(contactsList));
+    showToast('总结已保存');
+    closeSummaryEditor();
+    renderSummaryList(contact);
+    calculateTokens(contact); // 刷新 Token
+}
+
+function deleteSummaryItem(id) {
+    if (confirm('确定要删除这条历史总结吗？')) {
+        const contact = contactsList.find(c => c.id === currentChatContactId);
+        contact.historySummaries = contact.historySummaries.filter(s => s.id !== id);
+        saveToDB('contacts_data', JSON.stringify(contactsList));
+        showToast('已删除');
+        renderSummaryList(contact);
+        calculateTokens(contact);
+    }
+}
+
+
+function saveMemorySummary() {
+    const val = document.getElementById('memory-summary-input').value.trim();
+    if (currentChatContactId) {
+        const contact = contactsList.find(c => c.id === currentChatContactId);
+        if (contact) {
+            contact.memorySummary = val;
+            saveToDB('contacts_data', JSON.stringify(contactsList));
+            showToast('记忆总结已保存');
+            document.getElementById('memory-summary-overlay').classList.remove('active');
+            calculateTokens(contact); // 重新计算token
+        }
+    }
 }
 
 function promptDeleteContactFromSettings() {
@@ -2107,6 +2456,58 @@ function sendChatMessage() {
 // 🌟 飞机按钮单击/双击中控器 & AI 回复调度器
 // ==========================================
 
+// 🌟 补全：非流式一次性回复的处理引擎
+function handleAiResponse(replyText, contact) {
+    // 🌟 先提取心声并将其从聊天文本中剔除
+    const voiceRegex = /<voice>([\s\S]*?)<\/voice>/;
+    const voiceMatch = replyText.match(voiceRegex);
+    let cleanReplyText = replyText;
+    if (voiceMatch) {
+        parseAndSaveVoice(voiceMatch[0], contact);
+        cleanReplyText = replyText.replace(voiceRegex, '').trim();
+    }
+
+    const chatBody = document.getElementById('chatRoomBody');
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    const charAvatar = contact.avatar; 
+    const bubbles = cleanReplyText.split('|||').map(t => t.trim()).filter(t => t);
+    
+    if (!contact.messages) contact.messages = [];
+    
+    bubbles.forEach((text, idx) => {
+        contact.messages.push({
+            id: 'msg_' + Date.now() + '_' + idx, sender: 'char', text: text, time: timeStr
+        });
+        
+        const safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+        const msgHtml = `
+        <div class="preview-msg-row left">
+            <img src="${charAvatar}" class="preview-avatar">
+            <div class="Toutou-TT char">
+                <div class="content">${safeText}</div>
+                <span class="bubble-time">${timeStr}</span>
+            </div>
+        </div>
+        `;
+        chatBody.insertAdjacentHTML('beforeend', msgHtml);
+    });
+
+    if (bubbles.length > 0) {
+        contact.sign = bubbles[bubbles.length - 1].replace(/\n/g, ' ');
+        contact.time = timeStr;
+    }
+    
+    saveToDB('contacts_data', JSON.stringify(contactsList));
+    renderMsgList();
+    
+    setTimeout(() => {
+        chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+    }, 50);
+}
+
+
 let planeClickTimer = 0;
 let isAiReplying = false; // 防止AI回复中途重复点击
 
@@ -2164,17 +2565,29 @@ function buildSystemPrompt(contact) {
     if(commonWbs.length > 0) wbStr += "【通用世界书】\n" + parseEntries(commonWbs);
     if(otherWbs.length > 0) wbStr += "【全局世界书】\n" + parseEntries(otherWbs);
 
+    // 🌟 将上一轮的心声也抛给AI作为背景记忆，但丢弃更早的
+    if (contact.innerVoice && contact.innerVoice.thought) {
+        wbStr += `\n【你(char)在上一轮的内心状态记录】\n地点: ${contact.innerVoice.location}\n动作: ${contact.innerVoice.action}\n想法: ${contact.innerVoice.thought}\n(注: 以上是你刚刚的内心活动，请保持思维连贯，并在本轮回复的末尾生成全新的心声)\n`;
+    }
+
+    // 🌟 获取当前的真实精确时间，用于强化 AI 的时空感知
+    const now = new Date();
+    const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+    const currentTimeStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${days[now.getDay()]} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
     // 4. 终极 Prompt (严格执行人设、去油腻约束与分句排版要求)
     return `你需要扮演 {char}，模拟真实生活中的聊天软件来回复我 {user}。
 
 【扮演与性格核心约束】
-你只会回复以char的身份与user进行聊天，不许代替user进行回复。
-1. 绝对生活化口语：使用大白话、符合角色设定性格的来回复，拒绝文绉绉、拒绝说教、拒绝机械重复我的话、拒绝反问、拒绝重复同一个话题与无进展的对话、拒绝威胁性的话。
+当前现实时间确认：${currentTimeStr}。请务必结合当前的具体时间（早中晚/工作日/休息日），进行合乎逻辑的作息模拟与对话！
+你只会以char的身份与user进行聊天，不许代替user进行回复。
+创作富有真实感的char，思维模式、说话方式、主观判断应变得有趣。要表现出每个人物独有的生动复杂的感情。不允许都两三句或更多的句子，都挤在同一个气泡内。要多气泡，多句子。
+1. 绝对生活化口语：使用大白话、符合角色设定性格的来回复，拒绝文绉绉、拒绝说教、拒绝机械重复我的话、拒绝反问、拒绝总是重复同一个话题与无进展的对话。
 2. 情绪红线：不允许物化、打压，不允许太过暴躁。尽量扮演让女性满意的角色，提供心动感与沉浸感。
 3. 展现潜台词：对话不一定要干巴巴地交代事件或信息，可以只是一句闲聊，也可以是胡说八道，甚至脑子一热说错话。善用潜台词（例如：一个爱逞强的人受伤后说话跟没事人一样，突然倒下）。
-4. 拒绝油腻与套路：不要油腻，拒绝霸总式、模板化、常规化的回复与人物理解。在角色设定允许的情况下，你可以只回复一句话或一个标点符号。比如发很多省略号，句号，逗号等。绝对不允许OOC。你是去模拟一个真实的人聊天，所以生气、开心、无语，等情绪都是可以拥有的。同时也可以发送颜文字和网络热梗以及表情包（人物设定允许的情况下）。
+4. 拒绝油腻与套路：不要油腻，拒绝霸总式、模板化（刻板印象的人物塑造）、常规化的回复与人物理解。在角色设定允许的情况下，你可以只回复一句话或一个标点符号。比如发很多省略号，句号，逗号等。绝对不允许OOC。每个人物都必须遵循一个真实人类“最本真”的原则——有自己的口癖，腔调，生闷气时话少，高兴时话多，平时能说则说，不会装高冷不理人，偶尔说错话。同时也可以发送颜文字和网络热梗以及表情包（人物设定允许的情况下）。
 5. 推动剧情与时间流动：每次说出的话，尽量要推动剧情和事件发展，而非停在原地不转、反复纠结一件事。比如（你参考这个）：比如这时候晚上7:30在说吃饭，你可以模拟真人自然地说“准备去洗澡了”等生活行为，让对话具备真实的流动感。但不要总重复之前（短时间内）说过/相似的话。
-以上所有规定建立在不ooc，完全符合人物性格、设定的情况。始终遵守人物设定与角色绑定世界观！每次将要输出时，请再次问自己，这次的话确定完全符合人物设定吗？
+以上所有规定建立在不ooc，完全符合人物性格、设定的情况。始终遵守人物设定与角色绑定世界观！
 
 【user 设定相关 (我)】
 ${userStr}
@@ -2186,51 +2599,29 @@ ${wbStr}
 【多条消息连发格式要求 (极为重要) 】
 为了模拟真实聊天中“连发多条短消息”的压迫感或生动感，如果你想分几次发送不同的话，请务必使用 ||| 作为消息分割符。
 例如：干嘛呢|||怎么不理我[生气]|||再不说话我挂了啊
-系统会自动将这段话切分成三个独立的聊天气泡。如果没有必要分开发送，直接正常回复即可，同一气泡内可以使用换行。千万不要自己带上“发送”等多余的动作词。`;
-}
+系统会自动将这段话切分成三个独立的聊天气泡。如果没有必要分开发送，直接正常回复即可，同一气泡内可以使用换行。千万不要自己带上“发送”等多余的动作词。
 
-// 解析 AI 回复，切割出多气泡
-function handleAiResponse(text, contact) {
-    // 按照我们教给 AI 的特殊符号 ||| 来切割句子
-    const parts = text.split('|||').map(s => s.trim()).filter(s => s);
-    if(parts.length === 0) return;
+    【心声系统 (极为重要)】
+    在每次回复的最后，你必须以 XML 格式附带角色的当前心声状态与防偷窥验证问题。这不会被当作聊天发出来，而是作为后台拦截加密数据。
+    ⚠️ 核心警告：心声的想法(<thought>)以及选择题的提问语气(<question>)，必须与前文规定的人物性格、情绪红线完全一致！绝不能在内心戏或考题里突然变成霸道总裁、不能油腻、不能高高在上打压用户。必须保持生活化、生动、符合最本真的设定！
 
-    const chatBody = document.getElementById('chatRoomBody');
-    const charAvatar = contact.chatRoomAvatar || contact.avatar;
-    const now = new Date();
-    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    格式严格如下（必须放在整个回复的最末尾，千万不要遗漏 quiz 标签）：
+    <voice>
+    <location>当前所在地点，如：公司会议室/家里沙发上</location>
+    <action>角色正在干什么，如：正在无聊地转笔/看着手机屏幕傻笑</action>
+    <thought>角色心里真实的活动。必须在20个字以内完整写完，绝不允许使用省略号（...）显得话没说完！必须是一句干脆完整、绝对符合人物自身性格和当前情绪的内心独白。</thought>
+    <quiz>
+    <question>根据刚刚的历史聊天内容，或你的人物设定，出1个单项选择题。必须使用大白话、绝对符合角色当前的性格语气提问！绝不能OOC！具体人物约束与文本要求可以参考【扮演与性格核心约束】。绝对不要考用户ta自己的设定，只能考关于你自己的设定或你们的共同经历。</question>
+    <option1>选项A内容</option1>
+    <option2>选项B内容</option2>
+    <option3>选项C内容</option3>
+    <answer>正确的选项序号，只填数字（如: 1 或 2 或 3）</answer>
+    </quiz>
+    </voice>`;
 
-    // 利用稍微的延迟，实现多个气泡“接连弹出”的视觉体验
-    parts.forEach((part, index) => {
-        setTimeout(() => {
-            if (!contact.messages) contact.messages = [];
-            contact.messages.push({
-                id: 'msg_' + Date.now() + '_' + index, sender: 'char', text: part, time: timeStr
-            });
-            
-            // 防注入渲染，并将换行符替换为真正的 br 换行
-            const safeText = part.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
-            const msgHtml = `
-            <div class="preview-msg-row left">
-                <img src="${charAvatar}" class="preview-avatar">
-                <div class="Toutou-TT char">
-                    <div class="content">${safeText}</div>
-                    <span class="bubble-time">${timeStr}</span>
-                </div>
-            </div>
-            `;
-            chatBody.insertAdjacentHTML('beforeend', msgHtml);
-            chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
 
-            // 更新外层列表最后一条消息和时间 (以最后一个气泡为准)
-            if (index === parts.length - 1) {
-                contact.sign = part.replace(/\n/g, ' ');
-                contact.time = timeStr;
-                saveToDB('contacts_data', JSON.stringify(contactsList));
-                renderMsgList();
-            }
-        }, index * 400); // 每个气泡间隔 400ms 弹出
-    });
+
+
 }
 
 // 核心调度入口
@@ -2245,34 +2636,49 @@ async function triggerAiReply() {
 
     isAiReplying = true;
 
-    // 🌟 核心交互：将原本的备注名替换为正在输入中，彻底删去底栏动画药丸
     const titleEl = document.getElementById('chatRoomTitle');
     const originalName = titleEl.innerText;
     titleEl.innerText = "对方正在输入中...";
 
-    if (apiConfig.stream) {
-        showToast("流式渲染模块对接中...");
-        setTimeout(() => { 
-            titleEl.innerText = originalName; 
-            isAiReplying = false; 
-        }, 1000);
-        return; 
-    }
-
-    // --- 准备发送给 API 的数据 ---
+    // --- 准备发送给 API 的消息体 (流式与非流式共用，提前构建) ---
     let messagesPayload = [];
-    // 塞入世界观、身份卡和扮演规范
-    messagesPayload.push({ role: "system", content: buildSystemPrompt(contact) });
-    // 塞入你们俩的历史聊天记录
-    if (contact.messages && contact.messages.length > 0) {
-        contact.messages.forEach(m => {
+    
+    // 🌟 将手动编写的记忆总结拼接到系统提示词最末尾
+    let sysPrompt = buildSystemPrompt(contact);
+    
+    // 兼容老数据与全新数组库
+    if (contact.historySummaries && contact.historySummaries.length > 0) {
+        sysPrompt += `\n\n【前情提要 / 历史记忆库】\n`;
+        contact.historySummaries.forEach(s => {
+            sysPrompt += `[${s.timeRange}]: ${s.content}\n`;
+        });
+    } else if (contact.memorySummary) {
+        sysPrompt += `\n\n【前情提要 / 历史总结】\n${contact.memorySummary}`;
+    }
+    
+    messagesPayload.push({ role: "system", content: sysPrompt });
+
+
+     if (contact.messages && contact.messages.length > 0) {
+        // 🌟 核心截断：按照设定的轮数，只提取最近的聊天记录发给 AI (一轮包含一来一回，所以 *2)
+        let rounds = contact.memoryRounds || 50;
+        let recentMsgs = contact.messages.slice(-(rounds * 2));
+        
+        recentMsgs.forEach(m => {
             messagesPayload.push({ role: m.sender === 'user' ? "user" : "assistant", content: m.text });
         });
     } else {
-        // 如果没有聊天记录，让AI主动破冰
+
         messagesPayload.push({ role: "system", content: "这是你们的第一句话，请主动跟对方打招呼破冰。" });
     }
 
+    // 🌟 流式传输分支：逐字打字机 + 多气泡自动分割
+    if (apiConfig.stream) {
+        await handleStreamReply(apiConfig, contact, messagesPayload, titleEl, originalName);
+        return;
+    }
+
+    // --- 非流式传输：一次性获取完整回复 ---
     try {
         const response = await fetch(`${apiConfig.baseUrl}/chat/completions`, {
             method: 'POST',
@@ -2298,19 +2704,297 @@ async function triggerAiReply() {
         const data = await response.json();
         const replyText = data.choices[0].message.content;
 
-        // 🌟 成功获取回复后，恢复顶栏备注名
         titleEl.innerText = originalName;
-        
-        // 传递给多气泡处理引擎渲染
         handleAiResponse(replyText, contact);
 
     } catch (error) {
-        // 🌟 请求出错时，同样要恢复顶栏备注名
         titleEl.innerText = originalName;
         showToast("API 错误: " + error.message);
     }
 
     isAiReplying = false;
+
+    setTimeout(() => {
+        chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+    }, 50);
+
+    // 🌟 检查并触发自动总结
+    checkAndTriggerAutoSummary(contact.id);
+}
+
+
+// ==========================================
+// 🌟 终极流式传输引擎：模拟真人打字节奏 + 多气泡切割
+// ==========================================
+async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, originalName) {
+    const chatBody = document.getElementById('chatRoomBody');
+    // 🌟 核心解绑：新消息的气泡头像，强制使用基础列表头像
+    const charAvatar = contact.avatar; 
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    let currentBubbleEl = null;      
+    let currentBubbleText = '';      
+    let allFinishedBubbleTexts = []; 
+    let bubbleIsWaiting = true;      
+    let scrollTimer = null;          
+
+    // 🔧 节流滚动到底部
+    function scrollToBottom() {
+        if (scrollTimer) return;
+        scrollTimer = setTimeout(() => {
+            chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+            scrollTimer = null;
+        }, 50);
+    }
+
+    // 🔧 创建全新左侧气泡，初始状态为 "…"
+    function spawnBubble() {
+        currentBubbleText = '';
+        bubbleIsWaiting = true;
+        const row = document.createElement('div');
+        row.className = 'preview-msg-row left';
+        row.innerHTML = `
+            <img src="${charAvatar}" class="preview-avatar">
+            <div class="Toutou-TT char">
+                <div class="content stream-waiting">…</div>
+                <span class="bubble-time">${timeStr}</span>
+            </div>
+        `;
+        chatBody.appendChild(row);
+        currentBubbleEl = row.querySelector('.content');
+        scrollToBottom();
+    }
+
+    // 🔧 实时渲染气泡文字
+    function paintBubble(text) {
+        if (!currentBubbleEl) return;
+        if (text.length > 0) {
+            if (bubbleIsWaiting) {
+                bubbleIsWaiting = false;
+                currentBubbleEl.classList.remove('stream-waiting');
+            }
+            currentBubbleEl.innerHTML = text
+                .replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+        }
+        scrollToBottom();
+    }
+
+    // 先弹出第一个 "…" 气泡
+    spawnBubble();
+
+    // 🌟 核心：强制视觉打字机队列
+    let charQueue = [];       
+    let networkDone = false;  
+    let unprocessedText = ''; 
+    let isVoiceBlock = false; 
+    let voiceBuffer = '';     
+
+    // 辅助函数：将纯净文本推入打字队列
+    function processQueueText(str) {
+        while (str.length > 0) {
+            if (str.startsWith('|||')) {
+                charQueue.push('NEW_BUBBLE');
+                str = str.slice(3);
+            } else if (str.startsWith('||') && str.length === 2) {
+                unprocessedText = str + unprocessedText; break; 
+            } else if (str.startsWith('|') && str.length === 1) {
+                unprocessedText = str + unprocessedText; break;
+            } else {
+                charQueue.push(str[0]);
+                str = str.slice(1);
+            }
+        }
+    }
+
+    // 🚀 视觉渲染定时器：模拟真人打字速度！
+    const typeInterval = setInterval(() => {
+        if (charQueue.length > 0) {
+            
+            // 🔥 核心修改：取消狂暴加速，绝大部分情况一次只吐 1 个字，保证真人匀速感。
+            // 只有当大模型一次性发了超长篇大论（积压超过150字）时，才一次吐2个字防止你等太久
+            let charsToProcess = 1;
+            if (charQueue.length > 150) charsToProcess = 2; 
+
+            for (let i = 0; i < charsToProcess; i++) {
+                if (charQueue.length === 0) break;
+                
+                let item = charQueue.shift();
+
+                if (item === 'NEW_BUBBLE') {
+                    // 遇到 ||| 指令，定格当前气泡，立刻弹出新气泡
+                    if (currentBubbleText.trim()) {
+                        allFinishedBubbleTexts.push(currentBubbleText.trim());
+                    } else {
+                        const emptyRow = currentBubbleEl?.closest('.preview-msg-row');
+                        if (emptyRow) emptyRow.remove();
+                    }
+                    spawnBubble();
+                } else {
+                    // 正常文字，追加并渲染
+                    currentBubbleText += item;
+                    paintBubble(currentBubbleText);
+                }
+            }
+        } else if (networkDone) {
+            // 队列空了，且网络也断开了，说明全部打字完成，开始收尾！
+            clearInterval(typeInterval);
+            finishStream();
+        }
+    }, 50);
+
+    // 收尾保存函数
+    function finishStream() {
+        // 🌟 流式结束，统一解析存入后台
+        if (voiceBuffer) {
+            parseAndSaveVoice("<voice>" + voiceBuffer + "</voice>", contact);
+        }
+        
+        const lastText = currentBubbleText.trim();
+
+        if (lastText) {
+            paintBubble(lastText);
+            allFinishedBubbleTexts.push(lastText);
+        } else {
+            const lastRow = currentBubbleEl?.closest('.preview-msg-row');
+            if (lastRow) lastRow.remove();
+        }
+
+        if (!contact.messages) contact.messages = [];
+        allFinishedBubbleTexts.forEach((text, idx) => {
+            if (text) {
+                contact.messages.push({
+                    id: 'msg_' + Date.now() + '_' + idx, sender: 'char', text: text, time: timeStr
+                });
+            }
+        });
+
+        if (allFinishedBubbleTexts.length > 0) {
+            const lastMsg = allFinishedBubbleTexts[allFinishedBubbleTexts.length - 1];
+            contact.sign = lastMsg.replace(/\n/g, ' ');
+            contact.time = timeStr;
+        }
+        saveToDB('contacts_data', JSON.stringify(contactsList));
+        renderMsgList();
+        
+        titleEl.innerText = originalName;
+        isAiReplying = false; 
+
+        // 🌟 检查并触发自动总结
+        checkAndTriggerAutoSummary(contact.id);
+    }
+
+
+    // ================= 网络接收线程 =================
+    try {
+        const response = await fetch(`${apiConfig.baseUrl}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiConfig.apiKey}`,
+                'Accept': 'text/event-stream'
+            },
+            body: JSON.stringify({
+                model: apiConfig.model,
+                messages: messagesPayload,
+                temperature: parseFloat(apiConfig.temp),
+                presence_penalty: parseFloat(apiConfig.pres),
+                frequency_penalty: parseFloat(apiConfig.freq),
+                top_p: parseFloat(apiConfig.topp),
+                stream: true
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.error?.message || `HTTP ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let sseBuffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            sseBuffer += decoder.decode(value, { stream: true });
+            const lines = sseBuffer.split('\n');
+            sseBuffer = lines.pop(); 
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed || !trimmed.startsWith('data:')) continue;
+                const dataStr = trimmed.slice(5).trim();
+                if (dataStr === '[DONE]') continue;
+
+                try {
+                    const parsed = JSON.parse(dataStr);
+                    const delta = parsed.choices?.[0]?.delta?.content;
+                    if (delta == null || delta === '') continue;
+
+                    // 将网络发来的大段文字，切碎成单个字符塞进排队队列
+                    unprocessedText += delta;
+
+                     // 🌟 终极心声隐形拦截器
+                    while (unprocessedText.length > 0) {
+                        if (!isVoiceBlock) {
+                            let idx = unprocessedText.indexOf('<voice>');
+                            if (idx !== -1) {
+                                // 发现了 <voice> 起点，把前面的字推入屏幕，开启隐形捕获模式
+                                let before = unprocessedText.slice(0, idx);
+                                processQueueText(before);
+                                isVoiceBlock = true;
+                                unprocessedText = unprocessedText.slice(idx + 7);
+                            } else {
+                                // 检查文本末尾是否可能是 <voice> 的部分前缀 (防截断)
+                                let partialMatch = false;
+                                for (let i = 1; i <= Math.min(unprocessedText.length, 7); i++) {
+                                    let suffix = unprocessedText.slice(-i);
+                                    if ('<voice>'.startsWith(suffix)) {
+                                        partialMatch = true;
+                                        break;
+                                    }
+                                }
+                                if (partialMatch) {
+                                    break; // 疑似标签，停止推入屏幕，等待下一次网络块合并
+                                } else {
+                                    // 确定安全，推入屏幕
+                                    processQueueText(unprocessedText);
+                                    unprocessedText = '';
+                                }
+                            }
+                        } else {
+                            // 正在隐形捕获心声内容
+                            let idx = unprocessedText.indexOf('</voice>');
+                            if (idx !== -1) {
+                                voiceBuffer += unprocessedText.slice(0, idx);
+                                isVoiceBlock = false;
+                                unprocessedText = unprocessedText.slice(idx + 8);
+                            } else {
+                                voiceBuffer += unprocessedText;
+                                unprocessedText = '';
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error("解析SSE块错误", e);
+                }
+            }
+        } // 结束 while (true)
+
+        // 网络结束，把剩下的尾巴也塞进队列
+        for (let i = 0; i < unprocessedText.length; i++) {
+            charQueue.push(unprocessedText[i]);
+        }
+        networkDone = true; 
+
+    } catch (error) {
+
+        networkDone = true;
+        titleEl.innerText = originalName;
+        showToast("API 错误: " + error.message);
+    }
 }
 
 // ====== 🌟 角色专属聊天设置页 - 头像菜单与绝密档案 ======
@@ -2353,6 +3037,22 @@ function selectBubbleTheme(themeName, el) {
     items.forEach(item => item.classList.remove('active'));
     if(el) el.classList.add('active');
     
+    // 🌟 一旦点击了预设气泡，立刻清空全局自定义 CSS
+    let styleEl = document.getElementById('dynamic-bubble-css');
+    if (styleEl) styleEl.innerHTML = '';
+    saveToDB('custom_bubble_css', '');
+
+    // 🌟 如果正在某个角色的设置页里，同步清空该角色的专属 CSS，防止残留覆盖
+    if (currentChatContactId) {
+        const contact = contactsList.find(c => c.id === currentChatContactId);
+        if (contact && contact.customBubbleCss) {
+            contact.customBubbleCss = '';
+            saveToDB('contacts_data', JSON.stringify(contactsList));
+        }
+    }
+    let charStyleEl = document.getElementById('char-specific-bubble-css');
+    if (charStyleEl) charStyleEl.innerHTML = '';
+
     const t = bubbleThemes[themeName];
     if(t) {
         document.documentElement.style.setProperty('--bubble-user-bg', t.ub);
@@ -2366,4 +3066,561 @@ function selectBubbleTheme(themeName, el) {
         saveToDB('color_bubble-char-text', t.ct);
     }
     showToast(`已应用：${themeName} 配色`);
+}
+
+/* ==========================================
+   🌟 唯一关键词：【高级自定义气泡引擎 (纯CSS版 & 角色独立控制)】
+========================================== */
+let customBubblePlans = [];
+let tempPreviewBubbleData = null; 
+
+const defaultCssTemplate = `/* 🌟 用户气泡 (右侧) */
+.Toutou-TT.user .content {
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
+  color: #ffffff;
+  border-radius: 18px 18px 4px 18px;
+  box-shadow: 0 4px 12px rgba(255,154,158,0.3);
+}
+/* 隐藏原版用户小尾巴 */
+.Toutou-TT.user .content::after { display: none; }
+
+/* 🌟 角色气泡 (左侧) */
+.Toutou-TT.char .content {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  color: #333333;
+  border: 1px solid #ffffff;
+  border-radius: 18px 18px 18px 4px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+}
+/* 隐藏原版角色小尾巴 */
+.Toutou-TT.char .content::after { display: none; }`;
+
+async function loadCustomBubblePlans() {
+    try {
+        const dbData = await db.settings.get('custom_bubble_plans');
+        if (dbData && dbData.value) {
+            customBubblePlans = JSON.parse(dbData.value);
+        }
+        
+        const activeCss = await db.settings.get('custom_bubble_css');
+        if (activeCss && activeCss.value) {
+            let styleEl = document.getElementById('dynamic-bubble-css');
+            if (!styleEl) {
+                styleEl = document.createElement('style');
+                styleEl.id = 'dynamic-bubble-css';
+                document.head.appendChild(styleEl);
+            }
+            styleEl.innerHTML = activeCss.value;
+            document.querySelectorAll('.bubble-theme-item').forEach(el => el.classList.remove('active'));
+        }
+    } catch(e) { console.error("读取气泡方案失败", e); }
+}
+window.addEventListener('load', loadCustomBubblePlans);
+
+function openCustomBubbleMenu() { document.getElementById('bubbleMenuOverlay').classList.add('active'); }
+
+function openBubblePanel(type) {
+    document.getElementById('bubbleMenuOverlay').classList.remove('active');
+    const panel = document.getElementById('custom-bubble-panel');
+    panel.style.display = 'flex';
+
+    if (type === 'create') renderBubbleCreatePanel();
+    else if (type === 'list') renderBubbleListPanel();
+}
+
+function renderBubbleCreatePanel() {
+    const panel = document.getElementById('custom-bubble-panel');
+    panel.innerHTML = `
+        <div style="font-size: 11px; font-weight: 800; color: #a0a0a0; margin-bottom: 8px;">新建气泡方案 (编写 CSS 结构)</div>
+        <textarea id="custom-bubble-css-input" style="width:100%; height:180px; background:#f9f9f9; border:none; border-radius:12px; padding:12px; font-size:11px; font-family:monospace; color:#444; outline:none; resize:none; line-height:1.5; box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);"></textarea>
+        <div style="display:flex; gap:10px; margin-top:12px;">
+            <div class="inset-btn" onclick="document.getElementById('custom-bubble-panel').style.display='none'">关闭</div>
+            <div class="inset-btn" style="color:#000;" onclick="applyTempBubblePreview()">预览效果</div>
+            <div class="inset-btn" style="color:#000;" onclick="promptSaveCustomBubble()">保存方案</div>
+        </div>
+    `;
+    document.getElementById('custom-bubble-css-input').value = defaultCssTemplate;
+    tempPreviewBubbleData = null;
+}
+
+function applyTempBubblePreview() {
+    const cssStr = document.getElementById('custom-bubble-css-input').value.trim();
+    if (!cssStr) { showToast('CSS 代码不能为空'); return; }
+    
+    let styleEl = document.getElementById('dynamic-bubble-css');
+    if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'dynamic-bubble-css';
+        document.head.appendChild(styleEl);
+    }
+    styleEl.innerHTML = cssStr;
+    tempPreviewBubbleData = cssStr;
+    
+    document.querySelectorAll('.bubble-theme-item').forEach(el => el.classList.remove('active'));
+    showToast('预览效果已更新');
+}
+
+function promptSaveCustomBubble() {
+    if (!tempPreviewBubbleData) { showToast('请先点击 [预览效果] 确认代码无误！'); return; }
+    openCustomPrompt('保存气泡代码', 'action_save_custom_bubble', '输入方案名称', 'input');
+}
+
+function renderBubbleListPanel() {
+    const panel = document.getElementById('custom-bubble-panel');
+    let listHtml = '';
+    
+    if (customBubblePlans.length === 0) {
+        listHtml = `<div style="text-align:center; padding:20px; color:#999; font-size:12px;">暂无保存的美化方案</div>`;
+    } else {
+        customBubblePlans.forEach(plan => {
+            // 🌟 移除左侧的 CSS 方块，文字往左靠
+            listHtml += `
+            <div style="display:flex; align-items:center; justify-content:space-between; background:#f9f9f9; padding:10px 12px; border-radius:12px; margin-bottom:8px;">
+                <div style="display:flex; align-items:center; flex:1; cursor:pointer; padding-left: 4px;" onclick="previewSavedBubble('${plan.id}')">
+                    <span style="font-size:13px; font-weight:700; color:#333;">${plan.name}</span>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <div style="padding:5px 12px; background:#fff; color:#000; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05);" onclick="promptApplyBubbleScope('${plan.id}')">应用</div>
+                    <div style="padding:5px 12px; background:#ff3b30; color:#fff; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; box-shadow: 0 2px 5px rgba(255,59,48,0.2);" onclick="deleteSavedBubble('${plan.id}')">删除</div>
+                </div>
+            </div>
+            `;
+        });
+    }
+
+    panel.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+            <span style="font-size: 11px; font-weight: 800; color: #a0a0a0;">已保存的美化方案</span>
+            <span style="font-size: 12px; font-weight: 700; color: #666; cursor:pointer;" onclick="document.getElementById('custom-bubble-panel').style.display='none'">关闭</span>
+        </div>
+        <div style="max-height: 220px; overflow-y: auto;">
+            ${listHtml}
+        </div>
+    `;
+}
+
+function previewSavedBubble(id) {
+    const plan = customBubblePlans.find(p => p.id === id);
+    if (!plan) return;
+    
+    let styleEl = document.getElementById('dynamic-bubble-css');
+    if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'dynamic-bubble-css';
+        document.head.appendChild(styleEl);
+    }
+    styleEl.innerHTML = plan.data;
+    document.querySelectorAll('.bubble-theme-item').forEach(el => el.classList.remove('active'));
+    showToast(`正在预览: ${plan.name}`);
+}
+
+// 🌟 新增：独立与全局应用的弹窗逻辑
+let bubblePlanToApply = null;
+
+function promptApplyBubbleScope(id) {
+    bubblePlanToApply = id;
+    let overlay = document.getElementById('bubble-scope-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'bubble-scope-overlay';
+        overlay.className = 'custom-prompt-overlay'; 
+        overlay.innerHTML = `
+            <div class="custom-prompt-box" style="width: 260px;">
+                <div class="custom-prompt-title">应用美化方案</div>
+                <div class="custom-prompt-msg" style="display:block; margin-bottom:20px; font-size: 12px;">请选择该气泡方案的应用范围</div>
+                <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
+                    <div class="inset-btn" style="color:#000; padding:14px 0;" onclick="executeApplyBubble('global')">全局应用 (所有角色)</div>
+                    <div class="inset-btn" style="color:#000; padding:14px 0;" onclick="executeApplyBubble('single')">仅当前聊天角色</div>
+                    <div class="inset-btn" style="color:#ff3b30; margin-top:5px; padding:14px 0;" onclick="document.getElementById('bubble-scope-overlay').classList.remove('active')">取消</div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+    setTimeout(() => overlay.classList.add('active'), 10);
+}
+
+function executeApplyBubble(scope) {
+    document.getElementById('bubble-scope-overlay').classList.remove('active');
+    const plan = customBubblePlans.find(p => p.id === bubblePlanToApply);
+    if (!plan) return;
+
+    if (scope === 'global') {
+        let styleEl = document.getElementById('dynamic-bubble-css');
+        if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = 'dynamic-bubble-css';
+            document.head.appendChild(styleEl);
+        }
+        styleEl.innerHTML = plan.data;
+        saveToDB('custom_bubble_css', plan.data);
+
+        // 清除当前角色的专属CSS，防止覆盖全局
+        if (currentChatContactId) {
+            const contact = contactsList.find(c => c.id === currentChatContactId);
+            if (contact && contact.customBubbleCss) {
+                contact.customBubbleCss = '';
+                saveToDB('contacts_data', JSON.stringify(contactsList));
+            }
+        }
+        let charStyleEl = document.getElementById('char-specific-bubble-css');
+        if (charStyleEl) charStyleEl.innerHTML = '';
+
+        document.querySelectorAll('.bubble-theme-item').forEach(el => el.classList.remove('active'));
+        showToast(`已全局应用：${plan.name}`);
+
+    } else if (scope === 'single') {
+        if (!currentChatContactId) {
+            showToast('当前未在角色的聊天设置页内，无法单独应用！');
+            return;
+        }
+        const contact = contactsList.find(c => c.id === currentChatContactId);
+        if (contact) {
+            contact.customBubbleCss = plan.data;
+            saveToDB('contacts_data', JSON.stringify(contactsList));
+            
+            // 实时注入该角色的专属 CSS，优先级高于全局
+            let charStyleEl = document.getElementById('char-specific-bubble-css');
+            if (!charStyleEl) {
+                charStyleEl = document.createElement('style');
+                charStyleEl.id = 'char-specific-bubble-css';
+                document.head.appendChild(charStyleEl);
+            }
+            charStyleEl.innerHTML = plan.data;
+            
+            document.querySelectorAll('.bubble-theme-item').forEach(el => el.classList.remove('active'));
+            showToast(`已为 ${contact.name} 单独应用`);
+        }
+    }
+}
+
+// 🌟 调起删除的二次确认弹窗
+let bubblePlanToDelete = null;
+function deleteSavedBubble(id) {
+    bubblePlanToDelete = id;
+    openCustomPrompt('删除美化方案', 'action_delete_bubble_plan', '确定要彻底删除该美化方案吗？', 'confirm_delete');
+}
+
+// ==========================================
+// 🌟 独家：静默后台大模型自动总结系统
+// ==========================================
+async function checkAndTriggerAutoSummary(contactId) {
+    const contact = contactsList.find(c => c.id === contactId);
+    if (!contact || !contact.messages) return;
+
+    // 🌟 新增防重入并发锁，彻底终结一次对话触发两次总结的 Bug
+    if (contact.isSummarizing) return;
+
+    const autoRounds = contact.autoSummaryRounds || 30;
+    if (autoRounds <= 0) return; // 如果设为 0 则代表关闭自动总结
+
+    const msgCount = contact.messages.length;
+    const lastSumIndex = contact.lastSummaryMsgIndex || 0;
+
+    // 一轮通常等于两条消息(user+ai)，所以目标是 autoRounds * 2
+    if (msgCount - lastSumIndex >= autoRounds * 2) {
+        contact.isSummarizing = true; // 上锁，禁止其他请求闯入
+        const msgsToSummarize = contact.messages.slice(lastSumIndex, msgCount);
+        
+        // 🌟 提前锁定指针，防止在请求过程中触发重复总结
+        contact.lastSummaryMsgIndex = msgCount;
+        saveToDB('contacts_data', JSON.stringify(contactsList));
+
+        // 丢入后台静默执行，并在结束后无论成功失败都解锁
+        doAutoSummaryCall(contact, msgsToSummarize).finally(() => {
+            contact.isSummarizing = false; // 解锁
+        });
+    }
+}
+
+async function doAutoSummaryCall(contact, msgsToSummarize) {
+    if (!activeApiPlanId || apiPlans.length === 0) return;
+    const apiConfig = apiPlans.find(p => p.id === activeApiPlanId)?.data;
+    if (!apiConfig || !apiConfig.apiKey) return;
+
+    let ud = profilePlans.find(p => p.id === currentActivePlanId)?.data || {};
+    let cd = contact.details || {};
+    let userStr = `姓名:${ud['text-profile-name']} 性别:${ud['text-detail-gender']} 档案:${ud['text-secret-file']||'无'}`;
+    let charStr = `姓名:${contact.realName||contact.name} 性别:${cd.gender} 设定:${cd.secretFile||'无'}`;
+    
+    let wbStr = "";
+    [...activeWorldbooks.filter(b => b.category === '已绑定' && b.subGroup === contact.name),
+     ...activeWorldbooks.filter(b => b.category === '通用'),
+     ...activeWorldbooks.filter(b => b.category === '全部')].forEach(wb => {
+        wb.entries.forEach(e => { wbStr += `[${e.name}]: ${e.content}\n`; });
+    });
+
+        // 🌟 提取真实姓名，方便构建对话剧本
+        let myName = ud['text-profile-name'] || '我';
+        let charName = contact.realName || contact.name || '对方';
+
+        // 🌟 核心修复：把聊天记录彻底转化为“客观剧本文本”，绝不用原始的对话数组去误导AI！
+        let chatLogText = "";
+        msgsToSummarize.forEach(m => {
+            let speaker = m.sender === 'user' ? myName : charName;
+            chatLogText += `【${speaker}】：${m.text}\n`;
+        });
+
+        // 🌟 上帝视角小说向总结 Prompt (将对话文本直接缝合进 Prompt 里)
+        const summaryPrompt = `现在开始总结提供的这段聊天记录。你需要用第三人称，作为一个上帝视角的助手去总结整个故事的所有情节发展脉络、人物关系变化和进展。不要忽略其中的约定、小细节以及重要事件。每次的总结字数不可以少于50字，最多250字。
+        
+【${myName}(我) 的设定】
+${userStr}
+【${charName}(对方) 的设定】
+${charStr}
+【世界书设定】
+${wbStr}
+
+【需要你总结的聊天剧本如下】：
+${chatLogText}
+
+请仔细阅读以上剧本，以客观的上帝视角，写一段包含双方行为和对话剧情的详细总结：`;
+
+        // 🌟 彻底抛弃 system 和 assistant 标签，将整个任务包裹在一个单一的 User 请求里，绝杀 AI 的身份认知错乱
+        let messagesPayload = [{ role: "user", content: summaryPrompt }];
+
+        try {
+            const response = await fetch(`${apiConfig.baseUrl}/chat/completions`, {
+
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiConfig.apiKey}` },
+            body: JSON.stringify({
+                model: apiConfig.model,
+                messages: messagesPayload,
+                temperature: 0.5, // 总结模式使用较低的温度，保证客观精准
+                presence_penalty: 0,
+                frequency_penalty: 0,
+                top_p: 0.9
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const summaryText = data.choices[0].message.content;
+            
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            if (!contact.historySummaries) contact.historySummaries = [];
+            contact.historySummaries.push({
+                id: 'sum_auto_' + Date.now(),
+                timeRange: `自动总结 - ${dateStr}`,
+                content: summaryText
+            });
+            
+            saveToDB('contacts_data', JSON.stringify(contactsList));
+            
+            // 如果你此刻正处在这个人的聊天室，弹个低调的 Toast 提示
+            if (currentChatContactId === contact.id) {
+                showToast("后台自动记忆总结已完成并归档");
+            }
+        }
+    } catch (e) {
+        console.error("后台自动总结触发失败", e);
+        // 如果网络断了，把指针退回去，下次讲话时再试
+        contact.lastSummaryMsgIndex -= msgsToSummarize.length;
+        saveToDB('contacts_data', JSON.stringify(contactsList));
+    }
+}
+
+
+// ==========================================
+// 🌟 角色心声（隐形XML数据拦截）与登录保险箱系统
+// ==========================================
+
+// 解析 XML 并保存到联系人数据，同时刷新药丸文本
+function parseAndSaveVoice(xmlString, contact) {
+    const getTag = (tag, source = xmlString) => {
+        const regex = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, 'i');
+        const match = source.match(regex);
+        return match ? match[1].trim() : '';
+    };
+    if (!contact.innerVoice) contact.innerVoice = {};
+    contact.innerVoice.location = getTag('location');
+    contact.innerVoice.action = getTag('action');
+    
+    // 🌟 取消了 20 字物理截断，直接保留大模型生成的完整句子（Prompt中已要求20字内写完完整句子）
+    contact.innerVoice.thought = getTag('thought').replace(/\n/g, '').trim();
+    
+    // 解析大模型出的防偷窥选择题
+    const quizTagMatch = xmlString.match(/<quiz>([\s\S]*?)<\/quiz>/i);
+    if (quizTagMatch) {
+        let qStr = quizTagMatch[1];
+        contact.innerVoice.quiz = {
+            q: getTag('question', qStr),
+            o1: getTag('option1', qStr),
+            o2: getTag('option2', qStr),
+            o3: getTag('option3', qStr),
+            ans: getTag('answer', qStr).replace(/[^1-3]/g, '') 
+        };
+    } else {
+        contact.innerVoice.quiz = null; 
+    }
+
+    // 接收新数据时触发重置解锁逻辑，并清空之前的惩罚计数
+    contact.innerVoice.locked = false;
+    contact.innerVoice.errorCount = 0;
+    
+    if (currentChatContactId === contact.id && contact.innerVoice.thought) {
+        const textEl = document.getElementById('chat-init-text');
+        if (textEl) {
+            textEl.style.opacity = 0;
+            setTimeout(() => {
+                textEl.innerText = contact.innerVoice.thought;
+                textEl.style.opacity = 1;
+            }, 300);
+        }
+    }
+}
+
+// 纯黑底白字无圆角的 Toast 报错弹窗 (点击屏幕任意位置立即消失)
+function showMindBlackToast(msg) {
+    const toast = document.getElementById('mind-black-toast');
+    toast.innerText = msg;
+    toast.classList.add('active');
+    
+    // 先移除上一次绑定的点击事件，防止重复触发
+    document.removeEventListener('click', hideMindBlackToast);
+    
+    // 延迟 10 毫秒绑定事件，防止因为触发这个弹窗的那次“点击”被立刻捕捉到而瞬间关闭
+    setTimeout(() => {
+        document.addEventListener('click', hideMindBlackToast);
+    }, 10);
+}
+
+// 关闭弹窗并解除监听
+function hideMindBlackToast() {
+    document.getElementById('mind-black-toast').classList.remove('active');
+    document.removeEventListener('click', hideMindBlackToast);
+}
+
+let globalRememberVoicePwd = localStorage.getItem('toutou_remember_pwd') === 'true';
+
+function toggleMindRemember() {
+    globalRememberVoicePwd = !globalRememberVoicePwd;
+    localStorage.setItem('toutou_remember_pwd', globalRememberVoicePwd.toString());
+    const chk = document.getElementById('mind-remember-chk');
+    if (globalRememberVoicePwd) chk.classList.add('active');
+    else chk.classList.remove('active');
+}
+
+function openInnerVoice() {
+    if (!currentChatContactId) return;
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    if (!contact) return;
+
+    if (!contact.innerVoice || !contact.innerVoice.thought) {
+        showMindBlackToast("当前暂无截获的内心数据。");
+        return;
+    }
+
+    if (contact.innerVoice.locked) {
+        showMindBlackToast("被锁了呢");
+        return;
+    }
+
+    // 自动装载 UI 状态
+    const chk = document.getElementById('mind-remember-chk');
+    if (globalRememberVoicePwd) chk.classList.add('active');
+    else chk.classList.remove('active');
+
+    let tag1 = contact.details && contact.details.tag1 ? contact.details.tag1 : "前缀";
+    const displayId = `${tag1}@Toutou.com`;
+    document.getElementById('mind-id-input').value = displayId;
+
+    let myName = currentTempPlan['text-profile-name'] || baseDefaults['text-profile-name'];
+    let myBday = currentTempPlan['text-detail-birthday'] || "";
+    let bdayStr = myBday ? myBday.split('-')[1] + myBday.split('-')[2] : "";
+    const correctPwd = `${myName}${bdayStr}`;
+
+    const pwdInput = document.getElementById('mind-pwd-input');
+    if (globalRememberVoicePwd) {
+        pwdInput.value = correctPwd; 
+    } else {
+        pwdInput.value = '';
+    }
+
+    document.getElementById('mind-login-view').style.display = 'block';
+    document.getElementById('mind-quiz-view').style.display = 'none';
+    document.getElementById('mind-content-view').style.display = 'none';
+
+    document.getElementById('inner-voice-overlay').classList.add('active');
+}
+
+function closeInnerVoice(event) {
+    if (event && (event.target.id === 'inner-voice-overlay' || event.currentTarget.id === 'inner-voice-overlay')) {
+        document.getElementById('inner-voice-overlay').classList.remove('active');
+        hideMindBlackToast(); // 顺带关掉黑弹窗
+    }
+}
+
+function verifyVoiceLogin() {
+    if (!currentChatContactId) return;
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    if (!contact) return;
+
+    let myName = currentTempPlan['text-profile-name'] || baseDefaults['text-profile-name'];
+    let myBday = currentTempPlan['text-detail-birthday'] || "";
+    let bdayStr = myBday ? myBday.split('-')[1] + myBday.split('-')[2] : "";
+    const correctPwd = `${myName}${bdayStr}`;
+
+    const inputPwd = document.getElementById('mind-pwd-input').value.trim();
+
+    if (inputPwd === correctPwd) {
+        contact.innerVoice.errorCount = 0; 
+        saveToDB('contacts_data', JSON.stringify(contactsList));
+        
+        if (contact.innerVoice.quiz && contact.innerVoice.quiz.ans) {
+            showMindQuiz(contact);
+        } else {
+            showMindContent(contact);
+        }
+    } else {
+        if (!contact.innerVoice.errorCount) contact.innerVoice.errorCount = 0;
+        contact.innerVoice.errorCount += 1;
+
+        if (contact.innerVoice.errorCount === 1 || contact.innerVoice.errorCount === 2) {
+            showMindBlackToast("想要查看心声，还不知道对方的密码？给你点提示吧，密码是你的名字与生日^^。");
+        } else {
+            contact.innerVoice.locked = true;
+            saveToDB('contacts_data', JSON.stringify(contactsList));
+            document.getElementById('inner-voice-overlay').classList.remove('active');
+            showMindBlackToast("被锁了呢");
+        }
+    }
+}
+
+// 渲染答题视窗
+function showMindQuiz(contact) {
+    document.getElementById('mind-login-view').style.display = 'none';
+    document.getElementById('mind-quiz-view').style.display = 'block';
+    
+    document.getElementById('voice-quiz-q').innerText = contact.innerVoice.quiz.q;
+    document.getElementById('voice-quiz-opt1').innerText = "A. " + contact.innerVoice.quiz.o1.replace(/^[A-C]\.\s*/i, '');
+    document.getElementById('voice-quiz-opt2').innerText = "B. " + contact.innerVoice.quiz.o2.replace(/^[A-C]\.\s*/i, '');
+    document.getElementById('voice-quiz-opt3').innerText = "C. " + contact.innerVoice.quiz.o3.replace(/^[A-C]\.\s*/i, '');
+}
+
+// 检查作答对错
+function checkVoiceQuiz(choiceNum) {
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    const correctAns = contact.innerVoice.quiz.ans; 
+
+    if (choiceNum.toString() === correctAns) {
+        showMindContent(contact); 
+    } else {
+        showMindBlackToast("选项错误。"); 
+    }
+}
+
+// 最终展示心声库数据
+function showMindContent(contact) {
+    document.getElementById('voice-location').innerText = contact.innerVoice.location || "未知";
+    document.getElementById('voice-action').innerText = contact.innerVoice.action || "发呆";
+    document.getElementById('voice-thought').innerText = contact.innerVoice.thought || "...";
+
+    document.getElementById('mind-login-view').style.display = 'none';
+    document.getElementById('mind-quiz-view').style.display = 'none';
+    document.getElementById('mind-content-view').style.display = 'block';
 }

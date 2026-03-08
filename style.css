@@ -1515,32 +1515,43 @@ body {
 
 /* 聊天内容区 */
 .chat-room-body {
-    flex: 1; padding: 25px 15px 15px 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;
+    flex: 1; 
+    /* 🔥 消息展示区域往上一点：padding-top 设为 0 */
+    padding: 0 15px 15px 15px; 
+    overflow-y: auto; 
+    display: flex; flex-direction: column; 
+    gap: 28px; /* 🌟 优化：加大基础间距（你发一条，我发一条之间的距离） */
 }
 .chat-room-body::-webkit-scrollbar { display: none; }
 
-/* 🌟 新增：全新打招呼状态区 (向上微调、大头像、液态玻璃药丸) */
+
+/* 🌟 全新打招呼状态区 (已固定在顶部) */
 .chat-init-state {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    margin-top: 5px; /* 🔥 整体往上移动 10px (原为60px) */
+    margin-top: 5px; /* 🔥 往上靠，让出更多消息显示区域 */
+    padding-bottom: 0px; /* 🔥 取消底部内边距，让消息展示区域直接贴近 */
+    flex-shrink: 0; /* 🔥 绝对防御：禁止被下面海量的聊天记录挤压变形 */
+    background: #ffffff; /* 垫底白色，防止透明导致的重影 */
+    z-index: 10;
 }
 .chat-init-avatar-container {
     position: relative; 
 }
 .chat-init-avatar {
     width: 86px; height: 86px; border-radius: 50%; object-fit: cover;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.08); border: 3px solid #fff; cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.04); /* 🔥 大头像阴影收敛变淡一些 */
+    border: 3px solid #fff; cursor: pointer;
     transition: transform 0.2s; background: #eee;
 }
 .chat-init-avatar:active { transform: scale(0.95); }
 
 /* 🔥 极致无痕的液态玻璃药丸 */
 .chat-init-pill {
-    margin-top: 25px;
-    background: rgba(245, 245, 245, 0.6); /* 更加清透的底色 */
-    backdrop-filter: blur(20px) saturate(150%); -webkit-backdrop-filter: blur(20px) saturate(150%); /* 强烈的玻璃折射特效 */
-    border: none; /* 彻底去除描边 */
-    box-shadow: none; /* 彻底去除外阴影 */
+    margin-top: 8px; /* 🔥 药丸与头像之间的距离进一步缩近 */
+    background: rgba(245, 245, 245, 0.6); /* 清透的底色 */
+    backdrop-filter: blur(20px) saturate(150%); -webkit-backdrop-filter: blur(20px) saturate(150%); 
+    border: none; 
+    box-shadow: none; 
     padding: 8px 18px; border-radius: 20px;
     font-size: 11px; font-weight: 600; color: #888;
     text-align: center; letter-spacing: 0.5px;
@@ -1548,6 +1559,7 @@ body {
 .chat-init-pill strong {
     color: #111; font-weight: 800; padding: 0 2px;
 }
+
 
 /* ==========================================
    🌟 全新聊天页高级底栏系统 (极致对齐版)
@@ -1628,10 +1640,18 @@ body {
 .chat-settings-screen.active { transform: translateX(0); }
 
 .chat-save-btn {
-    font-size: 14px; font-weight: 700; color: #111; cursor: pointer;
-    padding: 5px 10px; background: #f0f0f0; border-radius: 12px;
+    font-size: 13px; font-weight: 800; color: #777; cursor: pointer;
+    padding: 6px 14px; border-radius: 12px;
+    background: rgba(245, 245, 245, 0.4);
+    box-shadow: inset 3px 3px 6px rgba(0,0,0,0.06), inset -3px -3px 6px rgba(255,255,255,1);
+    border: 1px solid rgba(255,255,255,0.7);
+    transition: transform 0.2s, box-shadow 0.2s;
 }
-.chat-save-btn:active { background: #e0e0e0; }
+.chat-save-btn:active {
+    box-shadow: inset 5px 5px 10px rgba(0,0,0,0.1), inset -5px -5px 10px rgba(255,255,255,1);
+    transform: scale(0.95);
+}
+
 
 .chat-settings-body {
     flex: 1; padding: 20px 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;
@@ -1691,85 +1711,72 @@ body {
 ========================================== */
 .bubble-theme-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr); /* 🔥 改为2列，适应左侧被挤压的空间 */
     gap: 12px;
     margin-top: 10px;
 }
+
+/* 🌟 全新：右侧长条形玻璃凹陷按钮 (纯白无边框质感) */
+.custom-bubble-btn {
+    width: 42px; 
+    background: #ffffff; /* 纯白底色 */
+    border-radius: 18px;
+    border: none; /* 去除白边 */
+    box-shadow: inset 4px 4px 8px rgba(0,0,0,0.04); /* 极其微弱的物理内凹阴影 */
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; padding: 15px 0; cursor: pointer; flex-shrink: 0;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.custom-bubble-btn:active {
+    box-shadow: inset 6px 6px 12px rgba(0,0,0,0.08);
+    transform: scale(0.95);
+}
+.custom-bubble-btn span { font-size: 12px; font-weight: 800; color: #888; letter-spacing: 2px; }
+
+/* 🌟 新增：内凹拟态通用按钮 (纯白无边框质感) */
+.inset-btn {
+    background: #ffffff;
+    border-radius: 12px;
+    border: none;
+    box-shadow: inset 3px 3px 8px rgba(0,0,0,0.04);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; color: #777;
+    cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+    user-select: none; flex: 1; padding: 12px 0;
+}
+.inset-btn:active {
+    box-shadow: inset 5px 5px 12px rgba(0,0,0,0.08);
+    transform: scale(0.96);
+}
+
+/* 动态弹出的大白卡片动画 */
+.custom-bubble-panel { animation: slide-down-fade 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+@keyframes slide-down-fade { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
 .bubble-theme-item {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 12px 0; background: #f9f9f9; border-radius: 12px; border: 2px solid transparent;
-    cursor: pointer; transition: all 0.2s;
+    padding: 12px 0; background: #f9f9f9; border-radius: 12px; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;
 }
-.bubble-theme-item.active {
-    background: #fff; border-color: #111; box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-}
+.bubble-theme-item.active { background: #fff; border-color: #111; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
 .bubble-theme-item:active { transform: scale(0.95); }
 
-.theme-color-preview {
-    width: 24px; height: 24px; border-radius: 50%; margin-bottom: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1); border: 1px solid #eaeaea;
-}
+.theme-color-preview { width: 24px; height: 24px; border-radius: 50%; margin-bottom: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border: 1px solid #eaeaea; }
 .bubble-theme-item span { font-size: 11px; font-weight: 700; color: #555; }
 
 /* --- 气泡预览区容器 --- */
-.bubble-preview-container {
-    display: flex; flex-direction: column; gap: 15px; padding: 18px 12px;
-    background: #f0f0f0; border-radius: 16px; margin-top: 5px;
+.bubble-preview-container { display: flex; flex-direction: column; gap: 24px; padding: 18px 12px; background: #f0f0f0; border-radius: 16px; margin-top: 5px; }
+
+.preview-msg-row { 
+    display: flex; align-items: flex-end; gap: 8px; width: 100%; 
+    flex-shrink: 0; 
+    /* 🌟 优化：删除了原本的 transform 位移，彻底解决多行文字往上乱顶导致重叠的问题 */
 }
-.preview-msg-row { display: flex; align-items: flex-end; gap: 8px; }
-.preview-msg-row.right { justify-content: flex-end; }
+.preview-msg-row.right { justify-content: flex-end; flex-direction: row; }
 .preview-msg-row.left { justify-content: flex-start; }
-.preview-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid #ddd; background: #fff; }
 
 /* ==========================================
    🌟 终极气泡代码改造 (自定义前缀 Toutou-TT.user & Toutou-TT.char)
 ========================================== */
-.Toutou-TT {
-    display: flex;
-    width: 100%;
-    align-items: flex-end; /* 确保时间戳始终与气泡底部贴齐 */
-}
-
-/* 聊天气泡旁侧的时间戳样式 */
-.bubble-time {
-    font-size: 10px; /* 基准字号 */
-    color: #dadada; /* 🔥 色值提亮变浅 */
-    margin: 0 4px 1px 4px; /* 🔥 拉近距离，贴地更稳 */
-    font-weight: 600;
-    flex-shrink: 0;
-    user-select: none;
-    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
-    transform: scale(0.85); /* 🔥 利用缩放突破浏览器最小12px限制，实现真正变小 */
-    transform-origin: bottom;
-}
-
-/* 🔥 绝对不能漏掉的左右对齐控制 */
-.Toutou-TT.user {
-    justify-content: flex-end; 
-}
-.Toutou-TT.char {
-    justify-content: flex-start; 
-}
-
-/* 严格还原你的原始气泡底层代码 */
-.Toutou-TT.user .content,
-.Toutou-TT.char .content {
-  --top-left: 16px; 
-  --top-right: 16px;
-  --bottom-right: 16px;
-  --bottom-left: 16px;
-  
-  padding: 3px 7px; /* 🔥 核心缩小：字号不变，把四周的内边距缩减 3px，实现主体壳子的收缩 */
-  position: relative;
-  word-wrap: break-word;
-  word-break: break-all; 
-  display: inline-block;
-  font-size: 14px; /* 🔥 字体大小坚决不动 */
-  line-height: 1.5;
-  max-width: 65vw; 
-  text-align: left; 
-}
-
 :root {
     /* 气泡专属颜色库 (默认为黑灰色) */
     --bubble-user-bg: #000000;
@@ -1778,103 +1785,86 @@ body {
     --bubble-char-text: #000000;
 }
 
-/* --- Toutou-TT.user (右侧用户 - 我方) 气泡 --- */
+.Toutou-TT {
+    display: flex;
+    width: 100%;
+    align-items: flex-end; /* 确保时间戳始终与气泡底部贴齐 */
+}
+
+/* 聊天气泡旁侧的时间戳样式 */
+.bubble-time {
+    font-size: 10px;
+    color: #dadada;
+    margin: 0 4px 1px 4px;
+    font-weight: 600;
+    flex-shrink: 0;
+    user-select: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    transform: scale(0.85); 
+    transform-origin: bottom;
+}
+
+.Toutou-TT.user { justify-content: flex-end; }
+.Toutou-TT.char { justify-content: flex-start; }
+
+.Toutou-TT.user .content,
+.Toutou-TT.char .content {
+  --top-left: 16px; 
+  --top-right: 16px;
+  --bottom-right: 16px;
+  --bottom-left: 16px;
+  
+  padding: 3px 7px;
+  position: relative;
+  word-wrap: break-word;
+  word-break: break-all; 
+  display: inline-block;
+  font-size: 14px; 
+  line-height: 1.5;
+  max-width: 65vw; 
+  text-align: left; 
+}
+
+/* --- 用户气泡 --- */
 .Toutou-TT.user .content {
   background-color: var(--bubble-user-bg);
   color: var(--bubble-user-text);
   border-radius: var(--top-left) var(--top-right) var(--bottom-right) var(--bottom-left);
   transition: background-color 0.3s, color 0.3s;
-  transform: translate(3px, -3px); /* 🔥 整体气泡主体：往右 3px，往上 3px */
+  transform: translate(3px, -3px); 
 }
-
 .Toutou-TT.user .content::after {
-  content: "";
-  position: absolute;
-  width: 12px;
-  height: 15px;
-  background-color: inherit; 
-  right: -1px; /* 🔥 尾巴往右移动 3px (原来是 1px) */
-  bottom: 12px; /* 🔥 尾巴往上移动 3px (原来是 11px) */
+  content: ""; position: absolute; width: 12px; height: 15px;
+  background-color: inherit; right: -1px; bottom: 12px;
   clip-path: path("M 13,1 Q 2,0 0,12 Q 3,7 11,12 L 8,4");
-  z-index: 1;
-  transform: rotate(236deg) scale(0.8); /* 🔥 增加 scale(0.8) 将小尾巴本身缩小约 3px */
-  transform-origin: bottom right;
-  transition: background-color 0.3s;
+  z-index: 1; transform: rotate(236deg) scale(0.8); transform-origin: bottom right; transition: background-color 0.3s;
 }
 
-/* --- Toutou-TT.char (左侧角色 - 对方) 气泡 --- */
+/* --- 角色气泡 --- */
 .Toutou-TT.char .content {
   background-color: var(--bubble-char-bg);
   color: var(--bubble-char-text);
   border-radius: var(--top-left) var(--top-right) var(--bottom-right) var(--bottom-left);
   transition: background-color 0.3s, color 0.3s;
-  transform: translate(-3px, -3.5px); /* 🔥 整体气泡主体依然保持：往左 3px，往上 3px */
+  transform: translate(-3px, -3.5px);
 }
-
 .Toutou-TT.char .content::after {
-  content: "";
-  position: absolute;
-  width: 12px;
-  height: 15px;
-  background-color: inherit; 
-  left: -6px; /* 🔥 尾巴往右退回 3px，重新贴紧气泡主体边缘 */
-  bottom: 5px; /* 🔥 尾巴往下退回 3px，回到正确的底部位置 */
+  content: ""; position: absolute; width: 12px; height: 15px;
+  background-color: inherit; left: -6px; bottom: 5px;
   clip-path: path("M 13,2 Q 1,0 0,12 Q 3,7 11,12 L 19,3");
-  z-index: 1;
-  transform: scaleX(-1) rotate(236deg) scale(0.8); /* 🔥 保留尾巴缩小的效果 */
-  transform-origin: bottom left;
-  transition: background-color 0.3s;
-}
-
-/* --- 预览区及聊天室内气泡行容器排版修正 --- */
-.preview-msg-row { 
-    display: flex; align-items: flex-end; gap: 8px; width: 100%; 
-    transform: translateY(-5px); /* 🔥 物理位移神技：强行让这一整行（包含头像、时间戳和气泡）向上移动 5px */
-    flex-shrink: 0; /* 🔥 核心保护：防止消息数量超过一屏幕时，气泡被 Flex 强行挤压变形 */
-}
-.preview-msg-row.right { justify-content: flex-end; flex-direction: row; }
-.preview-msg-row.left { justify-content: flex-start; }
-.preview-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid #ddd; background: #fff; }
-
-
-
-/* ==========================================
-   🌟 全新聊天页高级底栏系统 (极致对齐版)
-========================================== */
-.chat-room-input-bar {
-    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-    padding-top: 15px; 
-    background: #ffffff; 
-    display: flex; 
-    align-items: flex-start; 
-    padding-left: 12px; 
-    padding-right: 15px; 
-    gap: 12px; 
-    flex-shrink: 0;
-    z-index: 30;
-    position: relative; /* 🔥 核心：为悬浮药丸提供锚点 */
+  z-index: 1; transform: scaleX(-1) rotate(236deg) scale(0.8); transform-origin: bottom left; transition: background-color 0.3s;
 }
 
 /* ==========================================
    🌟 液态玻璃“对方正在输入中”悬浮药丸
 ========================================== */
 .floating-typing-pill {
-    position: absolute;
-    left: 15px;
-    bottom: calc(100% + 5px); /* 🔥 悬浮在输入框正上方 5px 处 */
-    padding: 6px 14px;
-    border-radius: 20px;
-    background: rgba(245, 245, 245, 0.7);
-    backdrop-filter: blur(20px) saturate(200%); -webkit-backdrop-filter: blur(20px) saturate(200%);
+    position: absolute; left: 15px; bottom: calc(100% + 5px);
+    padding: 6px 14px; border-radius: 20px;
+    background: rgba(245, 245, 245, 0.7); backdrop-filter: blur(20px) saturate(200%); -webkit-backdrop-filter: blur(20px) saturate(200%);
     border: 1px solid rgba(255, 255, 255, 0.7);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05), inset 0 2px 5px rgba(255, 255, 255, 0.9);
-    font-size: 11px;
-    font-weight: 800;
-    color: #888;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    z-index: 50;
+    font-size: 11px; font-weight: 800; color: #888; display: flex; align-items: center; gap: 8px; z-index: 50;
     animation: floating-pill-fade-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .typing-dots { display: flex; gap: 3px; margin-top: 2px;}
@@ -1886,3 +1876,157 @@ body {
 .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
 @keyframes typing-bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
 @keyframes floating-pill-fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* 🌟 流式传输：气泡等待态 "…" 占位样式 */
+.Toutou-TT.char .content.stream-waiting { opacity: 0.45; letter-spacing: 2px; }
+
+.preview-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid #ddd; background: #fff; }
+
+/* ==========================================
+   🌟 功能性设定药丸与 Token 统计面板
+========================================== */
+.inset-pill-label {
+    align-self: flex-start;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #888;
+    background: #ffffff; /* 纯白底色 */
+    border: none;
+    box-shadow: inset 3px 3px 8px rgba(0,0,0,0.04);
+    margin-bottom: -5px; 
+    margin-top: 5px;
+}
+
+/* ==========================================
+   🌟 历史总结专属列表样式
+========================================== */
+.summary-card {
+    background: #fafafa; border-radius: 16px; padding: 15px; margin-bottom: 12px;
+    display: flex; flex-direction: column; gap: 10px; border: 1px solid #f0f0f0;
+}
+.summary-card-header { display: flex; justify-content: space-between; align-items: center; }
+.summary-time-title { font-size: 13px; font-weight: 800; color: #111; }
+.summary-content-preview { font-size: 12px; color: #666; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.summary-content-full { font-size: 12px; color: #444; line-height: 1.6; display: none; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #eee; margin-top: 5px;}
+.summary-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 5px; }
+.summary-action-btn { font-size: 11px; font-weight: 700; padding: 6px 14px; border-radius: 12px; cursor: pointer; background: #fff; color: #333; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: transform 0.2s; }
+.summary-action-btn:active { transform: scale(0.95); }
+.summary-action-btn.danger { color: #ff3b30; }
+
+
+.token-stat-container {
+    display: flex; flex-direction: column; gap: 8px;
+    background: #f9f9f9; padding: 12px; border-radius: 12px;
+    margin-top: 8px;
+}
+.token-stat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: #666; font-weight: 500;
+}
+.token-stat-row span:last-child {
+    font-family: monospace; font-size: 12px; font-weight: 700; color: #333;
+}
+.token-stat-row.total {
+    margin-top: 4px; padding-top: 8px; border-top: 1px dashed #ddd;
+    color: #000; font-weight: 800;
+}
+.token-stat-row.total span:last-child {
+    color: #ff3b30; font-size: 14px;
+}
+
+/* ==========================================
+   🌟 高级视觉排版：连续发言自动隐藏后续头像，并缩进间距
+========================================== */
+.preview-msg-row.left + .preview-msg-row.left .preview-avatar {
+    visibility: hidden; /* 隐身但保留占位，确保气泡完美对齐 */
+}
+.preview-msg-row.right + .preview-msg-row.right .preview-avatar {
+    visibility: hidden;
+}
+
+/* 连续的气泡之间缩减间距，形成“组”的视觉包裹感 */
+.preview-msg-row.left + .preview-msg-row.left,
+.preview-msg-row.right + .preview-msg-row.right {
+    margin-top: -18px; /* 🌟 优化：用负边距抵消掉 24px 的大间距，让同一个人连续发的消息距离保持在 6px 左右的紧凑感 */
+}
+
+/* ==========================================
+   🌟 心声系统 (极简工业风打印机 + 登录保险箱)
+========================================== */
+@import url('https://fonts.googleapis.com/css2?family=Zhi+Mang+Xing&display=swap');
+
+.voice-layout-wrapper {
+    display: flex; flex-direction: column; align-items: center; width: 100%;
+    margin-top: 5vh; opacity: 0; transform: translateY(10px);
+    transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+#inner-voice-overlay.active .voice-layout-wrapper { opacity: 1; transform: translateY(0); }
+
+/* 打印机本体：压低亮度，充当背景 */
+.printer-machine {
+    width: 160px; background: #222; border-radius: 2px 2px 0 0;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.06); display: flex; flex-direction: column; align-items: center;
+}
+.printer-top-bar { width: 100%; color: #666; font-size: 8px; font-family: -apple-system, sans-serif; font-weight: 600; text-align: center; padding: 4px 0; letter-spacing: 3px; }
+.printer-slot { width: 140px; height: 4px; background: #000; box-shadow: inset 0 2px 4px rgba(0,0,0,0.8); }
+
+/* 下方的心声密码箱：白底细线，极度克制 */
+.mind-box {
+    width: 240px; background: #ffffff; border: 1px solid #eaeaea; border-radius: 4px;
+    padding: 25px 20px; margin-top: 25px; /* 与打印机隔开距离 */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+    display: flex; flex-direction: column;
+}
+
+.mind-box-title {
+    font-family: -apple-system, sans-serif; font-size: 10px; font-weight: 800;
+    color: #999; letter-spacing: 2px; text-align: center; margin-bottom: 25px;
+}
+
+/* 登录框样式 */
+.mind-input-group { display: flex; flex-direction: column; gap: 6px; }
+.mind-input-group label { font-size: 8px; font-weight: 800; color: #b3b3b3; letter-spacing: 1px; }
+.mind-input-group input {
+    width: 100%; border: none; border-bottom: 1px solid #d0d0d0; background: transparent;
+    padding: 6px 0; font-size: 12px; font-family: monospace; color: #111; font-weight: 600; outline: none; transition: border-color 0.3s;
+}
+.mind-input-group input:focus { border-bottom-color: #111; }
+.mind-input-group input::placeholder { color: #dcdcdc; }
+
+/* 登录按钮：无多余效果的死黑方块 */
+.mind-btn {
+    width: 100%; background: #111; color: #fff; text-align: center; padding: 12px 0;
+    font-size: 10px; font-weight: 800; letter-spacing: 2px; margin-top: 25px; cursor: pointer; transition: opacity 0.2s;
+}
+.mind-btn:active { opacity: 0.7; }
+
+/* 记住密码极简组件 */
+.mind-remember-row { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 12px; cursor: pointer; }
+.mind-checkbox { width: 10px; height: 10px; border: 1px solid #d0d0d0; transition: all 0.2s; position: relative; }
+.mind-checkbox.active { background: #111; border-color: #111; }
+.mind-remember-row span { font-size: 8px; font-weight: 800; color: #b3b3b3; letter-spacing: 1px; }
+
+/* 选择题组件 */
+.mind-quiz-q { font-size: 11px; font-weight: 700; color: #333; line-height: 1.6; margin-bottom: 20px; text-align: justify; word-break: break-all; }
+.mind-quiz-options { display: flex; flex-direction: column; gap: 10px; }
+.mind-quiz-opt { padding: 12px 10px; border: 1px solid #eaeaea; font-size: 10px; font-weight: 600; color: #555; cursor: pointer; transition: all 0.2s; background: #fafafa; }
+.mind-quiz-opt:active { background: #f0f0f0; border-color: #ccc; }
+
+/* 内容展示样式 */
+.mind-row { display: flex; flex-direction: column; margin-bottom: 12px; }
+.m-label { font-size: 8px; font-weight: 800; color: #b3b3b3; letter-spacing: 1.5px; margin-bottom: 4px; text-transform: uppercase; }
+.m-val { font-size: 12px; font-weight: 500; color: #333; line-height: 1.4; word-break: break-all; }
+.m-val.handwritten { font-family: 'Zhi Mang Xing', 'Kaiti', 'STKaiti', serif; font-size: 16px; color: #111; line-height: 1.6; letter-spacing: 1px; }
+
+/* 🌟 黑色报错小弹窗 (纯黑白，压低情绪，彻底去除阴影) */
+.mind-black-toast {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95);
+    background: #111; color: #fff; padding: 20px 25px; border-radius: 8px;
+    font-size: 12px; font-weight: 500; line-height: 1.6; text-align: left;
+    max-width: 280px; width: 85%; z-index: 4000; box-shadow: none;
+    opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.mind-black-toast.active { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }

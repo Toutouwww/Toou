@@ -537,29 +537,32 @@
                 
                 <!-- 第三层：世界书弹窗般的弧度纯白主体层 -->
                 <div class="chat-room-white-layer">
-                    <div class="chat-room-body" id="chatRoomBody">
-                        
-                        <!-- 🌟 全新的初始打招呼占位区 (大型头像 + 磨砂药丸) -->
-                        <div class="chat-init-state" id="chatInitState">
-                            <!-- 动态可更换的大头像 -->
-                            <div class="chat-init-avatar-container">
-                                <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" class="chat-init-avatar" id="img-chat-init-avatar" onclick="toggleChatInitAvatarMenu(event)">
-                                <div class="avatar-action-menu" id="chatInitAvatarMenu" style="top: 95px; left: 50%; transform: translateX(-50%);">
-                                    <div class="avatar-action-btn" onclick="changeChatInitAvatarLink()">链接</div>
-                                    <div class="avatar-action-btn" onclick="triggerChatInitLocalAvatar()">本地</div>
-                                </div>
-                                <input type="file" id="chatInitLocalAvatarInput" style="display:none" accept="image/*" onchange="uploadChatInitLocalAvatar(this)">
+                    
+                    <!-- 🌟 全新的初始打招呼占位区 (已移出滚动区，永久固定在顶部) -->
+                    <div class="chat-init-state" id="chatInitState">
+                        <!-- 动态可更换的大头像 -->
+                        <div class="chat-init-avatar-container">
+                            <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" class="chat-init-avatar" id="img-chat-init-avatar" onclick="toggleChatInitAvatarMenu(event)">
+                            <div class="avatar-action-menu" id="chatInitAvatarMenu" style="top: 95px; left: 50%; transform: translateX(-50%);">
+                                <div class="avatar-action-btn" onclick="changeChatInitAvatarLink()">链接</div>
+                                <div class="avatar-action-btn" onclick="triggerChatInitLocalAvatar()">本地</div>
                             </div>
-                            <!-- 磨砂好友提示药丸 -->
-                            <div class="chat-init-pill">
-                                你与 <strong id="chat-init-name-display">某某</strong> 已添加好友，快来聊天吧！
-                            </div>
+                            <input type="file" id="chatInitLocalAvatarInput" style="display:none" accept="image/*" onchange="uploadChatInitLocalAvatar(this)">
                         </div>
-
+                        <!-- 磨砂好友提示药丸 (加入点击事件与内部Span) -->
+                        <div class="chat-init-pill" onclick="openInnerVoice()">
+                            <span id="chat-init-text" style="transition: opacity 0.3s;">你与 <strong id="chat-init-name-display">某某</strong> 已添加好友，快来聊天吧！</span>
+                        </div>
                     </div>
-                </div>
 
-            </div>
+                    <!-- 纯粹的历史消息滚动区 -->
+                    <div class="chat-room-body" id="chatRoomBody">
+                        <!-- 这里的子元素已被 JS 接管，专门用于渲染气泡 -->
+                    </div>
+                    
+                </div> <!-- 结束 chat-room-white-layer -->
+
+            </div> <!-- 结束 chat-room-gray-layer -->
 
             <!-- 🌟 极简主义高级底栏 (强制居中对齐、去除飞机底圈及内线) -->
             <div class="chat-room-input-bar">
@@ -582,9 +585,8 @@
                     </div>
                 </div>
 
-<!-- 右侧：无背景纯净小飞机 (去除了内部线段) -->
-<div class="chat-send-btn" onclick="handlePlaneClick()">
-
+                <!-- 右侧：无背景纯净小飞机 (去除了内部线段) -->
+                <div class="chat-send-btn" onclick="handlePlaneClick()">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <!-- 只保留纸飞机的外轮廓折纸线 -->
                         <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
@@ -694,37 +696,50 @@
                     </div>
                 </div>
                 
-                <!-- 新增卡片5：选择气泡主题 -->
-                <div class="settings-white-card">
-                    <div class="settings-input-group" style="margin-bottom: 0;">
-                        <label>选择聊天气泡</label>
-                        <div class="bubble-theme-grid">
-                            <div class="bubble-theme-item active" onclick="selectBubbleTheme('黑灰', this)">
-                                <div class="theme-color-preview" style="background: linear-gradient(135deg, #000 50%, #f0f0f0 50%);"></div>
-                                <span>黑灰</span>
-                            </div>
-                            <div class="bubble-theme-item" onclick="selectBubbleTheme('薄巧', this)">
-                                <div class="theme-color-preview" style="background: linear-gradient(135deg, #78c2c4 50%, #5d3f3a 50%);"></div>
-                                <span>薄巧</span>
-                            </div>
-                            <div class="bubble-theme-item" onclick="selectBubbleTheme('黄绿', this)">
-                                <div class="theme-color-preview" style="background: linear-gradient(135deg, #f0e68c 50%, #90ee90 50%);"></div>
-                                <span>黄绿</span>
-                            </div>
-                            <div class="bubble-theme-item" onclick="selectBubbleTheme('紫紫', this)">
-                                <div class="theme-color-preview" style="background: linear-gradient(135deg, #9370db 50%, #d8bfd8 50%);"></div>
-                                <span>紫紫</span>
-                            </div>
-                            <div class="bubble-theme-item" onclick="selectBubbleTheme('黑粉', this)">
-                                <div class="theme-color-preview" style="background: linear-gradient(135deg, #000 50%, #ffb6c1 50%);"></div>
-                                <span>黑粉</span>
-                            </div>
-                            <div class="bubble-theme-item" onclick="selectBubbleTheme('蓝粉', this)">
-                                <div class="theme-color-preview" style="background: linear-gradient(135deg, #add8e6 50%, #ffb6c1 50%);"></div>
-                                <span>蓝粉</span>
+                <!-- 🌟 改版卡片5：并排布局 (左侧预设 / 右侧自定义长条按钮) -->
+                <div class="settings-row-group" style="align-items: stretch;">
+                    <!-- 左侧：被缩小的预设气泡白卡 -->
+                    <div class="settings-white-card" style="flex: 1; padding-right: 10px;">
+                        <div class="settings-input-group" style="margin-bottom: 0;">
+                            <label>选择聊天气泡</label>
+                            <div class="bubble-theme-grid">
+                                <div class="bubble-theme-item active" onclick="selectBubbleTheme('黑灰', this)">
+                                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #000 50%, #f0f0f0 50%);"></div>
+                                    <span>黑灰</span>
+                                </div>
+                                <div class="bubble-theme-item" onclick="selectBubbleTheme('薄巧', this)">
+                                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #78c2c4 50%, #5d3f3a 50%);"></div>
+                                    <span>薄巧</span>
+                                </div>
+                                <div class="bubble-theme-item" onclick="selectBubbleTheme('黄绿', this)">
+                                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #f0e68c 50%, #90ee90 50%);"></div>
+                                    <span>黄绿</span>
+                                </div>
+                                <div class="bubble-theme-item" onclick="selectBubbleTheme('紫紫', this)">
+                                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #9370db 50%, #d8bfd8 50%);"></div>
+                                    <span>紫紫</span>
+                                </div>
+                                <div class="bubble-theme-item" onclick="selectBubbleTheme('黑粉', this)">
+                                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #000 50%, #ffb6c1 50%);"></div>
+                                    <span>黑粉</span>
+                                </div>
+                                <div class="bubble-theme-item" onclick="selectBubbleTheme('蓝粉', this)">
+                                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #add8e6 50%, #ffb6c1 50%);"></div>
+                                    <span>蓝粉</span>
+                                </div>
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- 右侧：玻璃质感凹陷长条白卡片 -->
+                    <div class="custom-bubble-btn" onclick="openCustomBubbleMenu()">
+                        <span>自</span><span>定</span><span>义</span><span>气</span><span>泡</span>
+                    </div>
+                </div>
+
+                <!-- 🌟 新增：夹在中间的动态大白卡片面板 (默认隐藏) -->
+                <div class="settings-white-card custom-bubble-panel" id="custom-bubble-panel" style="display: none; margin-top: -5px; margin-bottom: -5px;">
+                    <!-- JS 动态注入新建/列表内容 -->
                 </div>
 
                  <!-- 新增卡片6：气泡预览展示区 -->
@@ -747,16 +762,48 @@
                                     <div class="content">14号没空，休要坏我道心！</div>
                                 </div>
                                 <img src="" class="preview-avatar" id="preview-avatar-user">
-                            </div> <!-- 🌟 修复：补齐了 preview-msg-row 的闭合 -->
-                        </div> <!-- 🌟 修复：补齐了 bubble-preview-container 的闭合，彻底解决全局 DOM 塌方！ -->
+                            </div> 
+                        </div> 
                     </div>
                 </div>
 
-                <!-- 🌟 被完美分离出来的独立删除按钮 -->
-                <div class="settings-delete-btn" onclick="promptDeleteContactFromSettings()">彻底删除此角色</div>
+                <!-- 🌟 新增：功能性设定药丸标签 -->
+                <div class="inset-pill-label">功能性设定</div>
+
+                <!-- 🌟 新增：Token 估算与记忆总结卡片 -->
+                <div class="settings-white-card">
+                    <div class="settings-input-group" style="margin-bottom: 0;">
+                        <label>上下文记忆与 Token 估算</label>
+                        <div class="token-stat-container">
+                            <div class="token-stat-row"><span>角色基础设定</span><span id="token-count-base">0</span></div>
+                            <div class="token-stat-row"><span>世界书设定</span><span id="token-count-wb">0</span></div>
+                            <div class="token-stat-row"><span>历史聊天记录</span><span id="token-count-chat">0</span></div>
+                            <div class="token-stat-row total"><span>预计总消耗 (单次)</span><span id="token-count-total">0</span></div>
+                        </div>
+                        
+                        <div style="height: 1px; background: #eee; margin: 15px 0;"></div>
+                        
+                        <label>长期记忆总结</label>
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 8px;">
+                            <span style="font-size:12px; color:#555; font-weight:600;">自动总结触发频率 (轮)</span>
+                            <input type="number" id="cs-auto-summary-rounds" value="30" style="width:50px; background:#f0f0f0; border:none; border-radius:6px; padding:4px; text-align:center; font-size:12px; font-weight:700; outline:none;">
+                        </div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px;">
+                            <span style="font-size:12px; color:#555; font-weight:600;">保留最近聊天轮数</span>
+                            <input type="number" id="cs-memory-rounds" value="50" style="width:50px; background:#f0f0f0; border:none; border-radius:6px; padding:4px; text-align:center; font-size:12px; font-weight:700; outline:none;">
+                        </div>
+                        <div style="font-size:10px; color:#999; line-height:1.4; margin-bottom:12px;">聊天达到指定频率后，将在后台自动提取剧情细节并保存到记忆库。</div>
+
+                        <div class="inset-btn" style="color:#000; padding:10px 0; font-size:12px;" onclick="openMemorySummaryPrompt()">编辑/查看历史总结</div>
+                    </div>
+                </div>
+
+                <!-- 🌟 替换为清空聊天记录按钮 -->
+                <div class="settings-delete-btn" onclick="promptClearChatHistory()">清空所有聊天记录</div>
             </div> <!-- 结束 chat-settings-body -->
 
         </div> <!-- 结束 chatSettingsScreen -->
+
     </div> <!-- 结束 appChatOverlay -->
 
 
@@ -1024,5 +1071,123 @@
     <div class="toast-msg" id="globalToast">操作成功</div>
 
     <script src="script.js"></script>
+
+    <!-- 🌟 自定义气泡专属小白弹窗 -->
+    <div class="custom-prompt-overlay" id="bubbleMenuOverlay">
+        <div class="custom-prompt-box">
+            <div class="custom-prompt-title">自定义气泡</div>
+            <div class="model-list-modal" style="margin-bottom: 5px;">
+                <div class="model-item-btn" style="text-align:center; font-weight:700; font-size:14px; background:#111; color:#fff;" onclick="openBubblePanel('create')">新建方案</div>
+                <div class="model-item-btn" style="text-align:center; font-weight:700; font-size:14px;" onclick="openBubblePanel('list')">已保存方案</div>
+            </div>
+            <div class="custom-prompt-actions">
+                <div class="prompt-btn cancel" onclick="document.getElementById('bubbleMenuOverlay').classList.remove('active')">取消</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 历史记忆总结库 (大半屏底部弹窗) -->
+    <div class="wb-sheet-overlay" id="summary-sheet-overlay" onclick="closeSummarySheet()" style="z-index: 2500;"></div>
+    <div class="wb-bottom-sheet" id="summary-bottom-sheet" style="z-index: 2510; display: flex; flex-direction: column;">
+        <div class="sheet-handle-bar"></div>
+        <div class="sheet-title">历史记忆总结库</div>
+        
+        <div class="sheet-body" style="padding: 0 15px 20px 15px; flex: 1; overflow-y: auto;" id="summary-list-container">
+            <!-- 列表动态渲染区 -->
+        </div>
+        
+        <div style="padding: 15px; background: #fff; border-top: 1px solid #f0f0f0; flex-shrink: 0;">
+            <div class="sheet-char-add-btn" onclick="openSummaryEditor()" style="margin-top:0; background: #111; color: #fff; border: none; font-size: 14px; padding: 14px;">+ 手动添加新一轮总结</div>
+        </div>
+    </div>
+
+    <!-- 🌟 总结内容编辑器 (覆盖在列表之上的白窗) -->
+    <div class="custom-prompt-overlay" id="summary-editor-overlay" style="z-index: 2600;">
+        <div class="custom-prompt-box" style="width: 90%; max-width: 380px; padding: 25px 20px;">
+            <div class="custom-prompt-title">编辑总结内容</div>
+            <div style="width: 100%; text-align: left; font-size: 11px; font-weight: 800; color: #888; margin-bottom: 6px;">总结时间段</div>
+            <input type="text" id="summary-time-input" class="sheet-input" style="margin-bottom: 15px; font-size: 13px; padding: 12px; background: #f0f0f0;" placeholder="例: 2025年11月4日 - 2025年11月5日">
+            
+            <div style="width: 100%; text-align: left; font-size: 11px; font-weight: 800; color: #888; margin-bottom: 6px;">AI与你的对话提要</div>
+            <textarea id="summary-content-input" style="width:100%; height:180px; background:#f0f0f0; border:none; border-radius:12px; padding:15px; font-size:13px; color:#333; outline:none; resize:none; line-height:1.6; margin-bottom: 20px;"></textarea>
+            
+            <div style="display:flex; gap:10px; width:100%;">
+                <div class="inset-btn" style="background:#f0f0f0; box-shadow:none; color:#666;" onclick="closeSummaryEditor()">取消</div>
+                <div class="inset-btn" style="background:#111; color:#fff; box-shadow:none;" onclick="saveSummaryData()">保存总结</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 心声系统 (极简工业风打印机 + 登录保险箱) -->
+    <div class="custom-prompt-overlay" id="inner-voice-overlay" style="z-index: 3000; background: rgba(245,245,245,0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);" onclick="closeInnerVoice(event)">
+        <div class="voice-layout-wrapper" onclick="event.stopPropagation()">
+            
+            <!-- 打印机本体 (保留，作为背景氛围) -->
+            <div class="printer-machine">
+                <div class="printer-top-bar">Mind Spool.</div>
+                <div class="printer-slot"></div>
+            </div>
+            
+            <!-- 下方的密码箱 / 心声展示盒 -->
+            <div class="mind-box" id="mind-box">
+                
+                <!-- 状态 1：登录界面 -->
+                <div id="mind-login-view">
+                    <div class="mind-box-title">SYSTEM LOGIN.</div>
+                    
+                    <div class="mind-input-group">
+                        <label>ID.</label>
+                        <!-- ID 现已改为只读，由系统自动填入邮箱 -->
+                        <input type="text" id="mind-id-input" readonly style="color:#888;">
+                    </div>
+                    <div class="mind-input-group" style="margin-top: 15px;">
+                        <label>PWD.</label>
+                        <input type="password" id="mind-pwd-input" placeholder="PASSWORD" autocomplete="off">
+                    </div>
+
+                    <!-- 记住密码开关 -->
+                    <div class="mind-remember-row" onclick="toggleMindRemember()">
+                        <div class="mind-checkbox" id="mind-remember-chk"></div>
+                        <span>REMEMBER PWD.</span>
+                    </div>
+                    
+                    <div class="mind-btn" onclick="verifyVoiceLogin()">ACCESS</div>
+                </div>
+
+                <!-- 状态 1.5：专属回忆选择题界面 (默认隐藏) -->
+                <div id="mind-quiz-view" style="display: none;">
+                    <div class="mind-box-title">SECURITY QUIZ.</div>
+                    <div class="mind-quiz-q" id="voice-quiz-q">加载题目中...</div>
+                    <div class="mind-quiz-options">
+                        <div class="mind-quiz-opt" onclick="checkVoiceQuiz(1)" id="voice-quiz-opt1">A. ...</div>
+                        <div class="mind-quiz-opt" onclick="checkVoiceQuiz(2)" id="voice-quiz-opt2">B. ...</div>
+                        <div class="mind-quiz-opt" onclick="checkVoiceQuiz(3)" id="voice-quiz-opt3">C. ...</div>
+                    </div>
+                </div>
+
+                <!-- 状态 2：心声展示界面 (默认隐藏) -->
+                <div id="mind-content-view" style="display: none;">
+                    <div class="mind-box-title">INNER VOICE.</div>
+                    <div class="mind-row">
+                        <span class="m-label">LOC.</span>
+                        <span class="m-val" id="voice-location">未知</span>
+                    </div>
+                    <div class="mind-row">
+                        <span class="m-label">ACT.</span>
+                        <span class="m-val" id="voice-action">发呆</span>
+                    </div>
+                    <div class="mind-row" style="margin-top: 12px;">
+                        <span class="m-label">THOUGHT.</span>
+                        <span class="m-val handwritten" id="voice-thought">...</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 黑色报错小弹窗 (全局绝对居中) -->
+    <div id="mind-black-toast" class="mind-black-toast"></div>
+
 </body>
 </html>
