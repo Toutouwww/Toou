@@ -371,6 +371,7 @@ function executeDeleteApiPlan() {
 let activeWorldbooks = []; 
 let bindedCharacters = []; 
 let customCommonGroups = []; 
+let currentCommonBoundChar = ''; // 🌟 新增：记录通用世界书附加绑定的角色
 
 // 【新增：持久化加载】
 async function loadWorldbooksData() {
@@ -387,7 +388,7 @@ async function loadWorldbooksData() {
 function recalcCategories() {
     bindedCharacters = []; customCommonGroups = [];
     activeWorldbooks.forEach(b => {
-        if (b.category === '已绑定' && !bindedCharacters.includes(b.subGroup)) bindedCharacters.push(b.subGroup);
+        if (b.category === '专属' && !bindedCharacters.includes(b.subGroup)) bindedCharacters.push(b.subGroup);
         else if (b.category === '通用' && !customCommonGroups.includes(b.subGroup)) customCommonGroups.push(b.subGroup);
     });
 }
@@ -415,9 +416,11 @@ function openWorldbookApp(event) {
         const planets = track.querySelectorAll('.wb-planet');
         planets.forEach(p => {
             p.classList.remove('left', 'center', 'right');
-            if (p.innerText === '已绑定') p.classList.add('left');
-            else if (p.innerText === '全部') p.classList.add('center');
-            else if (p.innerText === '通用') p.classList.add('right');
+            // 🌟 核心绝杀：必须用 textContent，innerText在弹窗隐身时会返回空字符串导致全盘崩溃！
+            const txt = p.textContent.trim(); 
+            if (txt === '通用') p.classList.add('left');
+            else if (txt === '全部') p.classList.add('center');
+            else if (txt === '专属') p.classList.add('right');
         });
     }
 
@@ -434,15 +437,18 @@ function closeWorldbookApp() {
     unlockDesktopScroll(); // 🌟 解锁桌面并强制复位
 }
 
+// 🌟 唯一关键词：【星球点击安全读取】
 function handlePlanetClick(clickedEl) {
     const currentTime = new Date().getTime();
     const timeDiff = currentTime - lastPlanetClickTime;
     lastPlanetClickTime = currentTime;
     document.getElementById('wb-popover-menu').classList.remove('active'); 
     
+    const txt = clickedEl.textContent.trim(); // 🌟 核心防错：必须使用 textContent，防止被隐身影响读取为空
+    
     if (clickedEl.classList.contains('center')) {
-        if (timeDiff < 350 && (clickedEl.innerText === '已绑定' || clickedEl.innerText === '通用')) {
-            openCharSelector(clickedEl.innerText);
+        if (timeDiff < 350 && (txt === '专属' || txt === '通用')) {
+            openCharSelector(txt);
         }
         return; 
     }
@@ -456,8 +462,8 @@ function handlePlanetClick(clickedEl) {
     currentCenter.classList.remove('center');
     currentCenter.classList.add(clickedPos);
     
-    document.getElementById('wb-current-view').innerText = clickedEl.innerText;
-    renderWorldbookList(clickedEl.innerText);
+    document.getElementById('wb-current-view').innerText = txt;
+    renderWorldbookList(txt);
 }
 
 function openCharSelector(type) {
@@ -477,7 +483,7 @@ function closeCharSelector() {
 function renderCharBalls(type) {
     const track = document.getElementById('char-scroll-track');
     track.innerHTML = ''; 
-    const dataSource = type === '已绑定' ? bindedCharacters : customCommonGroups;
+    const dataSource = type === '专属' ? bindedCharacters : customCommonGroups;
 
     if (dataSource.length === 0) {
         track.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; padding-top:40px; color:#aaa; font-size:12px; font-weight:bold; letter-spacing:1px;">- 暂无分类数据 -</div>`;
@@ -497,7 +503,7 @@ function renderCharBalls(type) {
 
 function selectChar(itemName, type) {
     closeCharSelector();
-    const suffix = type === '已绑定' ? '的专属' : '分类';
+    const suffix = type === '专属' ? '的专属' : '分类';
     const finalView = `${itemName} ${suffix}`;
     document.getElementById('wb-current-view').innerText = finalView;
     isWbDeleteMode = false; // 切换分类时退出删除模式
@@ -576,6 +582,7 @@ function openWorldbookSheet() {
     
     document.getElementById('sheet-input-name').value = '';
     currentSelectedSubGroup = '';
+    currentCommonBoundChar = ''; // 清空通用附加角色
     toggleSheetGroup('全部'); 
     
     // 【改成纯中文】
@@ -605,39 +612,47 @@ function toggleSheetGroup(groupName) {
     const groupDisp = document.getElementById('sheet-current-group-display');
     const charBtn = document.getElementById('sheet-char-add-btn');
 
-    if (groupName === '已绑定') {
+    if (groupName === '专属') {
         groupBtns.style.display = 'none'; groupDisp.style.display = 'none';
         charBtn.style.display = 'block';
         updateCharBtnUI();
     } else if (groupName === '通用') {
         charBtn.style.display = 'none';
-        groupBtns.style.display = 'flex'; groupDisp.style.display = 'block';
+        groupBtns.style.display = 'flex'; 
+        groupDisp.style.display = 'flex'; // 🌟 激活包裹层
         updateCommonGroupUI();
+        updateCommonCharBtnUI(); // 🌟 激活通用专属的附加按钮
     } else {
         charBtn.style.display = 'none';
         groupBtns.style.display = 'none'; groupDisp.style.display = 'none';
     }
 }
 
-// -- 角色选择 --
-function openCharSelectModal() {
+// -- 角色选择 (兼容通用世界书和专属世界书) --
+function openCharSelectModal(isCommon = false) {
     const list = document.getElementById('charSelectList');
     list.innerHTML = '';
-    document.querySelector('#charSelectOverlay .custom-prompt-title').innerText = '选择要绑定的角色';
+    document.querySelector('#charSelectOverlay .custom-prompt-title').innerText = isCommon ? '选择要附加绑定的角色' : '选择要绑定的角色';
 
-    // 🌟 核心串联：从通讯录实时拉取已创建的角色名字列表，去重去空
-    // 🌟 修复Bug：去掉了严苛的 `n !== '未命名角色'` 拦截，允许新手即时不改名字也能顺利绑定角色
-    const availableChars = [...new Set(contactsList.map(c => c.name))].filter(n => n);
+    // 🌟 核心修改：优先提取真实姓名，如果没有再用显示名称兜底
+    const availableChars = [...new Set(contactsList.map(c => c.realName || c.name))].filter(n => n);
 
-    // 如果没有角色，展示暂无角色提示
     if (availableChars.length === 0) {
         list.innerHTML = `<div style="text-align:center; padding: 20px 10px; color:#999; font-size:13px; font-weight:500;">暂无已创建的角色，请先去通讯录新建单人</div>`;
     } else {
-        // 动态渲染真实的聊天角色列表
         availableChars.forEach(char => {
             const item = document.createElement('div');
             item.className = 'model-item-btn'; item.innerText = char;
-            item.onclick = () => { currentSelectedSubGroup = char; updateCharBtnUI(); closeCharSelectModal(); };
+            item.onclick = () => { 
+                if (isCommon) {
+                    currentCommonBoundChar = char;
+                    updateCommonCharBtnUI();
+                } else {
+                    currentSelectedSubGroup = char; 
+                    updateCharBtnUI(); 
+                }
+                closeCharSelectModal(); 
+            };
             list.appendChild(item);
         });
     }
@@ -649,10 +664,19 @@ function closeCharSelectModal() { document.getElementById('charSelectOverlay').c
 
 function updateCharBtnUI() {
     const btn = document.getElementById('sheet-char-add-btn');
-    if(currentSelectedCategory === '已绑定' && currentSelectedSubGroup) {
+    if(currentSelectedCategory === '专属' && currentSelectedSubGroup) {
         btn.innerText = `已选择绑定: ${currentSelectedSubGroup}`; btn.classList.add('has-char');
     } else {
         btn.innerText = '+ 选择要绑定的角色'; btn.classList.remove('has-char');
+    }
+}
+
+function updateCommonCharBtnUI() {
+    const btn = document.getElementById('sheet-common-char-btn');
+    if(currentCommonBoundChar) {
+        btn.innerText = `已附加绑定: ${currentCommonBoundChar}`; btn.classList.add('has-char');
+    } else {
+        btn.innerText = '+ 附加绑定特定角色 (可选)'; btn.classList.remove('has-char');
     }
 }
 
@@ -693,7 +717,6 @@ function updateCommonGroupUI() {
     if(span) span.innerText = currentSelectedSubGroup ? currentSelectedSubGroup : '未选择';
 }
 
-
 // -- 渲染多条目 --
 function renderSheetEntries() {
     const container = document.getElementById('sheet-entries-container');
@@ -733,6 +756,7 @@ function editWorldbook(bookId) {
     
     document.getElementById('sheet-input-name').value = book.title;
     currentSelectedSubGroup = book.subGroup;
+    currentCommonBoundChar = book.commonBoundChar || ''; // 🌟 恢复通用的附加绑定角色
     toggleSheetGroup(book.category);
     
     tempEntries = JSON.parse(JSON.stringify(book.entries));
@@ -745,15 +769,13 @@ function editWorldbook(bookId) {
     `;
 }
 
-let bookIdToDelete = null; // 临时记录要删除的书本ID
+let bookIdToDelete = null;
 
 function deleteWorldbook(bookId) {
     bookIdToDelete = bookId;
-    // 呼出系统自带的极简白底确认弹窗
     openCustomPrompt('删除世界书', 'action_delete_worldbook', '确定要删除当前世界书吗？删除后将无法恢复。', 'confirm_delete');
 }
 
-// 弹窗点击“确定”后实际执行的删除逻辑
 function executeDeleteWorldbook() {
     if (!bookIdToDelete) return;
     activeWorldbooks = activeWorldbooks.filter(b => b.id !== bookIdToDelete);
@@ -769,13 +791,16 @@ function saveWorldbook() {
     const bookName = document.getElementById('sheet-input-name').value.trim() || '未命名世界书';
     
     let subGroup = '';
-    if (currentSelectedCategory === '已绑定') {
+    if (currentSelectedCategory === '专属') {
         if(!currentSelectedSubGroup) { showToast('请选择绑定的通讯录角色'); return; }
         subGroup = currentSelectedSubGroup;
     } else if (currentSelectedCategory === '通用') {
         if(!currentSelectedSubGroup) { showToast('请新建或选择一个分组'); return; }
+        // 🌟 核心拦截：如果是通用世界书，必须强制附加绑定一个角色！
+        if(!currentCommonBoundChar) { showToast('通用世界书必须附加绑定特定角色'); return; }
         subGroup = currentSelectedSubGroup;
     }
+
 
     if (editingBookId) {
         const idx = activeWorldbooks.findIndex(b => b.id === editingBookId);
@@ -783,13 +808,15 @@ function saveWorldbook() {
             activeWorldbooks[idx].title = bookName;
             activeWorldbooks[idx].category = currentSelectedCategory;
             activeWorldbooks[idx].subGroup = subGroup;
+            activeWorldbooks[idx].commonBoundChar = currentCommonBoundChar; // 🌟 保存附加绑定
             activeWorldbooks[idx].entries = JSON.parse(JSON.stringify(tempEntries));
         }
         showToast("世界书已更新！");
     } else {
         const newBook = {
             id: 'wb_' + Date.now(), title: bookName, category: currentSelectedCategory,
-            subGroup: subGroup, entries: JSON.parse(JSON.stringify(tempEntries))
+            subGroup: subGroup, commonBoundChar: currentCommonBoundChar, // 🌟 保存附加绑定
+            entries: JSON.parse(JSON.stringify(tempEntries))
         };
         activeWorldbooks.push(newBook);
         showToast("世界书已保存！");
@@ -810,7 +837,7 @@ function renderWorldbookList(viewText) {
     let filteredBooks = activeWorldbooks;
     
     if (viewText && viewText !== '全部') {
-        if (viewText === '已绑定') filteredBooks = activeWorldbooks.filter(b => b.category === '已绑定');
+        if (viewText === '专属') filteredBooks = activeWorldbooks.filter(b => b.category === '专属');
         else if (viewText === '通用') filteredBooks = activeWorldbooks.filter(b => b.category === '通用');
         else {
             const realName = viewText.split(' ')[0]; 
@@ -833,7 +860,6 @@ function renderWorldbookList(viewText) {
         
         const svgIcon = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H12m0 0h5.5A2.5 2.5 0 0 1 20 4.5v15a2.5 2.5 0 0 0-2.5-2.5H12m0 0H6.5A2.5 2.5 0 0 0 4 19.5z"></path></svg>`;
         
-        // 删除模式渲染红底垃圾桶，正常模式渲染管理+导出
         let actionHtml = '';
         if (isWbDeleteMode) {
             const trashSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
@@ -1690,7 +1716,8 @@ function saveNewContact() {
         id: 'contact_' + Date.now(),
         avatar: avatar,
         name: displayTitle,   // 列表大字位 
-        sign: "",             // 🌟 核心修改：下方灰字代表“最后一条消息”，新建时没聊过天，直接给个空字符串，绝对留白！
+        realName: finalRealName, // 🌟 核心修改：彻底保存独立的真名字段，供世界书绑定使用
+        sign: "",             // 下方灰字代表“最后一条消息”，新建时没聊过天，直接给个空字符串，绝对留白！
         group: ncSelectedGroup, 
         chatType: 'FRIEND', 
         time: timeStr
@@ -2093,7 +2120,6 @@ function openChatSettings() {
 
     // 🌟 初始化记忆轮数与 Token 计算
     document.getElementById('cs-auto-summary-rounds').value = contact.autoSummaryRounds || 30;
-    document.getElementById('cs-memory-rounds').value = contact.memoryRounds || 50;
     calculateTokens(contact);
 
 
@@ -2152,7 +2178,9 @@ function saveChatSettings() {
     
     // 逻辑：有备注优先显示备注，没备注显示真名
     let finalDisplayName = remark !== '' ? remark : (realName !== '' ? realName : '新角色');
-    const oldName = contactsList[contactIndex].name; // 记录旧名字
+    // 🌟 核心修改：获取修改前的“真实姓名”
+    const oldRealName = contactsList[contactIndex].realName || contactsList[contactIndex].name; 
+    const newRealName = realName !== '' ? realName : '新角色';
 
     contactsList[contactIndex].avatar = document.getElementById('cs-avatar').src; 
     contactsList[contactIndex].realName = realName;
@@ -2172,19 +2200,25 @@ function saveChatSettings() {
         secretMode: document.getElementById('cs-secretToggleSwitch').classList.contains('active')
     };
     
+    contactsList[contactIndex].autoSummaryRounds = parseInt(document.getElementById('cs-auto-summary-rounds').value) || 30;
+
+    saveToDB('contacts_data', JSON.stringify(contactsList));    
     // 🌟 新增：保存设置的记忆轮数与自动总结频率
     contactsList[contactIndex].autoSummaryRounds = parseInt(document.getElementById('cs-auto-summary-rounds').value) || 30;
-    contactsList[contactIndex].memoryRounds = parseInt(document.getElementById('cs-memory-rounds').value) || 50;
 
     saveToDB('contacts_data', JSON.stringify(contactsList));
 
 
-    // 🌟 核心串联：如果角色改名了，自动把世界书里绑定的名字也同步改过来！防止脱节
-    if (oldName && oldName !== finalDisplayName) {
+    // 🌟 核心串联：如果角色【真名】改了，自动把世界书里绑定的真名也同步改过来！
+    if (oldRealName && oldRealName !== newRealName) {
         let wbUpdated = false;
         activeWorldbooks.forEach(wb => {
-            if (wb.category === '已绑定' && wb.subGroup === oldName) {
-                wb.subGroup = finalDisplayName;
+            if (wb.category === '专属' && wb.subGroup === oldRealName) {
+                wb.subGroup = newRealName;
+                wbUpdated = true;
+            }
+            if (wb.category === '通用' && wb.commonBoundChar === oldRealName) {
+                wb.commonBoundChar = newRealName;
                 wbUpdated = true;
             }
         });
@@ -2215,12 +2249,15 @@ function calculateTokens(contact) {
     let baseToken = baseStr.length;
 
     let wbToken = 0;
-    let charWbs = activeWorldbooks.filter(b => b.category === '已绑定' && b.subGroup === contact.name);
-    let commonWbs = activeWorldbooks.filter(b => b.category === '通用');
-    let otherWbs = activeWorldbooks.filter(b => b.category === '全部');
-    [...charWbs, ...commonWbs, ...otherWbs].forEach(wb => {
+    let charRealName = contact.realName || contact.name;
+    let charWbs = activeWorldbooks.filter(b => b.category === '专属' && b.subGroup === charRealName);
+    let commonWbs = activeWorldbooks.filter(b => b.category === '通用' && b.commonBoundChar === charRealName);
+
+    // 🌟 核心修改：只计算专属世界书和通用世界书的 Token，丢弃全部分类
+    [...charWbs, ...commonWbs].forEach(wb => {
         wb.entries.forEach(e => { wbToken += (e.name||'').length + (e.content||'').length; });
     });
+
 
     let chatToken = 0;
     // 🌟 核心：只计算“未被总结”的新聊天记录 Token
@@ -2576,18 +2613,22 @@ function buildSystemPrompt(contact) {
 
     // 3. 组装世界书
     let wbStr = "";
-    let charWbs = activeWorldbooks.filter(b => b.category === '已绑定' && b.subGroup === contact.name);
-    let commonWbs = activeWorldbooks.filter(b => b.category === '通用');
-    let otherWbs = activeWorldbooks.filter(b => b.category === '全部');
+    let charRealName = contact.realName || contact.name;
+    let charWbs = activeWorldbooks.filter(b => b.category === '专属' && b.subGroup === charRealName);
+    // 🌟 核心：通用世界书必须强制匹配绑定的角色，且拼接顺序在专属之下
+    let commonWbs = activeWorldbooks.filter(b => b.category === '通用' && b.commonBoundChar === charRealName);
+
+
+
 
     const parseEntries = (wbs) => {
         let s = "";
         wbs.forEach(wb => { wb.entries.forEach(e => { s += `- [${e.name}](${e.trigger}): ${e.content}\n`; }); });
         return s;
     };
+    // 🌟 核心修改：严格控制发送顺序与优先级，专属大于通用，且绝不发送“全部分类”
     if(charWbs.length > 0) wbStr += "【专属世界书】\n" + parseEntries(charWbs);
     if(commonWbs.length > 0) wbStr += "【通用世界书】\n" + parseEntries(commonWbs);
-    if(otherWbs.length > 0) wbStr += "【全局世界书】\n" + parseEntries(otherWbs);
 
     // 🌟 将上一轮的心声也抛给AI作为背景记忆，但丢弃更早的
     if (contact.innerVoice && contact.innerVoice.thought) {
@@ -2604,15 +2645,25 @@ function buildSystemPrompt(contact) {
 
 【扮演与性格核心约束】
 当前现实时间确认：${currentTimeStr}。请务必结合当前的具体时间（早中晚/工作日/休息日），进行合乎逻辑的作息模拟与对话！
-你只会以char的身份与user进行聊天，不许代替user进行回复。
-创作富有真实感的char，思维模式、说话方式、主观判断应变得有趣。要表现出每个人物独有的生动复杂的感情。
-绝对禁止好几条消息塞到同一个气泡内，必须进行换行处理。
-1. 使用大白话、符合角色设定性格的来回复，
-2. 不允许物化、打压，不允许太过暴躁。拒绝文绉绉、拒绝说教、拒绝机械重复我的话、拒绝反问、拒绝总是重复同一个话题与无进展的对话。最后一句话要开放式结尾，而非总是威胁性或俗套
-3. 对话不一定要干巴巴地交代事件或信息，可以只是一句闲聊，也可以是胡说八道，甚至脑子一热说错话。善用潜台词（例如：一个爱逞强的人受伤后说话跟没事人一样，突然倒下）。
-4. 不要油腻，拒绝霸总式、模板化（刻板印象的人物塑造）、常规化的回复与人物理解。在角色设定允许的情况下，你可以只回复一句话或一个标点符号。比如发很多省略号，句号，逗号等。每个人物都必须遵循一个真实人类“最本真”的原则——有自己的口癖，腔调，生闷气时话少，高兴时话多，平时能说则说，不会装高冷不理人，偶尔说错话。另外，作为真实聊天软件，对方会撤回消息，你作为角色也同样拥有撤回消息的能力。同时也可以发送颜文字和网络热梗以及表情包（人物设定允许的情况下）。
-5. 每次说出的话，尽量要推动剧情和事件发展，而非停在原地不转、反复纠结一件事。比如（你参考这个）：比如这时候晚上7:30在说吃饭，你可以模拟真人自然地说“准备去洗澡了”等生活行为，让对话具备真实的流动感。但不要总重复之前（短时间内）说过/相似的话。
-输出之前请思考：你查阅完所有资料后，对于人物的理解是什么，如何抓住人物性格特点，去创作一个不俗套且不OOC让人有对话欲望的对话呢？
+1. 核心逻辑与拟人化：你必须剥离所有AI助手、小说旁白或NPC感，作为一个拥有生理机能、社会压力和复杂动机的“真实人类”在手机端打字交流。严禁输出模板化、油腻霸总式或解释说明性质的对话。所有心理博弈和情绪流动必须完全通过“发出的消息本身”（语气、用词、回复速度、标点）来体现，严禁在对话中描写大段心理活动。推动剧情与时间流动：每次说出的话，尽量要推动剧情和事件发展，而非停在原地不转、反复纠结一件事。
+【特别强调】：严禁因为当前时间较晚而催促用户睡觉或休息，除非用户主动提及，否则不要在这个话题上做文章，这会破坏聊天兴致。
+
+2. 动态语言通量与情绪：
+- 低气压/生闷气/疲惫：回复极简、敷衍、意兴阑珊，甚至长时间不回（意念回复），绝对不要强行解释“我生气了”。不允许去物化、打压。
+- 高亢/分享欲/高兴：话多、语速快、可能连续发送多条短消息（刷屏）、甚至出现逻辑跳跃。
+- 高智商/掌控者：通过反问、简短的肯定/否定、省略号或直接无视对方话题开启新话题来掌控节奏，而非通过怒吼。
+- 情绪失控：根据人设背景使用具有生活气息的粗口、阴阳怪气或直接冷暴力，严禁复读机式脏话。
+
+3. 反刻板印象与真实感：
+- 拒绝标签化：冷漠≠只会说“嗯/哦”（也可以是礼貌的疏离）；傲娇≠脸红结巴（也可以是极强的自尊心攻击性）；暴躁≠无脑狂怒（也可以是缺乏耐心的躁郁）。
+- 真实语境：模拟真实打字习惯，包括断句、不爱用标点（用空格代替）、非正式口语、偶尔的错别字。另外，作为真实聊天软件，对方会撤回消息，你作为角色也同样拥有撤回消息的能力。同时也可以发送颜文字和网络热梗以及表情包。
+- 去油腻：保持成年人的社交距离感或真实亲密感，严禁悬浮的调情和“女人/男人”式的称呼。
+
+【最终输出格式严格协议】
+严禁返回纯文本，严禁包含任何解释性文字。
+(1) 气泡切割原则：只要话题转换、语气停顿或句子超过30个字，就必须切分成一个新的气泡！为了模拟连发消息的压迫感或生动感，必须使用 ||| 作为消息分割符。例如：干嘛呢|||怎么不理我[生气]|||再不说话我挂了啊
+(2) 严禁长难句：绝对禁止发送超过3行的单一气泡。
+(3) 避免无意义的连续刷屏，以对话的自然流动感为准。
 
 【user 设定相关 (我)】
 ${userStr}
@@ -2620,11 +2671,6 @@ ${userStr}
 ${charStr}
 【世界观设定】
 ${wbStr}
-
-【多条消息连发格式要求 (极为重要) 】
-为了模拟真实聊天中“连发多条短消息”的压迫感或生动感，如果你想分几次发送不同的话，请务必使用 ||| 作为消息分割符。
-例如：干嘛呢|||怎么不理我[生气]|||再不说话我挂了啊
-系统会自动将这段话切分成三个独立的聊天气泡。如果没有必要分开发送，直接正常回复即可，同一气泡内可以使用换行。千万不要自己带上“发送”等多余的动作词。
 
     【心声系统 (极为重要)】
     在每次回复的最后，你必须以 XML 格式附带角色的当前心声状态与防偷窥验证问题。这不会被当作聊天发出来，而是作为后台拦截加密数据。
@@ -3373,11 +3419,13 @@ async function doAutoSummaryCall(contact, msgsToSummarize) {
     let charStr = `姓名:${contact.realName||contact.name} 性别:${cd.gender} 设定:${cd.secretFile||'无'}`;
     
     let wbStr = "";
-    [...activeWorldbooks.filter(b => b.category === '已绑定' && b.subGroup === contact.name),
-     ...activeWorldbooks.filter(b => b.category === '通用'),
-     ...activeWorldbooks.filter(b => b.category === '全部')].forEach(wb => {
+    // 🌟 核心修改：后台自动总结也必须剥离“全部分类”的世界书，防止污染记忆与消耗冗余 Token
+    let charRealName = contact.realName || contact.name;
+    [...activeWorldbooks.filter(b => b.category === '专属' && b.subGroup === charRealName),
+     ...activeWorldbooks.filter(b => b.category === '通用' && b.commonBoundChar === charRealName)].forEach(wb => {
         wb.entries.forEach(e => { wbStr += `[${e.name}]: ${e.content}\n`; });
     });
+
 
         // 🌟 提取真实姓名，方便构建对话剧本
         let myName = ud['text-profile-name'] || '我';
@@ -3654,7 +3702,7 @@ function showMindContent(contact) {
 }
 
 // ==========================================
-// 🌟 左下角 + 号半屏菜单
+// 🌟 左下角 + 号半屏菜单 (带有软键盘防撞车拦截)
 // ==========================================
 function toggleChatPlusMenu(event) {
     if (event) event.stopPropagation();
@@ -3665,10 +3713,17 @@ function toggleChatPlusMenu(event) {
     if (menu.classList.contains('active')) {
         closeChatPlusMenu();
     } else {
-        if (document.activeElement) document.activeElement.blur(); 
-        overlay.classList.add('active');
-        menu.classList.add('active');
-        screen.classList.add('plus-active');
+        // 🌟 核心防错位：强制剥夺输入框焦点，收回软键盘
+        if (document.activeElement) {
+            document.activeElement.blur(); 
+        }
+        
+        // 🌟 延时 100ms 弹出菜单，给原生系统的软键盘降落留出物理时间，完美解决卡空中的问题
+        setTimeout(() => {
+            overlay.classList.add('active');
+            menu.classList.add('active');
+            screen.classList.add('plus-active');
+        }, 100);
     }
 }
 
@@ -3677,6 +3732,25 @@ function closeChatPlusMenu() {
     document.getElementById('chat-plus-menu').classList.remove('active');
     document.getElementById('chatRoomScreen').classList.remove('plus-active');
 }
+
+// 🌟 联动防御：一旦用户点击输入框准备打字，立刻无条件关闭底部的半屏菜单！
+document.addEventListener('DOMContentLoaded', () => {
+    const chatInput = document.getElementById('chatRoomInput');
+    if (chatInput) {
+        // 解决文字框自适应高度
+        chatInput.addEventListener('input', function() {
+            this.style.height = 'auto'; 
+            this.style.height = this.scrollHeight + 'px';
+        });
+        // 当点进输入框时，立即关闭下方的拓展菜单，把空间让给输入法
+        chatInput.addEventListener('focus', function() {
+            const menu = document.getElementById('chat-plus-menu');
+            if (menu && menu.classList.contains('active')) {
+                closeChatPlusMenu();
+            }
+        });
+    }
+});
 
 // ==========================================
 // 🌟 气泡长按菜单引擎 (动态定位支持)
@@ -3723,10 +3797,11 @@ function openBubbleMenu(msgId, sender, timeStr) {
         let centerX = rect.left + rect.width / 2;
         let topY = rect.top - 8; // 定位在气泡顶部，留出 8px 缓冲
         
-        // 防左右越界处理 (菜单大致需要220px宽度)
-        const menuWidthEst = 220; 
+        // 🌟 防左右越界处理 (由于加入内边距和字号微调，菜单大致需要260px宽度)
+        const menuWidthEst = 260; 
         if (centerX < menuWidthEst / 2 + 10) centerX = menuWidthEst / 2 + 10;
         if (centerX > window.innerWidth - (menuWidthEst / 2 + 10)) centerX = window.innerWidth - (menuWidthEst / 2 + 10);
+
         
         // 如果上面空间不够了（被顶栏挡住），智能翻转挂载到气泡下方
         if (topY < 60) {

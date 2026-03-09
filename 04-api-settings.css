@@ -1,0 +1,300 @@
+/* ======================================================== */
+/* ⬇️ 内部软件2：千岛 API 设置界面 (白黑灰极简风) ⬇️ */
+/* ======================================================== */
+
+.api-app-overlay {
+    background-color: #F5F5F5; /* 浅灰底色，凸显白卡片 */
+}
+
+.api-main-container {
+    flex: 1; display: flex; flex-direction: column; width: 100%; height: 100%;
+    padding: 60px 15px 20px 15px; overflow-y: auto; box-sizing: border-box;
+    opacity: 0; transition: opacity 0.3s ease-in 0.1s;
+}
+
+.api-app-overlay.active .api-main-container {
+    opacity: 1;
+}
+
+.api-header-title {
+    font-size: 24px; font-weight: 800; color: #000; letter-spacing: -0.5px;
+    margin-bottom: 4px; padding-left: 5px;
+}
+
+.api-header-subtitle {
+    font-size: 12px; color: #888; font-weight: 500; margin-bottom: 20px; padding-left: 5px;
+}
+
+/* API 卡片统一样式 */
+.api-card {
+    background: #fff; border-radius: 16px; padding: 0 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03); margin-bottom: 15px;
+    display: flex; flex-direction: column; flex-shrink: 0;
+}
+
+.api-input-group {
+    display: flex; flex-direction: column; padding: 12px 0;
+}
+
+/* 标签：加粗浅灰、字母间隙 */
+.api-input-group label, .slider-label {
+    font-size: 11px; 
+    font-weight: 800; 
+    color: #a0a0a0; 
+    letter-spacing: 1.5px; 
+    text-transform: uppercase;
+}
+.api-input-group label {
+    margin-bottom: 8px;
+}
+
+.api-input {
+    width: 100%; border: none; background: transparent; outline: none;
+    font-size: 14px; color: #000; font-weight: 500; font-family: monospace;
+}
+
+.api-input::placeholder { color: #ccc; font-family: -apple-system, sans-serif;}
+
+.api-input.locked {
+    color: #000; 
+}
+
+
+/* 白色立体按钮通用 (购买) */
+.api-buy-btn-mini {
+    height: 24px;
+    padding: 0 8px;
+    background: #ffffff;
+    color: #333;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    box-shadow: 0 3px 0 #e5e5e5, 0 3px 5px rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    user-select: none;
+    flex-shrink: 0;
+}
+.api-buy-btn-mini:active {
+    transform: translateY(3px);
+    box-shadow: 0 0 0 #e5e5e5, 0 0 0 rgba(0,0,0,0);
+}
+
+/* 白色立体获取按钮 (↓) */
+.api-model-fetch-btn-mini {
+    width: 16px;
+    height: 14px;
+    margin-left: 6px;
+    background: #ffffff;
+    color: #888;
+    font-size: 10px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    box-shadow: 0 2px 0 #e5e5e5, 0 2px 4px rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    user-select: none;
+}
+.api-model-fetch-btn-mini:active {
+    transform: translateY(2px);
+    box-shadow: 0 0 0 #e5e5e5, 0 0 0 rgba(0,0,0,0);
+}
+
+/* URL 自定义纯白下拉菜单 */
+.url-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    display: none;
+    flex-direction: column;
+    z-index: 50;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 5px;
+}
+.url-dropdown-menu::-webkit-scrollbar { display: none; }
+
+.url-dropdown-menu.active {
+    display: flex;
+}
+.url-option {
+    padding: 12px 15px;
+    font-size: 13px;
+    color: #333;
+    font-weight: 500;
+    font-family: monospace;
+    cursor: pointer;
+    border-bottom: 1px solid #f9f9f9;
+}
+.url-option:last-child {
+    border-bottom: none;
+}
+.url-option:active {
+    background: #f5f5f5;
+}
+
+
+/* --- 流式传输开关 --- */
+.api-stream-toggle-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 10px 0 25px 0; /* 让下方卡片往下移 */
+}
+.api-stream-btn {
+    font-size: 15px;
+    font-weight: 700;
+    color: #b0b0b0; /* 灰白色 */
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+}
+.api-stream-btn.active {
+    color: #000;
+    letter-spacing: 4px; /* 字间距拉长 */
+    padding-left: 4px; /* 补偿字间距导致的中心偏移 */
+}
+.api-stream-desc {
+    font-size: 10px;
+    color: #999;
+    margin-top: 8px;
+    text-align: center;
+    max-width: 85%;
+    line-height: 1.4;
+}
+
+
+/* 参数滑动条区域 */
+.api-slider-group {
+    display: flex; flex-direction: column; padding: 10px 0;
+    border-bottom: none; /* 去除分割线 */
+}
+
+.api-slider-group:last-child {
+    padding-bottom: 20px; /* 防止突出版面白卡片 */
+}
+
+.slider-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+}
+
+.slider-val {
+    font-size: 12px; font-weight: 700; color: #000; background: #f5f5f5;
+    padding: 2px 8px; border-radius: 6px; min-width: 35px; text-align: center;
+}
+
+/* 定制化极简黑灰拉条 */
+.api-range {
+    -webkit-appearance: none; width: 100%; height: 4px;
+    background: #e0e0e0; border-radius: 2px; outline: none;
+}
+.api-range::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px; border-radius: 50%; /* 缩小圆点 */
+    background: #ffffff; border: none; cursor: pointer; /* 纯白无黑边框 */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2), 0 0 1px rgba(0,0,0,0.1); /* 立体阴影 */
+    transition: transform 0.1s;
+}
+.api-range::-webkit-slider-thumb:active {
+    transform: scale(1.15); /* 按下略微放大 */
+}
+
+
+/* --- 底部方案操作按钮 --- */
+.api-bottom-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+    padding-bottom: 30px;
+    width: 100%;
+}
+.api-action-btn-3d {
+    flex: 1;
+    height: 44px;
+    background: #ffffff;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #e5e5e5, 0 4px 10px rgba(0,0,0,0.05);
+    transition: transform 0.1s, box-shadow 0.1s;
+    user-select: none;
+}
+.api-action-btn-3d.danger {
+    color: #ff3b30;
+}
+.api-action-btn-3d.primary {
+    color: #000;
+}
+.api-action-btn-3d:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 #e5e5e5, 0 0 0 rgba(0,0,0,0);
+}
+
+
+/* --- 模型列表选择 Modal 结构 --- */
+.model-list-modal {
+    max-height: 50vh;
+    overflow-y: auto;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+.model-list-modal::-webkit-scrollbar { display: none; }
+.model-item-btn {
+    background: #f5f5f5;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #333;
+    font-weight: 500;
+    cursor: pointer;
+    word-break: break-all;
+    text-align: left;
+    transition: background 0.2s;
+}
+.model-item-btn:active {
+    background: #e0e0e0;
+}
+
+/* --- Toast 透明小弹窗 --- */
+.toast-msg {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    background: rgba(0, 0, 0, 0.65);
+    color: #ffffff;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    z-index: 10000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+.toast-msg.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}

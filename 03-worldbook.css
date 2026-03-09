@@ -1,0 +1,453 @@
+/* ======================================================== */
+/* ⬇️ 内部软件3：世界书 (星球组切换风 - 拟态3D升级版) ⬇️ */
+/* ======================================================== */
+
+.wb-app-overlay {
+    background-color: #F5F5F5;
+}
+
+.wb-main-container {
+    flex: 1; display: flex; flex-direction: column; width: 100%; height: 100%;
+    padding: 40px 15px 20px 15px; 
+    overflow-y: hidden; box-sizing: border-box;
+    opacity: 0; transition: opacity 0.3s ease-in 0.1s;
+    position: relative; /* 🌟 加上相对定位，死死限制内部弹窗高度基准 */
+}
+
+
+.wb-app-overlay.active .wb-main-container {
+    opacity: 1;
+}
+
+/* --- 星球轨道容器 --- */
+.wb-header {
+    width: 100%; 
+    height: 80px; 
+    display: flex; justify-content: center; align-items: center;
+    margin-top: 5px;
+    margin-bottom: 20px; flex-shrink: 0;
+}
+
+
+.wb-planet-track {
+    position: relative;
+    width: 100%;
+    max-width: 320px;
+    height: 70px;
+}
+
+/* --- 通用星球属性 --- */
+.wb-planet {
+    position: absolute;
+    top: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    user-select: none;
+    text-align: center;
+    aspect-ratio: 1 / 1; 
+    box-sizing: border-box;
+}
+
+/* --- ⭐优化：中心 全部星球 (哑光黑亚克力拟态) --- */
+.wb-planet.center {
+    width: 66px; 
+    height: 66px;
+    left: 50%; 
+    transform: translate(-50%, -50%);
+    z-index: 20;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    
+    background: linear-gradient(145deg, #3a3a3c, #1f1f21);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 
+        8px 8px 16px rgba(0, 0, 0, 0.15), 
+        -8px -8px 16px rgba(255, 255, 255, 0.9), 
+        inset 2px 2px 4px rgba(255, 255, 255, 0.15),
+        inset -2px -2px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* 黑色星球按压反馈 */
+.wb-planet.center:active {
+    transform: translate(-50%, -50%) scale(0.92);
+    background: linear-gradient(145deg, #1f1f21, #3a3a3c);
+    box-shadow: 
+        2px 2px 4px rgba(0, 0, 0, 0.05), 
+        -2px -2px 4px rgba(255, 255, 255, 0.3), 
+        inset 6px 6px 12px rgba(0, 0, 0, 0.8),
+        inset -2px -2px 6px rgba(255, 255, 255, 0.1);
+}
+
+/* --- 🔥优化：两侧白球默认就是凹进去的拟态 --- */
+.wb-planet.left, .wb-planet.right {
+    width: 50px; height: 50px; z-index: 10;
+    color: #666; font-size: 11px; font-weight: 700;
+    background: #F5F5F5; 
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 
+        2px 2px 5px rgba(0, 0, 0, 0.03), 
+        -2px -2px 5px rgba(255, 255, 255, 0.8),
+        inset 4px 4px 8px rgba(0, 0, 0, 0.08),
+        inset -4px -4px 8px rgba(255, 255, 255, 1);
+}
+/* 白色星球按压反馈 */
+.wb-planet.left:active, .wb-planet.right:active {
+    transform: translate(-50%, -50%) scale(0.9);
+    box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.12), inset -6px -6px 12px rgba(255, 255, 255, 1);
+}
+.wb-planet.left { left: 18%; transform: translate(-50%, -50%); }
+.wb-planet.right { left: 82%; transform: translate(-50%, -50%); }
+
+/* --- 🚀全新：下方世界书内容卡片区及列表样式 --- */
+.wb-content-area {
+    flex: 1;
+    background: #fff;
+    border-radius: 24px;
+    margin-top: 5px;
+    padding: 20px 15px;
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.02);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+.wb-content-area::-webkit-scrollbar { display: none; }
+
+.wb-content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 0 5px;
+}
+.wb-view-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #000;
+    letter-spacing: 0.5px;
+}
+.wb-add-btn {
+    width: 28px;
+    height: 28px;
+    background: #000;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    transition: transform 0.2s;
+}
+.wb-add-btn:active { transform: scale(0.85); }
+
+.wb-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 30px;
+}
+
+.wb-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+    border: 1px solid #f2f2f2;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+.wb-card:active {
+    transform: scale(0.97);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.wb-card-icon {
+    width: 46px;
+    height: 46px;
+    background: #F5F5F5;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.wb-card-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.wb-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.wb-card-desc {
+    font-size: 11px;
+    color: #888;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.wb-card-action {
+    display: flex;
+    align-items: center;
+}
+.wb-btn-mini {
+    background: #f0f0f0;
+    color: #555;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 20px;
+    transition: background 0.2s;
+}
+.wb-btn-mini:active { background: #e0e0e0; }
+
+.wb-empty-state {
+    text-align: center;
+    padding-top: 40px;
+    color: #999;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+
+/* --- 🌟 轻度半模糊遮罩 --- */
+.wb-blur-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+    z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+}
+.wb-blur-overlay.active { opacity: 1; pointer-events: auto; }
+
+.wb-main-container.selector-mode #wb-planet-track { z-index: 100; }
+.wb-main-container.selector-mode .wb-planet:not(.center) {
+    opacity: 0.3; pointer-events: none; filter: blur(2px);
+}
+.wb-main-container.selector-mode #wb-content-area {
+    opacity: 0.2; transform: translateY(15px); pointer-events: none; filter: blur(4px);
+}
+
+
+/* --- 🌟 角色分类选择大半屏卡片 (替代U型盘) --- */
+.wb-char-selector-area {
+    position: absolute;
+    bottom: 0; top: auto; left: 0; 
+    width: 100%; height: 65%; 
+    background: #ffffff;
+    border-radius: 28px 28px 0 0;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+    z-index: 200; opacity: 0; pointer-events: none; 
+    transform: translateY(100%);
+    visibility: hidden; /* 🌟 物理隐身，绝杀点不动等神奇怪异Bug */
+    transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1), opacity 0.3s, visibility 0.4s;
+}
+.wb-char-selector-area.active { 
+    opacity: 1; pointer-events: auto; transform: translateY(0);
+    visibility: visible;
+    transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1), opacity 0.3s, visibility 0s;
+}
+
+.char-scroll-track {
+    width: 100%; height: 100%; overflow-y: auto; overflow-x: hidden;
+    padding: 30px 20px 80px 20px; /* 🌟 核心：极大增加底部内边距缓冲，彻底解决最底下一排小球显示不全的问题！ */
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px 15px; 
+    justify-items: center; align-content: start;
+}
+.char-scroll-track::-webkit-scrollbar { display: none; }
+
+.wb-char-item {
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+}
+
+/* --- 🌟 凹陷质感小白球 --- */
+.char-ball {
+    width: 52px; height: 52px; border-radius: 50%; /* 球体稍微放大一点点 */
+    background: #EAEAEA; 
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 
+        inset 5px 5px 10px rgba(0, 0, 0, 0.1), 
+        inset -5px -5px 10px rgba(255, 255, 255, 1);
+    cursor: pointer; transition: all 0.2s ease;
+}
+.char-ball:active { 
+    transform: scale(0.92); 
+    box-shadow: inset 8px 8px 15px rgba(0, 0, 0, 0.18), inset -8px -8px 15px rgba(255, 255, 255, 1);
+}
+
+.char-label {
+    margin-top: 10px; font-size: 11px; font-weight: 700; color: #555;
+    letter-spacing: 0.5px; text-align: center;
+}
+
+/* --- 🌟 通用分组的纯正液态水滴玻璃按钮 --- */
+.sheet-common-group-btns {
+    display: flex; gap: 15px; margin-top: 15px; 
+}
+
+.common-group-btn {
+    flex: 1; padding: 14px 0; text-align: center;
+    font-size: 13px; font-weight: 800; color: #222; letter-spacing: 0.5px;
+    
+    /* 1. 极其清透的水体基底 */
+    background: rgba(255, 255, 255, 0.1); 
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 20px; /* 极度圆润，像水滴 */
+    
+    /* 2. 液体表面张力的光影边缘 */
+    box-shadow: 
+        0 4px 15px rgba(0, 0, 0, 0.05), /* 柔和的底部水滴投影 */
+        inset 0 0 0 1px rgba(255, 255, 255, 0.4), /* 极细的水膜外围 */
+        inset 0 6px 12px rgba(255, 255, 255, 0.9), /* 顶部强烈的内部高光折射 */
+        inset 0 -4px 8px rgba(0, 0, 0, 0.03); /* 底部水体厚度阴影 */
+        
+    border: none;
+    position: relative;
+    cursor: pointer; 
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+/* 3. 灵魂：液态表面的弧形大高光涂层 (塑造水泡鼓起来的反光感) */
+.common-group-btn::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 5%;
+    width: 90%; height: 45%;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%);
+    border-radius: 20px 20px 100px 100px; /* 形成月牙形的高光曲面 */
+    pointer-events: none;
+}
+
+/* 4. 按压时像水球被捏扁的反馈 */
+.common-group-btn:active {
+    transform: scale(0.92);
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.05),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.3),
+        inset 0 8px 15px rgba(255, 255, 255, 0.7),
+        inset 0 -3px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* --- 🌟 列表红底白垃圾桶按钮 --- */
+.wb-delete-icon-btn {
+    width: 44px; height: 44px; border-radius: 14px;
+    background: #ff3b30; color: #fff; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px rgba(255, 59, 48, 0.3); transition: transform 0.2s; cursor: pointer; flex-shrink: 0;
+}
+.wb-delete-icon-btn:active { transform: scale(0.9); }
+
+
+/* --- ✨ 优化：气泡菜单 (无缝隙、紧凑、中英双语) --- */
+.wb-popover-menu {
+    position: absolute; top: 38px; right: 0; width: 90px;
+    background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-radius: 14px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); border: 1px solid #f0f0f0;
+    display: none; flex-direction: column; z-index: 60;
+    transform: translateY(-10px); opacity: 0; transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    padding: 6px 0; /* 上下内边距，取消按钮之间的border */
+}
+.wb-popover-menu.active { display: flex; transform: translateY(0); opacity: 1; }
+.wb-popover-item {
+    padding: 6px 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; gap: 2px;
+}
+.wb-popover-item:active { background: #f0f0f0; }
+.wb-popover-item .eng { font-size: 10px; font-weight: 800; color: #999; letter-spacing: 1px; }
+.wb-popover-item .chn { font-size: 13px; font-weight: 700; color: #333; }
+.wb-popover-item.danger .eng, .wb-popover-item.danger .chn { color: #ff3b30; }
+
+
+/* --- 🚀 底部滑出弹窗 --- */
+.wb-sheet-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.4); z-index: 200; 
+    opacity: 0; pointer-events: none; visibility: hidden; /* 🌟 物理隐身 */
+    transition: opacity 0.3s, visibility 0.3s;
+}
+.wb-sheet-overlay.active { 
+    opacity: 1; pointer-events: auto; visibility: visible; 
+    transition: opacity 0.3s, visibility 0s; 
+}
+
+
+.wb-bottom-sheet {
+    position: absolute; bottom: 0; left: 0; width: 100%; height: 86%;
+    background: #ffffff; border-radius: 28px 28px 0 0; z-index: 210; box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+    transform: translateY(100%); 
+    opacity: 0; pointer-events: none; visibility: hidden; /* 🌟 物理隐身，绝杀键盘顶飞 */
+    transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1), opacity 0.3s, visibility 0.4s;
+    display: flex; flex-direction: column;
+}
+.wb-bottom-sheet.active { 
+    transform: translateY(0); 
+    opacity: 1; pointer-events: auto; visibility: visible; /* 🌟 激活时解除隐身 */
+    transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1), opacity 0.3s, visibility 0s;
+}
+
+.sheet-handle-bar { width: 40px; height: 5px; background: #e0e0e0; border-radius: 3px; margin: 12px auto; }
+.sheet-title { font-size: 18px; font-weight: 800; color: #000; text-align: center; margin-bottom: 20px; letter-spacing: 0.5px; }
+.sheet-body { flex: 1; padding: 0 20px 30px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+.sheet-body::-webkit-scrollbar { display: none; }
+
+.sheet-label-stack { display: flex; align-items: baseline; gap: 4px; pointer-events: none; margin-bottom: 8px; }
+.sheet-label-stack .eng { font-size: 11px; color: #111; font-weight: 800; letter-spacing: 1px; }
+.sheet-label-stack .chn { font-size: 9px; color: #a0a0a0; font-weight: 600; }
+
+.sheet-input { width: 100%; border: none; background: #f5f5f5; border-radius: 12px; padding: 14px; font-size: 14px; color: #000; font-weight: 500; outline: none; box-sizing: border-box; transition: 0.2s; }
+.sheet-input:focus { background: #fff; box-shadow: 0 0 0 2px #ddd; }
+.sheet-input::placeholder { color: #aaa; }
+.sub-input { margin-top: 10px; background: #fafafa; border: 1px dashed #ccc; }
+
+.sheet-capsule-group { display: flex; gap: 10px; }
+.sheet-capsule { padding: 8px 16px; background: #f0f0f0; color: #666; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; user-select: none; }
+.sheet-capsule.active { background: #000; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+
+/* 选择角色的小加号按钮 */
+.sheet-char-add-btn {
+    margin-top: 10px; padding: 12px; border: 1px dashed #bbb; border-radius: 12px;
+    text-align: center; color: #666; font-size: 13px; font-weight: 700; cursor: pointer; background: #fafafa; transition: 0.2s;
+}
+.sheet-char-add-btn.has-char {
+    border: 1px solid #111; background: #111; color: #fff;
+}
+.sheet-char-add-btn:active { transform: scale(0.98); }
+
+/* --- 📝 多条目卡片 (Entries) --- */
+.entry-card { background: #fafafa; border: 1px solid #eee; border-radius: 16px; padding: 15px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+.entry-card-header { display: flex; justify-content: space-between; align-items: center; }
+.entry-card-title { font-size: 13px; font-weight: 700; color: #000; }
+.entry-delete-btn { font-size: 12px; color: #ff3b30; cursor: pointer; font-weight: 600; }
+.sheet-textarea { width: 100%; min-height: 80px; border: none; background: #fff; border-radius: 10px; padding: 12px; font-size: 13px; color: #333; line-height: 1.5; outline: none; resize: none; box-sizing: border-box; box-shadow: inset 0 1px 3px rgba(0,0,0,0.02); border: 1px solid #eaeaea; }
+.sheet-add-entry-btn { width: 100%; padding: 14px; border: 2px dashed #d0d0d0; border-radius: 16px; text-align: center; color: #888; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+.sheet-add-entry-btn:active { background: #f0f0f0; }
+.sheet-action-row { display: flex; gap: 12px; margin-top: 10px; flex-shrink: 0; }
+.sheet-btn { flex: 1; padding: 14px 0; border-radius: 14px; font-size: 15px; font-weight: 700; text-align: center; cursor: pointer; }
+.sheet-btn.cancel { background: #f0f0f0; color: #666; }
+.sheet-btn.confirm { background: #000; color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+.sheet-btn:active { transform: scale(0.97); }

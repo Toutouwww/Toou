@@ -1,0 +1,1095 @@
+/* ======================================================== */
+/* ⬇️ 内部软件1：通讯应用界面 (白主黑灰 PC QQ 风) ⬇️ */
+/* ======================================================== */
+.app-container {
+    flex: 1; display: flex; width: 100%; 
+    height: 100%; min-height: 0; 
+    padding: 45px 8px calc(15px + env(safe-area-inset-bottom, 20px)) 8px; 
+    gap: 8px; 
+    box-sizing: border-box;
+    opacity: 0;
+    transition: opacity 0.05s ease-out;
+}
+.app-overlay.active .app-container {
+    opacity: 1;
+    transition: opacity 0.3s ease-in 0.1s;
+}
+
+/* --- 左侧边栏 --- */
+.app-sidebar {
+    width: 45px; background-color: transparent; 
+    display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+    padding: 5px 0; overflow-y: auto; 
+    flex-shrink: 0; /* 🔥 绝对防御：强制不准缩小，禁止被右侧超长内容挤压变窄！ */
+}
+.app-sidebar::-webkit-scrollbar { display: none; }
+
+.sidebar-top, .sidebar-bottom { display: flex; flex-direction: column; align-items: center; width: 100%; }
+
+.sidebar-avatar-wrapper { display: flex; flex-direction: column; align-items: center; cursor: pointer; width: 100%; }
+.sidebar-avatar { width: 38px; height: 38px; border-radius: 50%; background-color: #eee; border: 1px solid #ddd; object-fit: cover; }
+.sidebar-avatar-text { font-size: 10px; color: #000; font-weight: 600; margin-top: 4px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.nav-buttons-group { display: flex; flex-direction: column; align-items: center; width: 100%; gap: 14px; margin-top: 25px; }
+.nav-btn { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #999; cursor: pointer; transition: all 0.2s; }
+.nav-btn svg { width: 18px; height: 18px; }
+.nav-btn.active { background-color: #f0f0f0; color: #000; }
+
+/* --- 右侧页面主容器 --- */
+.app-main-content { 
+    flex: 1; display: flex; flex-direction: column; position: relative; background: transparent; 
+    min-width: 0; /* 🔥 物理封锁：彻底剥夺子元素强行向外撑开宽度的权力 */
+}
+
+/* 带有拟真手机边框的右侧模块 */
+.app-phone-frame {
+    flex: 1; background-color: #F5F5F5; border-radius: 30px; border: 6px solid #333; 
+    position: relative; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.1); height: 100%; 
+}
+.phone-notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 80px; height: 20px; background-color: #333; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; z-index: 5; }
+
+.screen-tab { flex: 1; display: none; flex-direction: column; background-color: #F5F5F5; width: 100%; height: 100%; }
+.screen-tab.active { display: flex; }
+.screen-header { height: 60px; padding-top: 20px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; color: #000; background-color: #fff; border-bottom: 1px solid #eee; flex-shrink: 0; }
+.screen-body { flex: 1; padding: 15px; color: #666; font-size: 13px; display: flex; align-items: center; justify-content: center; text-align: center; overflow-y: auto; }
+
+/* --- 专属消息页面背景色 --- */
+#tab-msg { background-color: #FAFAFA; }
+
+/* --- 顶部白底区 --- */
+.msg-custom-header {
+    padding-top: 25px !important; position: relative; z-index: 20;
+}
+.msg-header-title {
+    font-size: 16px; font-weight: 800; color: #000; letter-spacing: 1px; 
+}
+
+/* 🌟 永久物理凹陷效果的圆 + 按钮 */
+.msg-add-btn {
+    position: absolute; right: 18px; top: 22px; 
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #FAFAFA; /* 跟底色融为一体 */
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    /* 强烈的内阴影营造真实下陷感 */
+    box-shadow: inset 3px 3px 6px rgba(0,0,0,0.1), inset -3px -3px 6px rgba(255,255,255,1);
+    border: 1px solid rgba(255,255,255,0.6); transition: all 0.2s;
+}
+.msg-add-btn:active {
+    box-shadow: inset 5px 5px 10px rgba(0,0,0,0.15), inset -5px -5px 10px rgba(255,255,255,1);
+    transform: scale(0.92);
+}
+
+.msg-popover-menu {
+    position: absolute; top: 58px; right: 15px; width: 105px;
+    background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #f2f2f2;
+    display: none; flex-direction: column; z-index: 60; padding: 4px 0;
+    transform: translateY(-10px); opacity: 0; transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.msg-popover-menu.active { display: flex; transform: translateY(0); opacity: 1; }
+.msg-popover-item { padding: 8px 0; text-align: center; font-size: 12px; color: #333; font-weight: 700; cursor: pointer; }
+.msg-popover-item:active { background: #f5f5f5; }
+.msg-popover-item.danger { color: #ff3b30; }
+
+/* --- 聊天列表主滚动区 --- */
+.msg-list-container {
+    display: flex; flex-direction: column; padding: 15px 15px 25px 15px; gap: 0;
+    overflow-y: auto; align-items: stretch; justify-content: flex-start; text-align: left;
+}
+.msg-list-container::-webkit-scrollbar { display: none; }
+
+/* 🌟 极简潮牌排版搜索入口 */
+.msg-new-search-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* 核心：让搜索组件完美居中 */
+    padding: 5px 5px 20px 5px; 
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.msg-new-search-bar:active { opacity: 0.5; }
+.msg-new-search-bar svg {
+    margin-right: 8px; flex-shrink: 0;
+}
+.msg-search-label {
+    position: relative; font-size: 15px; font-weight: 800;
+    color: #000; letter-spacing: 1px; display: inline-flex; flex-direction: column;
+}
+.msg-search-line {
+    position: absolute; bottom: -3px; left: 0; width: 100%;
+    height: 3.5px; background-color: #000; border-radius: 2px;
+}
+
+/* --- 置顶单卡片 (去除阴影，极简扁平化) --- */
+.msg-chat-card.pinned {
+    background: #ffffff; border-radius: 18px; padding: 12px 15px; margin-bottom: 12px;
+    display: flex; align-items: center; position: relative; overflow: hidden;
+    box-shadow: none; border: none;
+    cursor: pointer; transition: transform 0.2s, background 0.2s;
+    min-height: 72px; box-sizing: border-box; /* 🌟 强制锁定独立卡片高度 */
+}
+.msg-chat-card.pinned:active { 
+    transform: scale(0.97); background: #fafafa; 
+}
+
+
+/* 🌟 自适应文字宽度的凹陷小狗牌 (铭牌) */
+.msg-dog-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px; 
+    height: 18px;
+    padding: 0 5px; 
+    
+    margin-left: 4px; /* 【修改】从 6px 改为 4px，靠近昵称 2px */
+    position: relative; /* 【新增】相对定位 */
+    top: -2px; /* 【新增】强制向上偏移 2px */
+    
+    background: #ffffff; 
+    color: #777777; 
+    font-size: 9px;
+    font-weight: 800;
+    border-radius: 5px; 
+    vertical-align: middle;
+    box-shadow: inset 2px 2px 4px rgba(0,0,0,0.08), inset -2px -2px 4px rgba(255,255,255,1);
+    border: 1px solid rgba(0,0,0,0.02); 
+}
+
+
+/* --- 中间四个分类标签 --- */
+.msg-sub-tabs {
+    display: flex; width: 100%; justify-content: space-around; 
+    padding: 10px 5px 15px 5px; background: transparent; flex-shrink: 0;
+}
+.msg-sub-tab {
+    font-size: 11px; font-weight: 800; color: #b3b3b3; 
+    padding-bottom: 8px; cursor: pointer; position: relative; transition: color 0.2s; letter-spacing: 0.5px;
+}
+.msg-sub-tab.active { color: #000; }
+.msg-sub-tab::after {
+    content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 0; height: 3px; background-color: #000; border-radius: 3px 3px 0 0; transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.msg-sub-tab.active::after { width: 18px; }
+
+/* --- 未分组包裹大白卡片 --- */
+.msg-group-card {
+    background: #ffffff; border-radius: 24px; padding: 8px 15px;
+    /* 彻底去除包裹卡片的阴影和描边，融入背景 */
+    box-shadow: none; border: none;
+    display: flex; flex-direction: column; transition: opacity 0.3s;
+}
+.msg-chat-item {
+    display: flex; align-items: center; position: relative;
+    padding: 12px 0; cursor: pointer; transition: background 0.2s, opacity 0.2s;
+    min-height: 72px; /* 🌟 强制卡片最低高度，防止没字时塌陷 */
+    box-sizing: border-box;
+}
+.msg-chat-item:active { opacity: 0.6; }
+
+/* 🌟 永远定死在右下角灰色小字时间 */
+.msg-time { font-size: 10px; color: #bbb; position: absolute; right: 5px; bottom: 12px; font-weight: 600; }
+.msg-chat-card.pinned .msg-time { right: 15px; bottom: 14px; }
+
+/* 🌟 3D 玻璃罩子头像特效 (复用给所有卡片) */
+.msg-avatar-wrapper {
+    position: relative; width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; overflow: hidden;
+    /* 核心优化：底部深色立体投影，不向左右乱扩散，专注下方扎实的立体悬浮感 */
+    box-shadow: 0 6px 10px -2px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1); 
+}
+
+.msg-avatar-img { width: 100%; height: 100%; object-fit: cover; }
+
+.msg-avatar-glass {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%;
+    /* 强烈的左上角光源直射高光 (无阴影纯净区) */
+    background: radial-gradient(circle at 28% 28%, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0) 45%);
+    /* 极其复杂的玻璃厚度折射光影组合 */
+    box-shadow: 
+        /* 1. 左下到右下的厚重深色内阴影 (表现底座厚度) */
+        inset 0 -6px 10px -2px rgba(0, 0, 0, 0.45), 
+        /* 2. 右上角的弧形暗角内阴影 (表现玻璃边缘折射) */
+        inset -5px 5px 8px -3px rgba(0, 0, 0, 0.25), 
+        /* 3. 左上角边缘的高光反射圈 (绝对无阴影，极致透亮) */
+        inset 2px 2px 5px rgba(255, 255, 255, 0.9);
+    pointer-events: none; 
+}
+
+.msg-info-wrapper {
+    display: flex; flex-direction: column; justify-content: flex-start;
+    margin-left: 12px; flex: 1; padding-top: 2px; 
+    min-width: 0; width: 100%; 
+    padding-right: 48px; /* 🔥 绝对屏障：给右侧时间戳强行腾出 48px 的防撞区（含5px间距） */
+    box-sizing: border-box; /* 确保防撞区不会反向撑爆卡片 */
+}
+.msg-name { 
+    font-size: 14px; font-weight: 700; color: #000; margin-bottom: 4px; 
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+    width: 100%; display: block;
+}
+.msg-last-text { 
+    font-size: 11px; color: #888; font-weight: 500; 
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    min-height: 15px; width: 100%; 
+    display: block; 
+}
+
+/* --- 个人主页特定样式 (无手机边框版) --- */
+#tab-profile { border-radius: 20px; background-color: #F5F5F5; position: relative; overflow: hidden; }
+
+/* 模糊底层效果 */
+.screen-body-profile { flex-direction: column; justify-content: flex-start; align-items: center; padding: 15px 5px; gap: 12px; transition: filter 0.3s ease; height: 100%; overflow: hidden; }
+.screen-body-profile.blurred { filter: blur(5px); }
+
+/* 顶部方案管理胶囊 */
+.profile-plan-manager { position: absolute; top: 15px; right: 10px; z-index: 20; }
+.plan-capsule { background: #fff; border-radius: 20px; padding: 5px 12px; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); cursor: pointer; font-size: 12px; color: #333; font-weight: 500; }
+.plan-capsule svg { width: 12px; height: 12px; color: #888; }
+.plan-capsule:active { background: #f9f9f9; transform: scale(0.97); }
+
+.plan-menu { position: absolute; top: 35px; right: 0; width: 100px; background: #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; display: none; flex-direction: column; z-index: 30; padding: 4px 0; }
+.plan-menu.active { display: flex; }
+.plan-action-btn { padding: 6px 0; font-size: 12px; color: #333; cursor: pointer; text-align: center; }
+.plan-action-btn:hover { background: #f5f5f5; }
+.plan-action-btn.apply { color: #ff3b30; }
+.plan-action-btn.delete { color: #ff3b30; }
+
+/* 白色信息长卡片 */
+.profile-header-card.mini-card { width: 95%; background: #fff; border-radius: 12px; padding: 14px 12px; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-top: 40px; flex-shrink: 0; }
+.profile-avatar-container { position: relative; flex-shrink: 0;}
+.profile-avatar-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #eee; cursor: pointer; }
+.avatar-action-menu { position: absolute; top: 45px; left: 0; width: 80px; background: #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.15); border-radius: 8px; overflow: hidden; display: none; flex-direction: column; z-index: 10; }
+.avatar-action-menu.active { display: flex; }
+.avatar-action-btn { padding: 8px 0; text-align: center; font-size: 12px; color: #333; cursor: pointer; border-bottom: 1px solid #f9f9f9; }
+.avatar-action-btn:active { background-color: #f0f0f0; }
+
+.profile-text-info { display: flex; flex-direction: column; text-align: left; flex: 1; margin-top: -6px; }
+.profile-name-row { font-size: 14px; font-weight: 700; color: #000; cursor: pointer; display: inline-block;}
+.profile-sign-row { font-size: 10px; color: #999; margin-top: 4px; cursor: pointer; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* 详情资料卡片群 */
+.profile-detail-section { width: 95%; display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; padding-bottom: 5px; }
+.detail-row-group { display: flex; gap: 8px; width: 100%; flex-shrink: 0; }
+.detail-col-item { flex: 1; background: #fff; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; align-items: flex-start; box-shadow: 0 2px 8px rgba(0,0,0,0.015); cursor: text; }
+.detail-col-item.full-width { flex: 100%; }
+
+.detail-label-stack { display: flex; align-items: baseline; gap: 4px; margin-bottom: 6px; pointer-events: none; }
+.detail-label-stack .eng { font-size: 14px; color: #111; font-weight: 700; font-family: -apple-system, sans-serif; letter-spacing: 0.5px; }
+.detail-label-stack .chn { font-size: 7px; color: #a0a0a0; font-weight: 600; }
+.inline-detail-input { width: 100%; border: none; background: transparent; outline: none; font-size: 12px; color: #333; font-weight: 500; padding: 2px 0; }
+.inline-detail-input::placeholder { color: #d0d0d0; }
+
+/* 生日专属：隐形巨型激活层 */
+.date-picker-container { position: relative; cursor: pointer; overflow: hidden; }
+.bday-input-wrapper { position: static; width: 100%; }
+.real-date-picker { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 999; -webkit-appearance: none; background: transparent; color: transparent; border: none; }
+.real-date-picker::-webkit-calendar-picker-indicator { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 0; cursor: pointer; opacity: 0; }
+
+/* TAG 标签与档案开关区 */
+.tag-and-secret-row { display: flex; width: 100%; gap: 6px; align-items: center; justify-content: space-between; margin-top: 6px; margin-bottom: 4px; padding: 0 2px; flex-shrink: 0; }
+.tag-label-prefix { font-size: 11px; font-weight: 600; color: #777; letter-spacing: 0.5px; margin-right: 2px; }
+.tag-capsules-group { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; align-items: center; }
+.tag-capsule { background: #111; color: #fff; border-radius: 20px; padding: 3px 8px; font-size: 10px; font-weight: 500; display: flex; align-items: center; }
+.tag-hash { margin-right: 2px; color: #ccc; }
+.tag-input { width: 30px; background: transparent; border: none; color: #fff; font-size: 10px; font-weight: 500; outline: none; }
+.tag-input::placeholder { color: #666; }
+
+.secret-switch { width: 32px; height: 18px; border-radius: 9px; background: #d0d0d0; position: relative; cursor: pointer; transition: background 0.3s; flex-shrink: 0; }
+.secret-switch.active { background: #111; }
+.switch-knob { width: 14px; height: 14px; border-radius: 50%; background: #fff; position: absolute; top: 2px; left: 2px; transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1); box-shadow: 0 1px 3px rgba(0,0,0,0.1); pointer-events: none; }
+.secret-switch.active .switch-knob { transform: translateX(14px); }
+
+/* --- 绝密档案大白卡铺满方案 --- */
+.secret-file-card { width: 100%; background: #fff; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.015); position: relative; flex: 1; display: flex; flex-direction: column; overflow: hidden; transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); min-height: 100px; border-radius: 12px; border-top-right-radius: 0; }
+
+.secret-watermark {
+    position: absolute; top: 40%; left: 45%; transform: translate(-50%, -50%) rotate(-10deg);
+    font-size: 36px; /* 字体放大 */
+    font-weight: 900; color: rgba(255, 59, 48, 0.9);
+    font-family: Arial, -apple-system, sans-serif; letter-spacing: 1.5px;
+    pointer-events: none; z-index: 5; transition: opacity 0.3s ease;
+}
+
+.secret-content-wrapper { width: 100%; height: 100%; display: flex; transition: filter 0.4s ease; flex: 1; }
+.secret-file-card.closed .secret-content-wrapper { filter: blur(6px); pointer-events: none; }
+.secret-file-card.closed .secret-watermark { opacity: 1; }
+.secret-file-card.open .secret-content-wrapper { filter: blur(0); pointer-events: auto; }
+.secret-file-card.open .secret-watermark { opacity: 0; }
+.secret-textarea { width: 100%; flex: 1; border: none; resize: none; background: transparent; outline: none; font-size: 12px; color: #444; line-height: 1.6; }
+.secret-textarea::placeholder { color: #ccc; }
+
+.avatar-notch-overlay { position: absolute; top: -1px; right: -1px; height: 26px; background: #F5F5F5; border-bottom-left-radius: 12px; display: flex; align-items: center; justify-content: flex-end; padding: 1px 6px 0 10px; z-index: 10; }
+.avatar-notch-overlay::before { content: ""; position: absolute; top: 0; left: -12px; width: 12px; height: 12px; background: radial-gradient(circle at 0 100%, transparent 11.5px, #F5F5F5 12px); }
+.avatar-notch-overlay::after { content: ""; position: absolute; top: 100%; right: 0; width: 12px; height: 12px; background: radial-gradient(circle at 0 100%, transparent 11.5px, #F5F5F5 12px); }
+
+.notch-avatars { display: flex; flex-direction: row; align-items: center; }
+.notch-avatar-img { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; border: 1.5px solid #F5F5F5; background: #ccc; z-index: 1; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.notch-avatar-img:not(:first-child) { margin-left: -6px; }
+
+/* --- 我的资料弹窗 --- */
+.profile-data-modal { position: absolute; top: -100%; left: 0; width: 100%; height: 65%; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); z-index: 50; display: flex; flex-direction: column; transition: top 0.4s cubic-bezier(0.16, 1, 0.3, 1); overflow: hidden; }
+.profile-data-modal.active { top: 0; }
+.modal-handle-bar { width: 40px; height: 4px; background: #ccc; border-radius: 2px; margin: 12px auto; }
+.modal-title { font-size: 14px; font-weight: 600; color: #000; text-align: center; margin-bottom: 15px; }
+.modal-content { flex: 1; padding: 0 20px 20px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.modal-content::-webkit-scrollbar { display: none; }
+.plan-list-item { background: #fff; border-radius: 12px; padding: 15px; font-size: 13px; font-weight: 500; color: #333; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.02); border: 1px solid transparent; }
+.plan-list-item:active { background: #f9f9f9; transform: scale(0.98); }
+.plan-list-item.active { border-color: #000; font-weight: 600; }
+
+/* --- 自定义小白弹窗 --- */
+.custom-prompt-overlay { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100vh; 
+    background: rgba(0, 0, 0, 0.4); z-index: 1000; 
+    display: flex; align-items: center; justify-content: center; 
+    opacity: 0; pointer-events: none; visibility: hidden; /* 🌟 物理隐身 */
+    transition: opacity 0.2s, visibility 0.2s; 
+}
+.custom-prompt-overlay.active { 
+    opacity: 1; pointer-events: auto; visibility: visible; 
+    transition: opacity 0.2s, visibility 0s;
+}
+.custom-prompt-box { background: #fff; width: 280px; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transform: translateY(20px); transition: transform 0.2s; }
+.custom-prompt-overlay.active .custom-prompt-box { transform: translateY(0); }
+.custom-prompt-title { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 15px; }
+
+/* 🌟 补充之前遗失的弹窗按钮、输入框、提示文字等核心组件样式，拯救全局瘫痪的弹窗 */
+.custom-prompt-input { width: 100%; border: none; background: #f5f5f5; padding: 12px; border-radius: 12px; font-size: 14px; outline: none; text-align: center; margin-bottom: 20px; color: #333; font-weight: 500; }
+.custom-prompt-msg { font-size: 13px; color: #666; margin-bottom: 20px; text-align: center; line-height: 1.5; white-space: pre-wrap; }
+.custom-prompt-actions { display: flex; gap: 10px; width: 100%; }
+.prompt-btn { flex: 1; padding: 12px 0; border-radius: 12px; font-size: 14px; font-weight: 600; text-align: center; cursor: pointer; transition: transform 0.2s; background: #f0f0f0; color: #333; }
+.prompt-btn.confirm { background: #111; color: #fff; }
+.prompt-btn.confirm.danger { background: #ff3b30; color: #fff; }
+.prompt-btn:active { transform: scale(0.96); }
+
+/* ==========================================
+   🌟 唯一关键词：【嵌套圆角顶栏聊天室】
+========================================== */
+.chat-room-screen {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: #ffffff; /* 垫底背景色为纯白 */
+    z-index: 2000; display: flex; flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.chat-room-screen.active { transform: translateX(0); }
+
+/* 1. 最顶部的长方形纯白区域 (无阴影) */
+.chat-room-header {
+    padding-top: calc(10px + env(safe-area-inset-top, 25px)); 
+    padding-bottom: 15px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: #ffffff; 
+    padding-left: 10px; padding-right: 15px; flex-shrink: 0;
+    z-index: 5;
+}
+.chat-back-btn, .chat-more-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.chat-back-btn svg { width: 24px; height: 24px; transition: transform 0.2s; }
+.chat-back-btn:active svg { transform: translateX(-4px); }
+.chat-more-btn svg { width: 22px; height: 22px; }
+.chat-room-title { font-size: 16px; font-weight: 800; color: #000; flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.5px; }
+
+/* 2. 中间层：极简扁平切割的浅灰弧度层 (彻底去除阴影) */
+.chat-room-gray-layer {
+    flex: 1; 
+    background: #f0f0f0; 
+    border-radius: 28px 28px 0 0; 
+    box-shadow: none; /* 🔥 彻底去除外阴影 */
+    display: flex; flex-direction: column;
+    position: relative;
+    padding-top: 12px; 
+    z-index: 10;
+    min-height: 0; /* 🔥 核心：打破 Flex 默认的无限延伸，激活内部滚动条 */
+}
+
+/* 3. 最内层：极简扁平切割的纯白主体层 (彻底去除阴影) */
+.chat-room-white-layer {
+    flex: 1;
+    background: #ffffff; 
+    border-radius: 28px 28px 0 0; 
+    box-shadow: none; /* 🔥 彻底去除外阴影 */
+    display: flex; flex-direction: column;
+    overflow: hidden; 
+    z-index: 20;
+    min-height: 0; /* 🔥 核心：打破 Flex 默认的无限延伸，激活内部滚动条 */
+}
+
+/* 聊天内容区 */
+.chat-room-body {
+    flex: 1; 
+    /* 🔥 消息展示区域往上一点：padding-top 设为 0 */
+    padding: 0 15px 15px 15px; 
+    overflow-y: auto; 
+    display: flex; flex-direction: column; 
+    gap: 28px; /* 🌟 优化：加大基础间距（你发一条，我发一条之间的距离） */
+}
+.chat-room-body::-webkit-scrollbar { display: none; }
+
+
+/* 🌟 全新打招呼状态区 (已固定在顶部) */
+.chat-init-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    margin-top: 5px; /* 🔥 往上靠，让出更多消息显示区域 */
+    padding-bottom: 0px; /* 🔥 取消底部内边距，让消息展示区域直接贴近 */
+    flex-shrink: 0; /* 🔥 绝对防御：禁止被下面海量的聊天记录挤压变形 */
+    background: #ffffff; /* 垫底白色，防止透明导致的重影 */
+    z-index: 10;
+}
+.chat-init-avatar-container {
+    position: relative; 
+}
+.chat-init-avatar {
+    width: 86px; height: 86px; border-radius: 50%; object-fit: cover;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.04); /* 🔥 大头像阴影收敛变淡一些 */
+    border: 3px solid #fff; cursor: pointer;
+    transition: transform 0.2s; background: #eee;
+}
+.chat-init-avatar:active { transform: scale(0.95); }
+
+/* 🔥 极致无痕的液态玻璃药丸 */
+.chat-init-pill {
+    margin-top: 8px; /* 🔥 药丸与头像之间的距离进一步缩近 */
+    background: rgba(245, 245, 245, 0.6); /* 清透的底色 */
+    backdrop-filter: blur(20px) saturate(150%); -webkit-backdrop-filter: blur(20px) saturate(150%); 
+    border: none; 
+    box-shadow: none; 
+    padding: 8px 18px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; color: #888;
+    text-align: center; letter-spacing: 0.5px;
+}
+.chat-init-pill strong {
+    color: #111; font-weight: 800; padding: 0 2px;
+}
+
+/* ==========================================
+   🌟 全新聊天页高级底栏系统 (全设备 10px 自适应 & 像素级对齐)
+========================================== */
+.chat-room-input-bar {
+    width: 100%; 
+    box-sizing: border-box; 
+    /* 🌟 核心：无论任何设备，始终距离屏幕最底层真实物理边界 10px */
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    padding-top: 12px; 
+    background: #ffffff; 
+    display: flex; 
+    align-items: flex-end; /* 所有子元素统一贴底 */
+    padding-left: 12px; 
+    padding-right: 15px; 
+    gap: 12px; 
+    flex-shrink: 0;
+    z-index: 30;
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.chat-room-screen.plus-active .chat-room-input-bar {
+    transform: translateY(-260px);
+}
+.chat-room-screen.plus-active .chat-room-body {
+    transform: translateY(-260px);
+}
+.chat-room-body {
+    flex: 1; 
+    padding: 0 15px 15px 15px; 
+    overflow-y: auto; 
+    display: flex; flex-direction: column; 
+    gap: 28px; 
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* 🌟 像素级校准：强制向上抬升，使其越过底线，完美对齐输入框文字中轴线 */
+.chat-add-btn {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: transform 0.1s;
+    margin-bottom: 10px; /* 向上提，脱离底部 */
+    flex-shrink: 0;
+}
+.chat-add-btn:active { transform: scale(0.9); }
+
+/* 🌟 像素级校准：同上，完美对齐输入框文字中轴线 */
+.chat-send-btn {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: transform 0.1s;
+    margin-bottom: 10px; /* 向上提，脱离底部 */
+    flex-shrink: 0;
+}
+.chat-send-btn:active { transform: scale(0.9); }
+
+/* 中间输入框与装饰线的包裹层 */
+.chat-input-wrapper {
+    flex: 1; 
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+/* 🌟 调整内部间距，让文字靠下一点 */
+.chat-room-input {
+    width: 100%; background: transparent; border: none; outline: none;
+    font-size: 15px; color: #111; font-weight: 500;
+    padding: 0 0 4px 0; /* 缩小底部留白，让文字更靠近装饰线 */
+    resize: none; 
+    overflow-y: auto; 
+    max-height: 80px; 
+    font-family: inherit;
+    line-height: 1.4;
+    display: block; 
+}
+.chat-room-input::-webkit-scrollbar { display: none; }
+.chat-room-input::placeholder { color: #ccc; }
+
+/* 🌟 装饰线下沉到底部 */
+.toutou-line-container {
+    display: flex; align-items: center; width: 100%;
+    margin-bottom: 2px; /* 压到底部 */
+}
+.t-line-left { width: 18%; height: 3px; background-color: #e4e4e4; border-radius: 2px; }
+.t-line-text { font-size: 11px; font-weight: 900; color: #c0c0c0; margin: 0 10px; letter-spacing: 0.5px; font-family: "Helvetica Neue", -apple-system, sans-serif; }
+.t-line-right { flex: 1; height: 3px; background-color: #e4e4e4; border-radius: 2px; }
+
+/* ==========================================
+   🌟 唯一关键词：【角色专属聊天设置页样式】
+========================================== */
+.chat-settings-screen {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: #f5f5f5; /* 灰色底层，衬托白卡片 */
+    z-index: 2010; /* 层级高于聊天室 */
+    display: flex; flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.chat-settings-screen.active { transform: translateX(0); }
+
+.chat-save-btn {
+    font-size: 13px; font-weight: 800; color: #777; cursor: pointer;
+    padding: 6px 14px; border-radius: 12px;
+    background: rgba(245, 245, 245, 0.4);
+    box-shadow: inset 3px 3px 6px rgba(0,0,0,0.06), inset -3px -3px 6px rgba(255,255,255,1);
+    border: 1px solid rgba(255,255,255,0.7);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.chat-save-btn:active {
+    box-shadow: inset 5px 5px 10px rgba(0,0,0,0.1), inset -5px -5px 10px rgba(255,255,255,1);
+    transform: scale(0.95);
+}
+
+
+.chat-settings-body {
+    flex: 1; padding: 20px 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;
+}
+.chat-settings-body::-webkit-scrollbar { display: none; }
+
+.settings-white-card {
+    background: #ffffff; border-radius: 20px; padding: 18px 15px;
+    display: flex; flex-direction: column; gap: 15px;
+}
+
+.settings-avatar-row { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; margin-bottom: 5px; }
+.settings-avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 1px solid #eee; cursor: pointer; }
+.settings-avatar-text { font-size: 10px; color: #999; font-weight: 600; }
+
+.settings-input-group { display: flex; flex-direction: column; }
+.settings-input-group label { font-size: 11px; font-weight: 800; color: #a0a0a0; margin-bottom: 6px; }
+.settings-input { width: 100%; border: none; background: #f9f9f9; padding: 12px 14px; border-radius: 12px; font-size: 14px; color: #111; outline: none; font-weight: 500;}
+
+.settings-select-capsule {
+    background: #f9f9f9; border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 14px; font-weight: 600; color: #111;
+}
+.cs-profile-menu {
+    background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-top: 5px; display: none; flex-direction: column; border: 1px solid #f0f0f0; overflow: hidden;
+}
+.cs-profile-menu.active { display: flex; }
+.cs-profile-option { padding: 12px 15px; font-size: 13px; font-weight: 500; color: #333; cursor: pointer; border-bottom: 1px solid #f9f9f9; }
+.cs-profile-option:active { background: #f5f5f5; }
+
+.settings-delete-btn {
+    width: 100%; padding: 16px 0; background: #fff; border-radius: 20px;
+    color: #ff3b30; font-size: 14px; font-weight: 700; text-align: center; cursor: pointer; margin-top: 10px; margin-bottom: 30px;
+}
+.settings-delete-btn:active { background: #fafafa; }
+
+/* 修改聊天输入框，使其支持自适应高度和自动换行 */
+.chat-room-input {
+    width: 100%; background: transparent; border: none; outline: none;
+    font-size: 15px; color: #111; font-weight: 500;
+    padding: 0 0 8px 0; 
+    resize: none; /* 隐藏拉伸角 */
+    overflow-y: auto; 
+    max-height: 80px; /* 限制最高膨胀高度，约4行 */
+    font-family: inherit;
+    line-height: 1.4;
+    display: block; /* 必须是block，保证高度计算准确 */
+}
+.chat-room-input::-webkit-scrollbar { display: none; } /* 隐藏滚动条 */
+
+/* 新增：设置页并排输入框布局 */
+.settings-row-group {
+    display: flex; gap: 12px; width: 100%;
+}
+
+/* ==========================================
+   🌟 唯一关键词：【新增：角色专属气泡与预览区样式】
+========================================== */
+.bubble-theme-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* 🔥 改为2列，适应左侧被挤压的空间 */
+    gap: 12px;
+    margin-top: 10px;
+}
+
+/* 🌟 全新：右侧长条形玻璃凹陷按钮 (纯白无边框质感) */
+.custom-bubble-btn {
+    width: 42px; 
+    background: #ffffff; /* 纯白底色 */
+    border-radius: 18px;
+    border: none; /* 去除白边 */
+    box-shadow: inset 4px 4px 8px rgba(0,0,0,0.04); /* 极其微弱的物理内凹阴影 */
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; padding: 15px 0; cursor: pointer; flex-shrink: 0;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.custom-bubble-btn:active {
+    box-shadow: inset 6px 6px 12px rgba(0,0,0,0.08);
+    transform: scale(0.95);
+}
+.custom-bubble-btn span { font-size: 12px; font-weight: 800; color: #888; letter-spacing: 2px; }
+
+/* 🌟 新增：内凹拟态通用按钮 (纯白无边框质感) */
+.inset-btn {
+    background: #ffffff;
+    border-radius: 12px;
+    border: none;
+    box-shadow: inset 3px 3px 8px rgba(0,0,0,0.04);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; color: #777;
+    cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+    user-select: none; flex: 1; padding: 12px 0;
+}
+.inset-btn:active {
+    box-shadow: inset 5px 5px 12px rgba(0,0,0,0.08);
+    transform: scale(0.96);
+}
+
+/* 动态弹出的大白卡片动画 */
+.custom-bubble-panel { animation: slide-down-fade 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+@keyframes slide-down-fade { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+.bubble-theme-item {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 12px 0; background: #f9f9f9; border-radius: 12px; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;
+}
+.bubble-theme-item.active { background: #fff; border-color: #111; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+.bubble-theme-item:active { transform: scale(0.95); }
+
+.theme-color-preview { width: 24px; height: 24px; border-radius: 50%; margin-bottom: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border: 1px solid #eaeaea; }
+.bubble-theme-item span { font-size: 11px; font-weight: 700; color: #555; }
+
+/* --- 气泡预览区容器 --- */
+.bubble-preview-container { display: flex; flex-direction: column; gap: 24px; padding: 18px 12px; background: #f0f0f0; border-radius: 16px; margin-top: 5px; }
+
+.preview-msg-row { 
+    display: flex; align-items: flex-end; gap: 8px; width: 100%; 
+    flex-shrink: 0; 
+    /* 🌟 优化：删除了原本的 transform 位移，彻底解决多行文字往上乱顶导致重叠的问题 */
+}
+.preview-msg-row.right { justify-content: flex-end; flex-direction: row; }
+.preview-msg-row.left { justify-content: flex-start; }
+
+/* ==========================================
+   🌟 终极气泡代码改造 (自定义前缀 Toutou-TT.user & Toutou-TT.char)
+========================================== */
+:root {
+    /* 气泡专属颜色库 (默认为黑灰色) */
+    --bubble-user-bg: #000000;
+    --bubble-user-text: #ffffff;
+    --bubble-char-bg: #F1F1F3;
+    --bubble-char-text: #000000;
+}
+
+.Toutou-TT {
+    display: flex;
+    width: 100%;
+    align-items: flex-end; /* 确保时间戳始终与气泡底部贴齐 */
+}
+
+/* 聊天气泡旁侧的时间戳样式 */
+.bubble-time {
+    font-size: 10px;
+    color: #dadada;
+    margin: 0 4px 1px 4px;
+    font-weight: 600;
+    flex-shrink: 0;
+    user-select: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    transform: scale(0.85); 
+    transform-origin: bottom;
+}
+
+.Toutou-TT.user { justify-content: flex-end; }
+.Toutou-TT.char { justify-content: flex-start; }
+
+.Toutou-TT.user .content,
+.Toutou-TT.char .content {
+  --top-left: 16px; 
+  --top-right: 16px;
+  --bottom-right: 16px;
+  --bottom-left: 16px;
+  
+  padding: 3px 7px;
+  position: relative;
+  word-wrap: break-word;
+  word-break: break-all; 
+  display: inline-block;
+  font-size: 14px; 
+  line-height: 1.5;
+  max-width: 65vw; 
+  text-align: left; 
+  
+  /* 🌟 核心：屏蔽系统原生自带的选择与长按菜单 */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+
+/* --- 用户气泡 --- */
+.Toutou-TT.user .content {
+  background-color: var(--bubble-user-bg);
+  color: var(--bubble-user-text);
+  border-radius: var(--top-left) var(--top-right) var(--bottom-right) var(--bottom-left);
+  transition: background-color 0.3s, color 0.3s;
+  transform: translate(3px, -3px); 
+}
+.Toutou-TT.user .content::after {
+  content: ""; position: absolute; width: 12px; height: 15px;
+  background-color: inherit; right: -1px; bottom: 12px;
+  clip-path: path("M 13,1 Q 2,0 0,12 Q 3,7 11,12 L 8,4");
+  z-index: 1; transform: rotate(236deg) scale(0.8); transform-origin: bottom right; transition: background-color 0.3s;
+}
+
+/* --- 角色气泡 --- */
+.Toutou-TT.char .content {
+  background-color: var(--bubble-char-bg);
+  color: var(--bubble-char-text);
+  border-radius: var(--top-left) var(--top-right) var(--bottom-right) var(--bottom-left);
+  transition: background-color 0.3s, color 0.3s;
+  transform: translate(-3px, -3.5px);
+}
+.Toutou-TT.char .content::after {
+  content: ""; position: absolute; width: 12px; height: 15px;
+  background-color: inherit; left: -6px; bottom: 5px;
+  clip-path: path("M 13,2 Q 1,0 0,12 Q 3,7 11,12 L 19,3");
+  z-index: 1; transform: scaleX(-1) rotate(236deg) scale(0.8); transform-origin: bottom left; transition: background-color 0.3s;
+}
+
+/* ==========================================
+   🌟 液态玻璃“对方正在输入中”悬浮药丸
+========================================== */
+.floating-typing-pill {
+    position: absolute; left: 15px; bottom: calc(100% + 5px);
+    padding: 6px 14px; border-radius: 20px;
+    background: rgba(245, 245, 245, 0.7); backdrop-filter: blur(20px) saturate(200%); -webkit-backdrop-filter: blur(20px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05), inset 0 2px 5px rgba(255, 255, 255, 0.9);
+    font-size: 11px; font-weight: 800; color: #888; display: flex; align-items: center; gap: 8px; z-index: 50;
+    animation: floating-pill-fade-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.typing-dots { display: flex; gap: 3px; margin-top: 2px;}
+.typing-dots span {
+    width: 4px; height: 4px; background: #888; border-radius: 50%;
+    animation: typing-bounce 1.4s infinite ease-in-out both;
+}
+.typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+@keyframes typing-bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+@keyframes floating-pill-fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* 🌟 流式传输：气泡等待态 "…" 占位样式 */
+.Toutou-TT.char .content.stream-waiting { opacity: 0.45; letter-spacing: 2px; }
+
+.preview-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid #ddd; background: #fff; }
+
+/* ==========================================
+   🌟 功能性设定药丸与 Token 统计面板
+========================================== */
+.inset-pill-label {
+    align-self: flex-start;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #888;
+    background: #ffffff; /* 纯白底色 */
+    border: none;
+    box-shadow: inset 3px 3px 8px rgba(0,0,0,0.04);
+    margin-bottom: -5px; 
+    margin-top: 5px;
+}
+
+/* ==========================================
+   🌟 历史总结专属列表样式
+========================================== */
+.summary-card {
+    background: #fafafa; border-radius: 16px; padding: 15px; margin-bottom: 12px;
+    display: flex; flex-direction: column; gap: 10px; border: 1px solid #f0f0f0;
+}
+.summary-card-header { display: flex; justify-content: space-between; align-items: center; }
+.summary-time-title { font-size: 13px; font-weight: 800; color: #111; }
+.summary-content-preview { font-size: 12px; color: #666; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.summary-content-full { font-size: 12px; color: #444; line-height: 1.6; display: none; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #eee; margin-top: 5px;}
+.summary-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 5px; }
+.summary-action-btn { font-size: 11px; font-weight: 700; padding: 6px 14px; border-radius: 12px; cursor: pointer; background: #fff; color: #333; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: transform 0.2s; }
+.summary-action-btn:active { transform: scale(0.95); }
+.summary-action-btn.danger { color: #ff3b30; }
+
+
+.token-stat-container {
+    display: flex; flex-direction: column; gap: 8px;
+    background: #f9f9f9; padding: 12px; border-radius: 12px;
+    margin-top: 8px;
+}
+.token-stat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: #666; font-weight: 500;
+}
+.token-stat-row span:last-child {
+    font-family: monospace; font-size: 12px; font-weight: 700; color: #333;
+}
+.token-stat-row.total {
+    margin-top: 4px; padding-top: 8px; border-top: 1px dashed #ddd;
+    color: #000; font-weight: 800;
+}
+.token-stat-row.total span:last-child {
+    color: #ff3b30; font-size: 14px;
+}
+
+/* ==========================================
+   🌟 高级视觉排版：连续发言自动隐藏后续头像，并缩进间距
+========================================== */
+.preview-msg-row.left + .preview-msg-row.left .preview-avatar {
+    visibility: hidden; /* 隐身但保留占位，确保气泡完美对齐 */
+}
+.preview-msg-row.right + .preview-msg-row.right .preview-avatar {
+    visibility: hidden;
+}
+
+/* 连续的气泡之间缩减间距，形成“组”的视觉包裹感 */
+.preview-msg-row.left + .preview-msg-row.left,
+.preview-msg-row.right + .preview-msg-row.right {
+    margin-top: -18px; /* 🌟 优化：用负边距抵消掉 24px 的大间距，让同一个人连续发的消息距离保持在 6px 左右的紧凑感 */
+}
+
+/* ==========================================
+   🌟 心声系统 (极简工业风打印机 + 登录保险箱)
+========================================== */
+@import url('https://fonts.googleapis.com/css2?family=Zhi+Mang+Xing&display=swap');
+
+.voice-layout-wrapper {
+    display: flex; flex-direction: column; align-items: center; width: 100%;
+    margin-top: 5vh; opacity: 0; transform: translateY(10px);
+    transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+#inner-voice-overlay.active .voice-layout-wrapper { opacity: 1; transform: translateY(0); }
+
+/* 打印机本体：压低亮度，充当背景 */
+.printer-machine {
+    width: 160px; background: #222; border-radius: 2px 2px 0 0;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.06); display: flex; flex-direction: column; align-items: center;
+}
+.printer-top-bar { width: 100%; color: #666; font-size: 8px; font-family: -apple-system, sans-serif; font-weight: 600; text-align: center; padding: 4px 0; letter-spacing: 3px; }
+.printer-slot { width: 140px; height: 4px; background: #000; box-shadow: inset 0 2px 4px rgba(0,0,0,0.8); }
+
+/* 下方的心声密码箱：白底细线，极度克制 */
+.mind-box {
+    width: 240px; background: #ffffff; border: 1px solid #eaeaea; border-radius: 4px;
+    padding: 25px 20px; margin-top: 25px; /* 与打印机隔开距离 */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+    display: flex; flex-direction: column;
+}
+
+.mind-box-title {
+    font-family: -apple-system, sans-serif; font-size: 10px; font-weight: 800;
+    color: #999; letter-spacing: 2px; text-align: center; margin-bottom: 25px;
+}
+
+/* 登录框样式 */
+.mind-input-group { display: flex; flex-direction: column; gap: 6px; }
+.mind-input-group label { font-size: 8px; font-weight: 800; color: #b3b3b3; letter-spacing: 1px; }
+.mind-input-group input {
+    width: 100%; border: none; border-bottom: 1px solid #d0d0d0; background: transparent;
+    padding: 6px 0; font-size: 12px; font-family: monospace; color: #111; font-weight: 600; outline: none; transition: border-color 0.3s;
+}
+.mind-input-group input:focus { border-bottom-color: #111; }
+.mind-input-group input::placeholder { color: #dcdcdc; }
+
+/* 登录按钮：无多余效果的死黑方块 */
+.mind-btn {
+    width: 100%; background: #111; color: #fff; text-align: center; padding: 12px 0;
+    font-size: 10px; font-weight: 800; letter-spacing: 2px; margin-top: 25px; cursor: pointer; transition: opacity 0.2s;
+}
+.mind-btn:active { opacity: 0.7; }
+
+/* 记住密码极简组件 */
+.mind-remember-row { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 12px; cursor: pointer; }
+.mind-checkbox { width: 10px; height: 10px; border: 1px solid #d0d0d0; transition: all 0.2s; position: relative; }
+.mind-checkbox.active { background: #111; border-color: #111; }
+.mind-remember-row span { font-size: 8px; font-weight: 800; color: #b3b3b3; letter-spacing: 1px; }
+
+/* 选择题组件 */
+.mind-quiz-q { font-size: 11px; font-weight: 700; color: #333; line-height: 1.6; margin-bottom: 20px; text-align: justify; word-break: break-all; }
+.mind-quiz-options { display: flex; flex-direction: column; gap: 10px; }
+.mind-quiz-opt { padding: 12px 10px; border: 1px solid #eaeaea; font-size: 10px; font-weight: 600; color: #555; cursor: pointer; transition: all 0.2s; background: #fafafa; }
+.mind-quiz-opt:active { background: #f0f0f0; border-color: #ccc; }
+
+/* 内容展示样式 */
+.mind-row { display: flex; flex-direction: column; margin-bottom: 12px; }
+.m-label { font-size: 8px; font-weight: 800; color: #b3b3b3; letter-spacing: 1.5px; margin-bottom: 4px; text-transform: uppercase; }
+.m-val { font-size: 12px; font-weight: 500; color: #333; line-height: 1.4; word-break: break-all; }
+.m-val.handwritten { font-family: 'Zhi Mang Xing', 'Kaiti', 'STKaiti', serif; font-size: 16px; color: #111; line-height: 1.6; letter-spacing: 1px; }
+
+/* 🌟 黑色报错小弹窗 (纯黑白，压低情绪，彻底去除阴影) */
+.mind-black-toast {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95);
+    background: #111; color: #fff; padding: 20px 25px; border-radius: 8px;
+    font-size: 12px; font-weight: 500; line-height: 1.6; text-align: left;
+    max-width: 280px; width: 85%; z-index: 4000; box-shadow: none;
+    opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.mind-black-toast.active { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+
+/* ==========================================
+   🌟 聊天加号底部菜单
+========================================== */
+.chat-plus-overlay {
+    position: fixed; /* 🌟 绝杀错位：绝对禁止使用 absolute，改为 fixed 将其死死钉在屏幕硬件视口上 */
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: transparent; z-index: 2010; display: none;
+}
+.chat-plus-overlay.active { display: block; }
+
+.chat-plus-menu {
+    position: fixed; /* 🌟 同上，钉死在屏幕底端 */
+    bottom: 0; left: 0; width: 100%; height: 260px;
+    background: #f5f5f5; border-top: 1px solid #e0e0e0; z-index: 2020;
+    transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    display: flex; flex-direction: column; padding: 20px 15px; box-sizing: border-box;
+}
+.chat-plus-menu.active { transform: translateY(0); }
+
+.chat-plus-menu {
+    position: absolute; bottom: 0; left: 0; width: 100%; height: 260px;
+    /* 🌟 改为 80% 透明纯白并加入高强度毛玻璃滤镜 */
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    /* 顶部边缘增加轻微反光边框 */
+    border-top: 1px solid rgba(255, 255, 255, 0.5); 
+    z-index: 2020;
+    transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    display: flex; flex-direction: column; padding: 20px 15px; box-sizing: border-box;
+}
+
+.chat-plus-menu.active { transform: translateY(0); }
+
+.plus-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px 10px;
+}
+.plus-item {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+}
+.plus-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 18px; 
+    /* 🌟 核心修改：默认凹陷的深邃液态腔体 */
+    background: rgba(245, 245, 245, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.02); /* 极度微弱的暗边勾勒物理凹槽 */
+    box-shadow: 
+        inset 4px 4px 8px rgba(0, 0, 0, 0.06), /* 内部左上的暗部投影 */
+        inset -4px -4px 8px rgba(255, 255, 255, 1), /* 内部右下的极致高光反光 */
+        0 1px 2px rgba(255, 255, 255, 0.8); /* 凹槽外圈的一点点受光亮边 */
+    color: #555; /* SVG 图标颜色稍微加深一点适应凹陷背景 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.plus-item:active .plus-icon {
+    transform: scale(0.94); /* 已经凹陷了，按压时只需要轻微缩放 */
+    background: rgba(235, 235, 235, 0.6);
+    box-shadow: 
+        inset 6px 6px 12px rgba(0, 0, 0, 0.1), 
+        inset -6px -6px 12px rgba(255, 255, 255, 1),
+        0 1px 1px rgba(255, 255, 255, 0.5);
+}
+
+.plus-item span { font-size: 11px; color: #666; font-weight: 500; }
+
+/* ==========================================
+   🌟 气泡长按菜单引擎 (微信同款动态悬浮磨砂窗)
+========================================== */
+.bubble-action-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: transparent; z-index: 2500; display: none;
+}
+.bubble-action-overlay.active { display: block; }
+
+.bubble-action-menu {
+    position: absolute;
+    /* 🌟 更轻盈的深色半透明，配合极高模糊度，让底部色彩透上来 */
+    background: rgba(35, 35, 35, 0.65); 
+    backdrop-filter: blur(25px) saturate(180%); 
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    border-radius: 14px; 
+    /* 🌟 增加极其微弱的内发光白边，模拟真实玻璃厚度 */
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.2);
+    display: flex; flex-direction: row; padding: 0 6px;
+    opacity: 0;
+    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    white-space: nowrap; z-index: 2510;
+}
+/* 🌟 核心：默认在气泡正上方（带底部居中三角箭头） */
+.bubble-action-menu.bottom-arrow {
+    transform: translate(-50%, calc(-100% + 15px)) scale(0.9);
+    transform-origin: center bottom;
+}
+.bubble-action-overlay.active .bubble-action-menu.bottom-arrow {
+    transform: translate(-50%, -100%) scale(1); opacity: 1; 
+}
+
+/* 🌟 核心：如果屏幕顶部越界，翻转挂载在气泡下方（带顶部居中三角箭头） */
+.bubble-action-menu.top-arrow {
+    transform: translate(-50%, -15px) scale(0.9);
+    transform-origin: center top;
+}
+.bubble-action-overlay.active .bubble-action-menu.top-arrow {
+    transform: translate(-50%, 0) scale(1); opacity: 1; 
+}
+
+/* 动态下箭头（跟随主体底色透明度） */
+.bubble-action-menu.bottom-arrow::after {
+    content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
+    border-width: 6px 6px 0 6px; border-style: solid; border-color: rgba(35, 35, 35, 0.65) transparent transparent transparent;
+}
+/* 动态上箭头 (防遮挡翻转) */
+.bubble-action-menu.top-arrow::after {
+    content: ''; position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+    border-width: 0 6px 6px 6px; border-style: solid; border-color: transparent transparent rgba(35, 35, 35, 0.65) transparent;
+}
+
+.b-action-item {
+    padding: 12px 14px; font-size: 13px; font-weight: 500; color: #fff;
+    cursor: pointer; transition: background 0.15s;
+    display: flex; align-items: center; justify-content: center; position: relative;
+}
+/* 🌟 增加微信同款项目之间的超细分割线 */
+.b-action-item:not(:last-child)::after {
+    content: ''; position: absolute; right: 0; top: 25%; height: 50%; width: 1px;
+    background: rgba(255,255,255,0.15);
+}
+.b-action-item:active { background: rgba(255,255,255,0.15); border-radius: 8px;}
+.b-action-item.danger { color: #ff453a; }
