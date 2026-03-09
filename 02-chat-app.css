@@ -952,38 +952,17 @@
 
 .mind-black-toast.active { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
 
-/* ==========================================
-   🌟 聊天加号底部菜单
-========================================== */
-.chat-plus-overlay {
-    position: fixed; /* 🌟 绝杀错位：绝对禁止使用 absolute，改为 fixed 将其死死钉在屏幕硬件视口上 */
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: transparent; z-index: 2010; display: none;
-}
-.chat-plus-overlay.active { display: block; }
-
 .chat-plus-menu {
-    position: fixed; /* 🌟 同上，钉死在屏幕底端 */
+    position: fixed; /* 🌟 绝杀错位：必须用 fixed，将其死死钉在屏幕视口，防止滚动漂移导致误触！ */
     bottom: 0; left: 0; width: 100%; height: 260px;
-    background: #f5f5f5; border-top: 1px solid #e0e0e0; z-index: 2020;
-    transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-    display: flex; flex-direction: column; padding: 20px 15px; box-sizing: border-box;
-}
-.chat-plus-menu.active { transform: translateY(0); }
-
-.chat-plus-menu {
-    position: absolute; bottom: 0; left: 0; width: 100%; height: 260px;
-    /* 🌟 改为 80% 透明纯白并加入高强度毛玻璃滤镜 */
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
-    /* 顶部边缘增加轻微反光边框 */
     border-top: 1px solid rgba(255, 255, 255, 0.5); 
     z-index: 2020;
     transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     display: flex; flex-direction: column; padding: 20px 15px; box-sizing: border-box;
 }
-
 .chat-plus-menu.active { transform: translateY(0); }
 
 .plus-grid {

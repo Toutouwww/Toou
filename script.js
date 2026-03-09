@@ -1882,18 +1882,20 @@ function renderMsgList() {
 // ==========================================
 let longPressTimer;
 let contactIdToDelete = null;
+let isLongPressTriggered = false; // 🌟 核心标记位：判断到底触发的是点击还是长按
 
 function handleLongPressStart(event, id) {
-    event.stopPropagation(); // 阻止点击事件穿透
+    // 🔥 绝杀修复：彻底移除 stopPropagation！让点击事件正常冒泡到底层卡片
+    isLongPressTriggered = false;
     
     // 开启 600 毫秒的长按定时器
     longPressTimer = setTimeout(() => {
+        isLongPressTriggered = true; // 超时确认是长按，点亮标记！
         promptDeleteContact(id);
     }, 600); 
 }
 
 function handleLongPressEnd(event) {
-    event.stopPropagation();
     // 手指松开或滑走时，立刻取消定时器
     if (longPressTimer) {
         clearTimeout(longPressTimer);
@@ -1919,9 +1921,16 @@ function closeChatRoom() {
 
 
 function openChatRoom(contactId) {
+    // 🌟 绝杀修复：如果是刚才因为长按松开手指而顺带触发的“点击”，直接物理拦截，禁止打开聊天室！
+    if (isLongPressTriggered) {
+        isLongPressTriggered = false;
+        return;
+    }
+    
     currentChatContactId = contactId;
     const contact = contactsList.find(c => c.id === contactId);
     if (!contact) return;
+
     
     document.getElementById('chatRoomTitle').innerText = contact.name; 
     
@@ -3704,30 +3713,44 @@ function showMindContent(contact) {
 // ==========================================
 // 🌟 左下角 + 号半屏菜单 (带有软键盘防撞车拦截)
 // ==========================================
+let chatPlusMenuTimer = null; // 🌟 新增防重入锁
+
 function toggleChatPlusMenu(event) {
     if (event) event.stopPropagation();
     const overlay = document.getElementById('chat-plus-overlay');
     const menu = document.getElementById('chat-plus-menu');
     const screen = document.getElementById('chatRoomScreen');
     
+    // 🌟 一旦发生新动作，立刻粉碎历史遗留的幽灵定时器！
+    if (chatPlusMenuTimer) {
+        clearTimeout(chatPlusMenuTimer);
+        chatPlusMenuTimer = null;
+    }
+
     if (menu.classList.contains('active')) {
         closeChatPlusMenu();
     } else {
         // 🌟 核心防错位：强制剥夺输入框焦点，收回软键盘
-        if (document.activeElement) {
+        if (document.activeElement && document.activeElement.id === 'chatRoomInput') {
             document.activeElement.blur(); 
         }
         
-        // 🌟 延时 100ms 弹出菜单，给原生系统的软键盘降落留出物理时间，完美解决卡空中的问题
-        setTimeout(() => {
+        // 🌟 延时弹出，并留存定时器ID随时可被撤销
+        chatPlusMenuTimer = setTimeout(() => {
             overlay.classList.add('active');
             menu.classList.add('active');
             screen.classList.add('plus-active');
-        }, 100);
+            chatPlusMenuTimer = null;
+        }, 150);
     }
 }
 
 function closeChatPlusMenu() {
+    // 🌟 绝对镇压：哪怕菜单还没弹出来，只要点了关闭，直接处死还在排队的弹出指令！
+    if (chatPlusMenuTimer) {
+        clearTimeout(chatPlusMenuTimer);
+        chatPlusMenuTimer = null;
+    }
     document.getElementById('chat-plus-overlay').classList.remove('active');
     document.getElementById('chat-plus-menu').classList.remove('active');
     document.getElementById('chatRoomScreen').classList.remove('plus-active');
