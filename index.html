@@ -780,13 +780,14 @@
                 <div class="settings-white-card">
                     <div class="settings-input-group" style="margin-bottom: 0;">
                         <label>上下文记忆与 Token 估算</label>
-                        <div class="token-stat-container">
+                         <div class="token-stat-container">
                             <div class="token-stat-row"><span>角色基础设定</span><span id="token-count-base">0</span></div>
                             <div class="token-stat-row"><span>世界书设定</span><span id="token-count-wb">0</span></div>
                             <div class="token-stat-row"><span>历史聊天记录</span><span id="token-count-chat">0</span></div>
-                            <div class="token-stat-row"><span>其他 (历史提纯记忆)</span><span id="token-count-other">0</span></div>
+                            <div class="token-stat-row"><span>其他</span><span id="token-count-other">0</span></div>
                             <div class="token-stat-row total"><span>预计总消耗 (单次)</span><span id="token-count-total">0</span></div>
                         </div>
+
                         
                         <div style="height: 1px; background: #eee; margin: 15px 0;"></div>
                         
@@ -1193,45 +1194,57 @@
                         <span class="m-label">THOUGHT.</span>
                         <span class="m-val handwritten" id="voice-thought">...</span>
                     </div>
+                </div>
+            </div> <!-- 🌟 核心：在此处提前闭合 mind-box，让后面的卡片独立出来 -->
 
-                    <!-- 🌟 新增：拓展的十年后评论区域 -->
-                    <div id="future-comment-section" class="future-box" style="display: none;">
-                        <!-- 极简黑色小药丸 UI -->
-                        <div class="future-black-pill" id="future-identity-pill">十年后的???正在评论</div>
-                        
-                        <!-- 拟态风音频播放器容器 -->
-                        <div class="audio-record-container" id="audio-record-container">
-                            
-                            <!-- 底层：音频波纹动画 -->
-                            <div class="waveform-layer" id="future-waveform">
-                                <!-- 生成多个错落有致的波纹柱 -->
-                                <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
-                                <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
-                                <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
-                                <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+            <!-- 🌟 新增：拓展的十年后评论区域 (放置在心声密码箱外侧正下方) -->
+            <div id="future-comment-section" class="future-section-wrapper" style="display: none;">
+                
+                <!-- 新增：简约日历长方形白卡片 -->
+                <div class="future-calendar-card">
+                    <div class="cal-item"><span class="cal-eng">SEVEN</span><div class="cal-line"></div><span class="cal-num">7</span></div>
+                    <div class="cal-item"><span class="cal-eng">EIGHT</span><div class="cal-line"></div><span class="cal-num">8</span></div>
+                    <div class="cal-item"><span class="cal-eng">NINE</span><div class="cal-line"></div><span class="cal-num">9</span></div>
+                    <div class="cal-item active"><span class="cal-eng">TEN</span><div class="cal-line"></div><span class="cal-num">10</span></div>
+                    <div class="cal-item"><span class="cal-eng">ELEVEN</span><div class="cal-line"></div><span class="cal-num">11</span></div>
+                    <div class="cal-item"><span class="cal-eng">TWELVE</span><div class="cal-line"></div><span class="cal-num">12</span></div>
+                </div>
+
+                <!-- 独立十年后卡片区 -->
+                <div class="future-content-card">
+                    <!-- 极简黑色小药丸 UI -->
+                    <div class="future-black-pill" id="future-identity-pill">十年后的???正在评论</div>
+                    
+                    <!-- 拟态风音频播放器容器 (内层保持不动) -->
+                    <div class="audio-record-container" id="audio-record-container">
+                        <!-- 底层：音频波纹动画 -->
+                        <div class="waveform-layer" id="future-waveform">
+                            <!-- 生成多个错落有致的波纹柱 -->
+                            <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+                            <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+                            <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+                            <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+                        </div>
+
+                        <!-- 中层：毛玻璃与模糊文字展示层 -->
+                        <div class="glass-text-layer" id="future-glass-layer">
+                            <div class="blur-text-mask" id="future-text-mask">
+                                <span id="future-comment-text"></span>
                             </div>
+                        </div>
 
-                            <!-- 中层：毛玻璃与模糊文字展示层 -->
-                            <div class="glass-text-layer" id="future-glass-layer">
-                                <div class="blur-text-mask" id="future-text-mask">
-                                    <span id="future-comment-text"></span>
-                                </div>
-                            </div>
-
-                            <!-- 顶层：播放/解封按钮 -->
-                            <div class="play-btn-wrapper" id="future-play-btn" onclick="playFutureVoice()">
-                                <!-- 极简播放三角图标 -->
-                                <svg viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M8 5v14l11-7z"/>
-                                </svg>
-                            </div>
-
+                        <!-- 顶层：播放/解封按钮 -->
+                        <div class="play-btn-wrapper" id="future-play-btn" onclick="playFutureVoice()">
+                            <!-- 极简播放三角图标 -->
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
                         </div>
                     </div>
+                </div> <!-- 结束 future-content-card -->
+                
+            </div> <!-- 结束 future-comment-section -->
 
-
-
-            </div>
         </div>
     </div>
 

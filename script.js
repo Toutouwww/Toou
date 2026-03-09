@@ -3654,8 +3654,13 @@ function openInnerVoice() {
     document.getElementById('mind-quiz-view').style.display = 'none';
     document.getElementById('mind-content-view').style.display = 'none';
 
+    // 🌟 核心拦截：提前强制隐藏十年后区域，以免在输入密码时泄露
+    const futureSection = document.getElementById('future-comment-section');
+    if (futureSection) futureSection.style.display = 'none';
+
     document.getElementById('inner-voice-overlay').classList.add('active');
 }
+
 
 function closeInnerVoice(event) {
     if (event && (event.target.id === 'inner-voice-overlay' || event.currentTarget.id === 'inner-voice-overlay')) {
@@ -3734,9 +3739,9 @@ function showMindContent(contact) {
     const futureSection = document.getElementById('future-comment-section');
     
     if (contact.innerVoice.future && contact.innerVoice.future.content) {
-        futureSection.style.display = 'block';
+        futureSection.style.display = 'flex'; // ✨ 变更为 flex，彻底适配新的独立卡片群排版
         document.getElementById('future-identity-pill').innerText = `十年后的${contact.innerVoice.future.identity}正在评论`;
-        document.getElementById('future-comment-text').innerText = contact.innerVoice.future.content;
+
         
         // 🌟 初始化/重置所有动画状态，保证每次打开都是模糊待点击状态
         const playBtn = document.getElementById('future-play-btn');
@@ -3751,26 +3756,12 @@ function showMindContent(contact) {
         futureSection.style.display = 'none';
     }
 
+    // 🌟 恢复正确的显示逻辑：隐藏登录框，展示心声结果！并补回大括号
     document.getElementById('mind-login-view').style.display = 'none';
     document.getElementById('mind-quiz-view').style.display = 'none';
     document.getElementById('mind-content-view').style.display = 'block';
 }
 
-// 🌟 新增：播放十年后的语音（解封动画调度器）
-function playFutureVoice() {
-    const playBtn = document.getElementById('future-play-btn');
-    const waveform = document.getElementById('future-waveform');
-    const glassLayer = document.getElementById('future-glass-layer');
-    
-    // 1. 播放按钮炸开消失
-    if (playBtn) playBtn.classList.add('hidden-anim');
-    
-    // 2. 略微延时等待按钮消失的视觉反馈后，启动波纹跳动和文字浮现的过渡动画
-    setTimeout(() => {
-        if (waveform) waveform.classList.add('playing');
-        if (glassLayer) glassLayer.classList.add('unlocked');
-    }, 200); 
-}
 
 
 // ==========================================
