@@ -1181,6 +1181,8 @@ function uploadLocalAvatar(input) {
 
 let profilePlans = [];
 let currentActivePlanId = 'default';
+let currentTempPlan = {}; // 🌟 修复：补充缺失的全局变量声明，彻底根除读取未定义变量导致的“假死”
+
 
 // 1. 纯净版保存：绝不强塞占位符文字，空的就是空的！
 function saveInlineInput(targetId, val) {
@@ -2703,7 +2705,7 @@ ${wbStr}
     </quiz>
     <future>
     <identity>十年后你现在的身份（请根据当前聊天进展随机或推演设定，例如：交往五年的男友 / 许久不联系的陌生人 / 依然是朋友 / 前任 等）</identity>
-    <content>想象一下：十年后的你，在收拾屋子时偶然翻到了老旧手机里的【当前这一轮聊天记录】。请写出你在十年后看到聊天记录的根据人物性格来选择，是感慨还是调侃或其他语气情况等，想对用户说的话。字数30-60字左右，必须极具跨越十年。</content>
+    <content>想象一下：十年后的你，在收拾屋子时偶然翻到了老旧手机里的【当前这一轮聊天记录】。请写出你在十年后看到聊天记录的根据人物性格来选择，是感慨还是调侃或其他语气情况等，保持成年人的社交距离感或真实亲密感，去写想对user说的话。字数30-60字左右，必须极具跨越十年。</content>
     </future>
     </voice>`;
 
@@ -3735,6 +3737,16 @@ function showMindContent(contact) {
         futureSection.style.display = 'block';
         document.getElementById('future-identity-pill').innerText = `十年后的${contact.innerVoice.future.identity}正在评论`;
         document.getElementById('future-comment-text').innerText = contact.innerVoice.future.content;
+        
+        // 🌟 初始化/重置所有动画状态，保证每次打开都是模糊待点击状态
+        const playBtn = document.getElementById('future-play-btn');
+        const waveform = document.getElementById('future-waveform');
+        const glassLayer = document.getElementById('future-glass-layer');
+        
+        if (playBtn) playBtn.classList.remove('hidden-anim');
+        if (waveform) waveform.classList.remove('playing');
+        if (glassLayer) glassLayer.classList.remove('unlocked');
+        
     } else {
         futureSection.style.display = 'none';
     }
@@ -3743,6 +3755,23 @@ function showMindContent(contact) {
     document.getElementById('mind-quiz-view').style.display = 'none';
     document.getElementById('mind-content-view').style.display = 'block';
 }
+
+// 🌟 新增：播放十年后的语音（解封动画调度器）
+function playFutureVoice() {
+    const playBtn = document.getElementById('future-play-btn');
+    const waveform = document.getElementById('future-waveform');
+    const glassLayer = document.getElementById('future-glass-layer');
+    
+    // 1. 播放按钮炸开消失
+    if (playBtn) playBtn.classList.add('hidden-anim');
+    
+    // 2. 略微延时等待按钮消失的视觉反馈后，启动波纹跳动和文字浮现的过渡动画
+    setTimeout(() => {
+        if (waveform) waveform.classList.add('playing');
+        if (glassLayer) glassLayer.classList.add('unlocked');
+    }, 200); 
+}
+
 
 // ==========================================
 // 🌟 左下角 + 号半屏菜单 (带有软键盘防撞车拦截)

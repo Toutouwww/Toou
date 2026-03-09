@@ -1195,11 +1195,40 @@
                     </div>
 
                     <!-- 🌟 新增：拓展的十年后评论区域 -->
-                    <div id="future-comment-section" style="margin-top: 25px; padding-top: 20px; border-top: 1px dashed #eaeaea; position: relative; display: none;">
-                        <div class="future-black-pill" id="future-identity-pill">十年后的某某身份正在评论</div>
-                        <div class="future-comment-text" id="future-comment-text">...</div>
+                    <div id="future-comment-section" class="future-box" style="display: none;">
+                        <!-- 极简黑色小药丸 UI -->
+                        <div class="future-black-pill" id="future-identity-pill">十年后的???正在评论</div>
+                        
+                        <!-- 拟态风音频播放器容器 -->
+                        <div class="audio-record-container" id="audio-record-container">
+                            
+                            <!-- 底层：音频波纹动画 -->
+                            <div class="waveform-layer" id="future-waveform">
+                                <!-- 生成多个错落有致的波纹柱 -->
+                                <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+                                <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+                                <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+                                <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+                            </div>
+
+                            <!-- 中层：毛玻璃与模糊文字展示层 -->
+                            <div class="glass-text-layer" id="future-glass-layer">
+                                <div class="blur-text-mask" id="future-text-mask">
+                                    <span id="future-comment-text"></span>
+                                </div>
+                            </div>
+
+                            <!-- 顶层：播放/解封按钮 -->
+                            <div class="play-btn-wrapper" id="future-play-btn" onclick="playFutureVoice()">
+                                <!-- 极简播放三角图标 -->
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M8 5v14l11-7z"/>
+                                </svg>
+                            </div>
+
+                        </div>
                     </div>
-                </div>
+
 
 
             </div>
