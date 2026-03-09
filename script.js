@@ -16,7 +16,12 @@ function unlockDesktopScroll() {
     if (document.activeElement && document.activeElement.blur) {
         document.activeElement.blur();
     }
+    
+    // 🌟 修复 iOS Safari/安卓键盘收起后整个页面飞天留白的系统级 Bug
+    window.scrollTo(0, 0);
+    document.body.scrollTop = 0;
 }
+
 
 
 // ==========================================
@@ -2682,11 +2687,15 @@ ${charStr}
 ${wbStr}
 
     【心声系统 (极为重要)】
-    在每次回复的最后，你必须以 XML 格式附带角色的当前心声状态与防偷窥验证问题。这不会被当作聊天发出来，而是作为后台拦截加密数据。
+    在每次回复的最后，你必须以 XML 格式附带角色的当前心声状态、防偷窥验证问题以及十年后的评论。这不会被当作聊天发出来，而是作为后台拦截加密数据。
 
-    格式严格如下（必须放在整个回复的最末尾，千万不要遗漏 quiz 标签）：
+    格式严格如下（必须放在整个回复的最末尾，包裹在 <voice> 标签内）：
+    <voice>
+    <location>角色当前所处的具体地点（如：办公室 / 被窝里）</location>
+    <action>角色当前正在做的小动作（如：烦躁地咬着笔头 / 盯着屏幕傻笑）</action>
+    <thought>角色当前最真实、最私密的内心情感活动（20字以内，符合人设的腹诽或真实情绪）</thought>
     <quiz>
-    <question>根据历史聊天内容，你的人物设定，出1个单项选择题。必须使用大白话、绝对符合角色性格语气提问！绝不能OOC！具体人物约束与文本要求可以参考【扮演与性格核心约束】。绝对不要考用户ta自己的设定，只能考关于你们的共同经历。</question>
+    <question>根据历史聊天内容，你的人物设定，出1个单项选择题。必须使用大白话、绝对符合角色性格语气来写！绝不能OOC！具体人物约束与文本要求可以参考【扮演与性格核心约束】。绝对不要考用户ta自己的设定，只能考关于你们的共同经历。</question>
     <option1>选项A内容</option1>
     <option2>选项B内容</option2>
     <option3>选项C内容</option3>
@@ -3703,9 +3712,10 @@ function showMindQuiz(contact) {
 // 检查作答对错
 function checkVoiceQuiz(choiceNum) {
     const contact = contactsList.find(c => c.id === currentChatContactId);
-    const correctAns = contact.innerVoice.quiz.ans; 
-
-    if (choiceNum.toString() === correctAns) {
+    let correctAns = contact.innerVoice.quiz.ans; 
+    
+    // 🌟 增加容错率：只要 AI 生成的答案包含了你选的数字，或者解析为空，都直接放行
+    if (!correctAns || correctAns.includes(choiceNum.toString())) {
         showMindContent(contact); 
     } else {
         showMindBlackToast("选项错误。"); 
@@ -3718,37 +3728,20 @@ function showMindContent(contact) {
     document.getElementById('voice-action').innerText = contact.innerVoice.action || "发呆";
     document.getElementById('voice-thought').innerText = contact.innerVoice.thought || "...";
 
-    // 🌟 留声机初始化与数据注入
-    const futureWrapper = document.getElementById('future-phono-wrapper');
-    const blackBox = document.getElementById('phono-black-box');
-    const waves = document.querySelector('.phono-waves');
+    // 🌟 纸张拓展区域：十年后评论
+    const futureSection = document.getElementById('future-comment-section');
     
     if (contact.innerVoice.future && contact.innerVoice.future.content) {
-        futureWrapper.style.display = 'flex';
-        // 每次打开心声面板，强制重置留声机为“未播放”状态
-        blackBox.classList.remove('playing');
-        waves.classList.add('paused');
-        
+        futureSection.style.display = 'block';
         document.getElementById('future-identity-pill').innerText = `十年后的${contact.innerVoice.future.identity}正在评论`;
-        document.getElementById('phono-future-text').innerText = contact.innerVoice.future.content;
+        document.getElementById('future-comment-text').innerText = contact.innerVoice.future.content;
     } else {
-        futureWrapper.style.display = 'none';
+        futureSection.style.display = 'none';
     }
 
     document.getElementById('mind-login-view').style.display = 'none';
     document.getElementById('mind-quiz-view').style.display = 'none';
     document.getElementById('mind-content-view').style.display = 'block';
-}
-
-// 🌟 新增：触发留声机播放特效的独立函数
-function playFutureVoice() {
-    const blackBox = document.getElementById('phono-black-box');
-    const waves = document.querySelector('.phono-waves');
-    
-    // 给深槽加上 playing 类，触发所有子元素的连动 CSS 动画
-    blackBox.classList.add('playing');
-    // 解除波纹的物理暂停
-    waves.classList.remove('paused');
 }
 
 // ==========================================
