@@ -195,7 +195,6 @@
 /* 🌟 3D 玻璃罩子头像特效 (复用给所有卡片) */
 .msg-avatar-wrapper {
     position: relative; width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; overflow: hidden;
-    /* 核心优化：底部深色立体投影，不向左右乱扩散，专注下方扎实的立体悬浮感 */
     box-shadow: 0 6px 10px -2px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1); 
 }
 
@@ -203,16 +202,9 @@
 
 .msg-avatar-glass {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%;
-    /* 强烈的左上角光源直射高光 (无阴影纯净区) */
-    background: radial-gradient(circle at 28% 28%, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0) 45%);
-    /* 极其复杂的玻璃厚度折射光影组合 */
-    box-shadow: 
-        /* 1. 左下到右下的厚重深色内阴影 (表现底座厚度) */
-        inset 0 -6px 10px -2px rgba(0, 0, 0, 0.45), 
-        /* 2. 右上角的弧形暗角内阴影 (表现玻璃边缘折射) */
-        inset -5px 5px 8px -3px rgba(0, 0, 0, 0.25), 
-        /* 3. 左上角边缘的高光反射圈 (绝对无阴影，极致透亮) */
-        inset 2px 2px 5px rgba(255, 255, 255, 0.9);
+    /* 恢复极其清透的高光与极弱的暗边阴影 */
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 45%);
+    box-shadow: inset -4px -4px 8px rgba(0,0,0,0.1), inset 2px 2px 6px rgba(255,255,255,0.7);
     pointer-events: none; 
 }
 
