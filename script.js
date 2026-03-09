@@ -2658,7 +2658,7 @@ function buildSystemPrompt(contact) {
 【特别强调】：严禁因为当前时间较晚而催促用户睡觉或休息，除非用户主动提及，否则不要在这个话题上做文章，这会破坏聊天兴致。
 
 2. 动态语言通量与情绪：
-- 低气压/生闷气/疲惫：回复极简、敷衍、意兴阑珊，甚至长时间不回（意念回复），绝对不要强行解释“我生气了”。不允许去物化、打压。
+- 低气压/生闷气/疲惫：回复极简、敷衍、意兴阑珊，甚至长时间不回（意念回复），绝对不要强行解释“我生气了”。不允许去物化、打压。角色要根据人物设定使用好标点符号。
 - 高亢/分享欲/高兴：话多、语速快、可能连续发送多条短消息（刷屏）、甚至出现逻辑跳跃。
 - 高智商/掌控者：通过反问、简短的肯定/否定、省略号或直接无视对方话题开启新话题来掌控节奏，而非通过怒吼。
 - 情绪失控：根据人设背景使用具有生活气息的粗口、阴阳怪气或直接冷暴力，严禁复读机式脏话。
@@ -2670,7 +2670,7 @@ function buildSystemPrompt(contact) {
 
 【最终输出格式严格协议】
 严禁返回纯文本，严禁包含任何解释性文字。
-(1) 气泡切割原则：只要话题转换、语气停顿或句子超过30个字，就必须切分成一个新的气泡！为了模拟连发消息的压迫感或生动感，必须使用 ||| 作为消息分割符。例如：干嘛呢|||怎么不理我[生气]|||再不说话我挂了啊
+(1) 气泡切割原则：只要话题转换、语气停顿或句子超过30个字，就必须切分成一个新的气泡！为了模拟连发消息的压迫感或生动感，必须使用 ||| 作为消息分割符(如果出现多余符号你将被扣除1000美金，要严格输出好格式)。例如：干嘛呢|||怎么不理我[生气]|||再不说话我挂了啊
 (2) 严禁长难句：绝对禁止发送超过3行的单一气泡。
 (3) 避免无意义的连续刷屏，以对话的自然流动感为准。
 
@@ -2685,17 +2685,17 @@ ${wbStr}
     在每次回复的最后，你必须以 XML 格式附带角色的当前心声状态与防偷窥验证问题。这不会被当作聊天发出来，而是作为后台拦截加密数据。
 
     格式严格如下（必须放在整个回复的最末尾，千万不要遗漏 quiz 标签）：
-    <voice>
-    <location>当前所在地点，如：公司会议室/家里沙发上</location>
-    <action>角色正在干什么，如：正在无聊地转笔/看着手机屏幕傻笑</action>
-    <thought>角色心里真实的活动。必须在20个字以内完整写完，绝不允许使用省略号（...）显得话没说完！必须是一句干脆完整、绝对符合人物自身性格和当前情绪的内心独白。</thought>
     <quiz>
-    <question>根据历史聊天内容，你的人物设定，出1个单项选择题。必须使用大白话、绝对符合角色性格语气提问！绝不能OOC！具体人物约束与文本要求可以参考【扮演与性格核心约束】。绝对不要考用户ta自己的设定，只能考关于你自己的设定或你们的共同经历。</question>
+    <question>根据历史聊天内容，你的人物设定，出1个单项选择题。必须使用大白话、绝对符合角色性格语气提问！绝不能OOC！具体人物约束与文本要求可以参考【扮演与性格核心约束】。绝对不要考用户ta自己的设定，只能考关于你们的共同经历。</question>
     <option1>选项A内容</option1>
     <option2>选项B内容</option2>
     <option3>选项C内容</option3>
     <answer>正确的选项序号，只填数字（如: 1 或 2 或 3）</answer>
     </quiz>
+    <future>
+    <identity>十年后你现在的身份（请根据当前聊天进展随机或推演设定，例如：交往五年的男友 / 许久不联系的陌生人 / 依然是朋友 / 前任 等）</identity>
+    <content>想象一下：十年后的你，在收拾屋子时偶然翻到了老旧手机里的【当前这一轮聊天记录】。请写出你在十年后看到聊天记录的根据人物性格来选择，是感慨还是调侃或其他语气情况等，想对用户说的话。字数30-60字左右，必须极具跨越十年。</content>
+    </future>
     </voice>`;
 
 
@@ -3529,7 +3529,7 @@ function parseAndSaveVoice(xmlString, contact) {
     contact.innerVoice.thought = getTag('thought').replace(/\n/g, '').trim();
     
     // 解析大模型出的防偷窥选择题
-    const quizTagMatch = xmlString.match(/<quiz>([\s\S]*?)<\/quiz>/i);
+     const quizTagMatch = xmlString.match(/<quiz>([\s\S]*?)<\/quiz>/i);
     if (quizTagMatch) {
         let qStr = quizTagMatch[1];
         contact.innerVoice.quiz = {
@@ -3543,7 +3543,20 @@ function parseAndSaveVoice(xmlString, contact) {
         contact.innerVoice.quiz = null; 
     }
 
+    // 🌟 解析十年留声机未来数据
+    const futureTagMatch = xmlString.match(/<future>([\s\S]*?)<\/future>/i);
+    if (futureTagMatch) {
+        let fStr = futureTagMatch[1];
+        contact.innerVoice.future = {
+            identity: getTag('identity', fStr),
+            content: getTag('content', fStr)
+        };
+    } else {
+        contact.innerVoice.future = null;
+    }
+
     // 接收新数据时触发重置解锁逻辑，并清空之前的惩罚计数
+
     contact.innerVoice.locked = false;
     contact.innerVoice.errorCount = 0;
     
@@ -3705,9 +3718,37 @@ function showMindContent(contact) {
     document.getElementById('voice-action').innerText = contact.innerVoice.action || "发呆";
     document.getElementById('voice-thought').innerText = contact.innerVoice.thought || "...";
 
+    // 🌟 留声机初始化与数据注入
+    const futureWrapper = document.getElementById('future-phono-wrapper');
+    const blackBox = document.getElementById('phono-black-box');
+    const waves = document.querySelector('.phono-waves');
+    
+    if (contact.innerVoice.future && contact.innerVoice.future.content) {
+        futureWrapper.style.display = 'flex';
+        // 每次打开心声面板，强制重置留声机为“未播放”状态
+        blackBox.classList.remove('playing');
+        waves.classList.add('paused');
+        
+        document.getElementById('future-identity-pill').innerText = `十年后的${contact.innerVoice.future.identity}正在评论`;
+        document.getElementById('phono-future-text').innerText = contact.innerVoice.future.content;
+    } else {
+        futureWrapper.style.display = 'none';
+    }
+
     document.getElementById('mind-login-view').style.display = 'none';
     document.getElementById('mind-quiz-view').style.display = 'none';
     document.getElementById('mind-content-view').style.display = 'block';
+}
+
+// 🌟 新增：触发留声机播放特效的独立函数
+function playFutureVoice() {
+    const blackBox = document.getElementById('phono-black-box');
+    const waves = document.querySelector('.phono-waves');
+    
+    // 给深槽加上 playing 类，触发所有子元素的连动 CSS 动画
+    blackBox.classList.add('playing');
+    // 解除波纹的物理暂停
+    waves.classList.remove('paused');
 }
 
 // ==========================================
