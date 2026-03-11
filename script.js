@@ -3819,17 +3819,11 @@ function openInnerVoice() {
     const futureSection = document.getElementById('future-comment-section');
     if (futureSection) futureSection.style.display = 'none';
 
-    document.getElementById('inner-voice-overlay').classList.add('active');
+     document.getElementById('inner-voice-overlay').classList.add('active');
     
-    // 🌟 延迟 800ms 自动模拟点击验证，顺滑进入选择题或心声界面（给予用户视觉停留时间感知密码的自动输入）
-    setTimeout(() => {
-        const loginView = document.getElementById('mind-login-view');
-        // 确保是在登录界面且确实展开了才自动进入
-        if (loginView && loginView.style.display !== 'none') {
-            verifyVoiceLogin();
-        }
-    }, 800);
+    // 🌟 已移除自动触发解锁逻辑，现在仅填入密码，等待用户手动点击 ACCESS 按钮验证
 }
+
 
 
 function closeInnerVoice(event) {
@@ -3840,10 +3834,8 @@ function closeInnerVoice(event) {
 }
 
 // 🌟 补全十年后音频解封播放逻辑与链路动画
-let waveInterval = null;
 function playFutureVoice() {
     const playBtn = document.getElementById('future-play-btn');
-    const waveform = document.getElementById('future-waveform');
     const glassLayer = document.getElementById('future-glass-layer');
     const textEl = document.getElementById('future-comment-text');
 
@@ -3854,28 +3846,14 @@ function playFutureVoice() {
     // 填入十年后的留言文字
     textEl.innerText = contact.innerVoice.future.content;
 
-    // 动画链路：隐藏按钮 -> 解除毛玻璃 -> 开启波纹跳动
+    // 动画链路：仅隐藏按钮 -> 解除毛玻璃
     playBtn.classList.add('hidden-anim');
     glassLayer.classList.add('unlocked');
-    waveform.classList.add('playing');
 
-    if (waveInterval) clearInterval(waveInterval);
-    const bars = document.querySelectorAll('.wave-bar');
-    waveInterval = setInterval(() => {
-        bars.forEach(bar => {
-            const h = Math.random() * 40 + 10;
-            bar.style.height = `${h}px`;
-        });
-    }, 150);
-
-    // 假设播放时间根据文字长度而定
+    // 假设展示时间根据文字长度而定
     const readTime = Math.max(3000, contact.innerVoice.future.content.length * 150);
     setTimeout(() => {
-        clearInterval(waveInterval);
-        bars.forEach(bar => bar.style.height = '10px'); // 动画停息
-        waveform.classList.remove('playing');
-        
-        // 播放结束，毛玻璃重新盖上保护隐私
+        // 展示结束，毛玻璃重新盖上保护隐私
         setTimeout(() => {
             glassLayer.classList.remove('unlocked');
             playBtn.classList.remove('hidden-anim');
@@ -3961,11 +3939,9 @@ function showMindContent(contact) {
         
         // 🌟 初始化/重置所有动画状态，保证每次打开都是模糊待点击状态
         const playBtn = document.getElementById('future-play-btn');
-        const waveform = document.getElementById('future-waveform');
         const glassLayer = document.getElementById('future-glass-layer');
         
         if (playBtn) playBtn.classList.remove('hidden-anim');
-        if (waveform) waveform.classList.remove('playing');
         if (glassLayer) glassLayer.classList.remove('unlocked');
         
     } else {
