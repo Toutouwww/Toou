@@ -537,6 +537,14 @@
                 </div>
             </div>
 
+            <!-- 🌟 新增：多选模式专属顶部导航栏 (默认隐藏) -->
+            <div id="multiSelectNavbar" class="multi-select-navbar">
+                <div class="ms-nav-btn ms-nav-cancel" onclick="exitMultiSelectMode()">取消</div>
+                <div class="ms-nav-title" id="msTitle">已选择 0 条</div>
+                <div class="ms-nav-btn ms-nav-delete disabled" id="msDeleteBtn" onclick="deleteSelectedMessages()">删除</div>
+            </div>
+
+
             <!-- 第二层：世界书弹窗般的弧度浅灰垫底层 -->
             <div class="chat-room-gray-layer">
                 
@@ -736,9 +744,9 @@
                         </div>
                     </div>
                     
-                    <!-- 右侧：玻璃质感凹陷长条白卡片 -->
+                    <!-- 右侧：长条形黑色无阴影胶囊按钮 -->
                     <div class="custom-bubble-btn" onclick="openCustomBubbleMenu()">
-                        <span>自</span><span>定</span><span>义</span><span>气</span><span>泡</span>
+                        <span>C</span><span>U</span><span>S</span><span>T</span><span>O</span><span>M</span>
                     </div>
                 </div>
 
@@ -1294,12 +1302,13 @@
     <div class="bubble-action-overlay" id="bubble-action-overlay" onclick="closeBubbleMenu()">
         <div class="bubble-action-menu" id="bubble-action-menu" onclick="event.stopPropagation()">
             <div class="b-action-item" onclick="bubbleAction('copy')">复制</div>
-            <div class="b-action-item" onclick="bubbleAction('reply')">引用</div>
+            <div class="b-action-item" id="b-action-reply" onclick="bubbleAction('reply')">引用</div>
             <div class="b-action-item" onclick="bubbleAction('translate')">翻译</div>
             <div class="b-action-item" onclick="bubbleAction('multi')">多选</div>
             <div class="b-action-item" id="b-action-recall" onclick="bubbleAction('recall')">撤回</div>
             <div class="b-action-item danger" onclick="bubbleAction('delete')">删除</div>
         </div>
     </div>
+
 </body>
 </html>

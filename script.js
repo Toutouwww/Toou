@@ -1661,16 +1661,32 @@ function confirmNcCustomPrompt() {
             }
             let currentGrp = activeGroupEditMode === 'nc' ? ncSelectedGroup : csSelectedGroup;
             document.getElementById('nc-current-group-display-init').innerText = currentGrp;
-            renderNcGroupList();
+
+        } else if (ncCurrentPromptTarget === 'action_multi_delete') {
+            // 🌟 完美接管的多选批量删除功能 (再无结构错位)
+            const contact = contactsList.find(c => c.id === currentChatContactId);
+            if (contact) {
+                contact.messages = contact.messages.filter(msg => !selectedMsgIndices.has(msg.id));
+                if (contact.messages.length > 0) {
+                    const lastMsg = contact.messages[contact.messages.length - 1];
+                    contact.sign = lastMsg.text.replace(/\n/g, ' ');
+                    contact.time = lastMsg.time;
+                } else {
+                    contact.sign = "";
+                }
+                saveToDB('contacts_data', JSON.stringify(contactsList));
+                renderMsgList();
+                openChatRoom(currentChatContactId); 
+                exitMultiSelectMode();
+                showToast('已批量删除');
+            }
 
         } else if (ncCurrentPromptTarget === 'action_delete_contact') {
-            // 🌟 新增：处理真正的删除联系人逻辑
+            // 🌟 删除角色联系人逻辑
             contactsList = contactsList.filter(c => c.id !== contactIdToDelete);
-            saveToDB('contacts_data', JSON.stringify(contactsList)); // 保存到数据库
-            renderMsgList(); // 重新渲染列表让它消失
+            saveToDB('contacts_data', JSON.stringify(contactsList));
+            renderMsgList();
             showToast('角色已彻底删除');
-            
-            // 🌟 核心：如果是从设置页深处删除的，智能退回桌面，关掉所有内页
             if (currentChatContactId === contactIdToDelete) {
                 closeChatSettings();
                 closeChatRoom();
@@ -1679,6 +1695,7 @@ function confirmNcCustomPrompt() {
         }
 
     } else {
+        // 普通输入框确认逻辑
         const val = document.getElementById('ncPromptInput').value.trim();
         if (ncCurrentPromptTarget === 'nc-avatar-url') {
             if(val !== "") document.getElementById('img-nc-avatar').src = val;
@@ -1689,15 +1706,14 @@ function confirmNcCustomPrompt() {
             }
         } else if (ncCurrentPromptTarget) {
             const el = document.getElementById(ncCurrentPromptTarget);
-            // 针对真名和备注给出不同的默认兜底文字
             let defaultText = '新角色';
             if (ncCurrentPromptTarget === 'text-nc-remark') defaultText = '点击设置备注';
-            
             if (el) el.innerText = val === "" ? defaultText : val;
         }
     }
     closeNcCustomPrompt();
 }
+
 
 // 核心重写：保存新建单人（大字显示备注或真名，下方灰字留白给未来的聊天记录）
 function saveNewContact() {
@@ -1991,20 +2007,16 @@ function openChatRoom(contactId) {
             for (let i = start; i < end; i++) {
                 let msg = allMsgs[i];
                 
-                // 🌟 添加剧本已归档视觉分割线，且这些文字绝对不发给AI
                 if (contact.lastSummaryMsgIndex && i === contact.lastSummaryMsgIndex) {
                     htmlStr += `<div style="text-align:center; margin: 15px 0; font-size:10px; color:#ccc; letter-spacing:1px; font-weight:bold;">—— 以上消息已生成记忆总结并折叠归档 ——</div>`;
                 }
-                
                 const safeText = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
-                
-                // 🌟 新增长按事件触控群
                 let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msg.id}', '${msg.sender}', '${msg.time}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msg.id}', '${msg.sender}', '${msg.time}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
 
                 if (msg.sender === 'user') {
-                    htmlStr += `<div class="preview-msg-row right" ${touchEvents}><div class="Toutou-TT user"><span class="bubble-time">${msg.time}</span><div class="content">${safeText}</div></div><img src="${myAvatar}" class="preview-avatar"></div>`;
+                    htmlStr += `<div class="preview-msg-row right" id="row-${msg.id}" onclick="handleMsgClickInMultiMode('${msg.id}', this)" ${touchEvents}><div class="msg-checkbox"></div><div class="Toutou-TT user"><span class="bubble-time">${msg.time}</span><div class="content">${safeText}</div></div><img src="${myAvatar}" class="preview-avatar"></div>`;
                 } else {
-                    htmlStr += `<div class="preview-msg-row left" ${touchEvents}><img src="${charAvatar}" class="preview-avatar"><div class="Toutou-TT char"><div class="content">${safeText}</div><span class="bubble-time">${msg.time}</span></div></div>`;
+                    htmlStr += `<div class="preview-msg-row left" id="row-${msg.id}" onclick="handleMsgClickInMultiMode('${msg.id}', this)" ${touchEvents}><img src="${charAvatar}" class="preview-avatar"><div class="Toutou-TT char"><div class="content">${safeText}</div><span class="bubble-time">${msg.time}</span></div><div class="msg-checkbox"></div></div>`;
                 }
             }
             if (prepend) {
@@ -2499,15 +2511,15 @@ function sendChatMessage() {
 
     // 3. 渲染到聊天室屏幕上
     const chatBody = document.getElementById('chatRoomBody');
-    // 获取“我的”资料头像（从侧边栏读取）
     const mySidebarAvatar = document.getElementById('img-sidebar-avatar');
     const myAvatar = mySidebarAvatar ? mySidebarAvatar.src : 'https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg';
-    
-    // 防注入 & 将换行符转换为真实换行
     const safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+    const msgId = contact.messages[contact.messages.length - 1].id;
+    let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
     
     const msgHtml = `
-    <div class="preview-msg-row right">
+    <div class="preview-msg-row right" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
+        <div class="msg-checkbox"></div>
         <div class="Toutou-TT user">
             <span class="bubble-time">${timeStr}</span>
             <div class="content">${safeText}</div>
@@ -2516,6 +2528,7 @@ function sendChatMessage() {
     </div>
     `;
     chatBody.insertAdjacentHTML('beforeend', msgHtml);
+
     
     // 智能滚到底部查看最新发出的消息
     setTimeout(() => {
@@ -2550,26 +2563,6 @@ function handleAiResponse(replyText, contact) {
     
     const charAvatar = contact.avatar; 
     const bubbles = cleanReplyText.split('|||').map(t => t.trim()).filter(t => t);
-    
-    if (!contact.messages) contact.messages = [];
-    
-    bubbles.forEach((text, idx) => {
-        contact.messages.push({
-            id: 'msg_' + Date.now() + '_' + idx, sender: 'char', text: text, time: timeStr
-        });
-        
-        const safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
-        const msgHtml = `
-        <div class="preview-msg-row left">
-            <img src="${charAvatar}" class="preview-avatar">
-            <div class="Toutou-TT char">
-                <div class="content">${safeText}</div>
-                <span class="bubble-time">${timeStr}</span>
-            </div>
-        </div>
-        `;
-        chatBody.insertAdjacentHTML('beforeend', msgHtml);
-    });
 
     if (bubbles.length > 0) {
         contact.sign = bubbles[bubbles.length - 1].replace(/\n/g, ' ');
@@ -2843,6 +2836,7 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
     }
 
     // 🔧 创建全新左侧气泡，初始状态为 "…"
+     let rowList = []; // 🌟 追踪流式打字时的临时气泡
     function spawnBubble() {
         currentBubbleText = '';
         bubbleIsWaiting = true;
@@ -2854,11 +2848,14 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                 <div class="content stream-waiting">…</div>
                 <span class="bubble-time">${timeStr}</span>
             </div>
+            <div class="msg-checkbox"></div>
         `;
         chatBody.appendChild(row);
         currentBubbleEl = row.querySelector('.content');
+        rowList.push(row);
         scrollToBottom();
     }
+
 
     // 🔧 实时渲染气泡文字
     function paintBubble(text) {
@@ -2946,22 +2943,38 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
         
         const lastText = currentBubbleText.trim();
 
-        if (lastText) {
+         if (lastText) {
             paintBubble(lastText);
             allFinishedBubbleTexts.push(lastText);
         } else {
             const lastRow = currentBubbleEl?.closest('.preview-msg-row');
             if (lastRow) lastRow.remove();
+            rowList.pop();
         }
 
         if (!contact.messages) contact.messages = [];
         allFinishedBubbleTexts.forEach((text, idx) => {
             if (text) {
+                const msgId = 'msg_' + Date.now() + '_' + idx;
                 contact.messages.push({
-                    id: 'msg_' + Date.now() + '_' + idx, sender: 'char', text: text, time: timeStr
+                    id: msgId, sender: 'char', text: text, time: timeStr
                 });
+                
+                // 🌟 将打字完成的节点赋予真实身份，防止无法长按和多选！
+                const row = rowList[idx];
+                if (row) {
+                    row.id = `row-${msgId}`;
+                    row.setAttribute('onclick', `handleMsgClickInMultiMode('${msgId}', this)`);
+                    row.setAttribute('ontouchstart', `bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')`);
+                    row.setAttribute('ontouchend', `bubbleTouchEnd(event)`);
+                    row.setAttribute('ontouchmove', `bubbleTouchEnd(event)`);
+                    row.setAttribute('onmousedown', `bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')`);
+                    row.setAttribute('onmouseup', `bubbleTouchEnd(event)`);
+                    row.setAttribute('onmouseleave', `bubbleTouchEnd(event)`);
+                }
             }
         });
+
 
         if (allFinishedBubbleTexts.length > 0) {
             const lastMsg = allFinishedBubbleTexts[allFinishedBubbleTexts.length - 1];
@@ -3669,8 +3682,53 @@ function closeInnerVoice(event) {
     }
 }
 
+// 🌟 补全十年后音频解封播放逻辑与链路动画
+let waveInterval = null;
+function playFutureVoice() {
+    const playBtn = document.getElementById('future-play-btn');
+    const waveform = document.getElementById('future-waveform');
+    const glassLayer = document.getElementById('future-glass-layer');
+    const textEl = document.getElementById('future-comment-text');
+
+    if (!currentChatContactId) return;
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    if (!contact || !contact.innerVoice || !contact.innerVoice.future) return;
+
+    // 填入十年后的留言文字
+    textEl.innerText = contact.innerVoice.future.content;
+
+    // 动画链路：隐藏按钮 -> 解除毛玻璃 -> 开启波纹跳动
+    playBtn.classList.add('hidden-anim');
+    glassLayer.classList.add('unlocked');
+    waveform.classList.add('playing');
+
+    if (waveInterval) clearInterval(waveInterval);
+    const bars = document.querySelectorAll('.wave-bar');
+    waveInterval = setInterval(() => {
+        bars.forEach(bar => {
+            const h = Math.random() * 40 + 10;
+            bar.style.height = `${h}px`;
+        });
+    }, 150);
+
+    // 假设播放时间根据文字长度而定
+    const readTime = Math.max(3000, contact.innerVoice.future.content.length * 150);
+    setTimeout(() => {
+        clearInterval(waveInterval);
+        bars.forEach(bar => bar.style.height = '10px'); // 动画停息
+        waveform.classList.remove('playing');
+        
+        // 播放结束，毛玻璃重新盖上保护隐私
+        setTimeout(() => {
+            glassLayer.classList.remove('unlocked');
+            playBtn.classList.remove('hidden-anim');
+        }, 3000);
+    }, readTime);
+}
+
 function verifyVoiceLogin() {
     if (!currentChatContactId) return;
+
     const contact = contactsList.find(c => c.id === currentChatContactId);
     if (!contact) return;
 
@@ -3830,17 +3888,22 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// 🌟 气泡长按菜单引擎 (动态定位支持)
+// 🌟 气泡长按菜单引擎 (动态定位与动态选项)
 // ==========================================
 let bubblePressTimer = null;
 let currentActionBubbleId = null;
 let currentActionBubbleSender = null;
 let currentActionBubbleTimeStr = null;
-let currentBubbleEventTarget = null; // 🌟 记录被长按的目标元素容器
+let currentBubbleEventTarget = null; 
+
+// 多选模式全局控制
+let isMultiSelectMode = false;
+let selectedMsgIndices = new Set(); 
 
 function bubbleTouchStart(event, msgId, sender, timeStr) {
+    if (isMultiSelectMode) return; // 🌟 多选模式下物理屏蔽长按
     event.stopPropagation();
-    currentBubbleEventTarget = event.currentTarget; // 捕捉当前行的容器
+    currentBubbleEventTarget = event.currentTarget; 
     bubblePressTimer = setTimeout(() => {
         openBubbleMenu(msgId, sender, timeStr);
     }, 600);
@@ -3853,7 +3916,6 @@ function bubbleTouchEnd(event) {
 function openBubbleMenu(msgId, sender, timeStr) {
     if (bubblePressTimer) clearTimeout(bubblePressTimer);
     if (!currentChatContactId) return;
-    
     if (document.activeElement) document.activeElement.blur();
     
     currentActionBubbleId = msgId;
@@ -3863,24 +3925,28 @@ function openBubbleMenu(msgId, sender, timeStr) {
     const overlay = document.getElementById('bubble-action-overlay');
     const menu = document.getElementById('bubble-action-menu');
     const recallBtn = document.getElementById('b-action-recall');
+    const replyBtn = document.getElementById('b-action-reply');
     
-    // 🌟 核心定位系统：将浮窗自动移动到气泡的正上方
+    // 🌟 核心：引用与撤回按钮的排他性显示 (已去除严苛的3分钟限制，彻底释放撤回自由)
+    if (sender === 'user') {
+        if(replyBtn) replyBtn.style.display = 'none'; // 我方无引用
+        if(recallBtn) recallBtn.style.display = 'flex'; // 我方无条件可撤回
+    } else {
+        if(replyBtn) replyBtn.style.display = 'flex'; // 对方有引用
+        if(recallBtn) recallBtn.style.display = 'none'; // 对方无撤回
+    }
+    
     if (currentBubbleEventTarget) {
-        // 尝试从行容器中抓出真正的带有颜色的气泡内容框，以它为准
         let bubbleEl = currentBubbleEventTarget.querySelector('.content') || currentBubbleEventTarget;
         const rect = bubbleEl.getBoundingClientRect();
         
-        // 算出气泡水平中点与顶端高度
         let centerX = rect.left + rect.width / 2;
-        let topY = rect.top - 8; // 定位在气泡顶部，留出 8px 缓冲
+        let topY = rect.top - 8; 
         
-        // 🌟 防左右越界处理 (由于加入内边距和字号微调，菜单大致需要260px宽度)
         const menuWidthEst = 260; 
         if (centerX < menuWidthEst / 2 + 10) centerX = menuWidthEst / 2 + 10;
         if (centerX > window.innerWidth - (menuWidthEst / 2 + 10)) centerX = window.innerWidth - (menuWidthEst / 2 + 10);
 
-        
-        // 如果上面空间不够了（被顶栏挡住），智能翻转挂载到气泡下方
         if (topY < 60) {
             topY = rect.bottom + 8;
             menu.classList.add('top-arrow');
@@ -3890,31 +3956,10 @@ function openBubbleMenu(msgId, sender, timeStr) {
             menu.classList.remove('top-arrow');
         }
 
-        // 注入绝对坐标
         menu.style.left = `${centerX}px`;
         menu.style.top = `${topY}px`;
     }
 
-    // 🌟 撤回限制核心：仅我方，且不超过3分钟
-    if (sender === 'user') {
-        const now = new Date();
-        const msgTimeParts = timeStr.split(':');
-        if (msgTimeParts.length === 2) {
-            const msgDate = new Date();
-            msgDate.setHours(parseInt(msgTimeParts[0]), parseInt(msgTimeParts[1]), 0, 0);
-            
-            if (now.getTime() - msgDate.getTime() > 3 * 60 * 1000 || now.getTime() < msgDate.getTime()) {
-                recallBtn.style.display = 'none';
-            } else {
-                recallBtn.style.display = 'block';
-            }
-        } else {
-            recallBtn.style.display = 'none';
-        }
-    } else {
-        recallBtn.style.display = 'none'; 
-    }
-    
     overlay.classList.add('active');
 }
 
@@ -3938,13 +3983,82 @@ function bubbleAction(action) {
         contact.messages.splice(msgIndex, 1);
         saveToDB('contacts_data', JSON.stringify(contactsList));
         showToast('已删除');
-        openChatRoom(currentChatContactId); // 暴力刷新
+        openChatRoom(currentChatContactId); 
     } else if (action === 'recall') {
         contact.messages.splice(msgIndex, 1);
         saveToDB('contacts_data', JSON.stringify(contactsList));
         showToast('你撤回了一条消息');
         openChatRoom(currentChatContactId); 
-    } else if (action === 'reply' || action === 'translate' || action === 'multi') {
-        showToast('该拓展功能建设中...');
+    } else if (action === 'multi') {
+        enterMultiSelectMode(currentActionBubbleId); // 🌟 触发多选
+    } else if (action === 'reply') {
+        showToast('回复引用业务逻辑已成功接管');
+        // 将来可在此注入真实输入框引用的函数
+    } else if (action === 'translate') {
+        showToast('正在接入AI翻译引擎...');
     }
+
+}
+
+
+// ==========================================
+// 🌟 全局多选批量删除模式
+// ==========================================
+
+function enterMultiSelectMode(initialMsgId = null) {
+    isMultiSelectMode = true;
+    selectedMsgIndices.clear();
+    document.getElementById('chatRoomScreen').classList.add('multi-select-mode');
+    
+    if (initialMsgId) {
+        const row = document.getElementById(`row-${initialMsgId}`);
+        if (row) {
+            handleMsgClickInMultiMode(initialMsgId, row);
+        }
+    } else {
+        updateMultiSelectHeader();
+    }
+}
+
+function exitMultiSelectMode() {
+    isMultiSelectMode = false;
+    selectedMsgIndices.clear();
+    document.getElementById('chatRoomScreen').classList.remove('multi-select-mode');
+    document.querySelectorAll('.preview-msg-row.ms-selected').forEach(el => el.classList.remove('ms-selected'));
+    updateMultiSelectHeader();
+}
+
+function handleMsgClickInMultiMode(msgId, rowElement) {
+    if (!isMultiSelectMode || !msgId) return;
+    
+    if (selectedMsgIndices.has(msgId)) {
+        selectedMsgIndices.delete(msgId);
+        rowElement.classList.remove('ms-selected');
+    } else {
+        selectedMsgIndices.add(msgId);
+        rowElement.classList.add('ms-selected');
+    }
+    updateMultiSelectHeader();
+}
+
+function updateMultiSelectHeader() {
+    const count = selectedMsgIndices.size;
+    const title = document.getElementById('msTitle');
+    const delBtn = document.getElementById('msDeleteBtn');
+    if (title) title.innerText = `已选择 ${count} 条`;
+    if (delBtn) {
+        if (count > 0) {
+            delBtn.classList.remove('disabled');
+            delBtn.innerText = `删除(${count})`;
+        } else {
+            delBtn.classList.add('disabled');
+            delBtn.innerText = `删除`;
+        }
+    }
+}
+
+function deleteSelectedMessages() {
+    if (selectedMsgIndices.size === 0 || !currentChatContactId) return;
+    // 🌟 修复：原生 confirm 在移动端可能会被拦截导致点不动，全面换用系统自带极简二次确认弹窗
+    openNcCustomPrompt('批量删除', 'action_multi_delete', `确定删除选中的 ${selectedMsgIndices.size} 条消息吗？`, 'confirm_delete');
 }
