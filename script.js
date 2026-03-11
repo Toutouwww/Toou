@@ -2029,7 +2029,7 @@ function openChatRoom(contactId) {
         let limit = 100; // 初次渲染 100 条保证流畅
         let currentRenderStartIndex = Math.max(0, allMsgs.length - limit); 
 
-        // 内部复用的区间渲染器
+         // 内部复用的区间渲染器
         const renderRange = (start, end, prepend = false) => {
             let htmlStr = '';
             for (let i = start; i < end; i++) {
@@ -2041,10 +2041,28 @@ function openChatRoom(contactId) {
                 const safeText = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
                 let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msg.id}', '${msg.sender}', '${msg.time}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msg.id}', '${msg.sender}', '${msg.time}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
 
-                if (msg.sender === 'user') {
-                    htmlStr += `<div class="preview-msg-row right" id="row-${msg.id}" onclick="handleMsgClickInMultiMode('${msg.id}', this)" ${touchEvents}><div class="msg-checkbox"></div><div class="Toutou-TT user"><span class="bubble-time">${msg.time}</span><div class="content">${safeText}</div></div><img src="${myAvatar}" class="preview-avatar"></div>`;
+                 // 🌟 新增：判断是否为图片类型
+                let contentHtml = '';
+                if (msg.type === 'image' && msg.imageUrl) {
+                    contentHtml = `
+                    <div class="image-msg-wrapper">
+                        ${msg.sender === 'user' ? `<span class="image-timestamp">${msg.time}</span>` : ''}
+                        <img src="${msg.imageUrl}" class="chat-sent-image">
+                        ${msg.sender === 'char' ? `<span class="image-timestamp">${msg.time}</span>` : ''}
+                    </div>`;
                 } else {
-                    htmlStr += `<div class="preview-msg-row left" id="row-${msg.id}" onclick="handleMsgClickInMultiMode('${msg.id}', this)" ${touchEvents}><img src="${charAvatar}" class="preview-avatar"><div class="Toutou-TT char"><div class="content">${safeText}</div><span class="bubble-time">${msg.time}</span></div><div class="msg-checkbox"></div></div>`;
+                    contentHtml = `
+                    <div class="Toutou-TT ${msg.sender}">
+                        ${msg.sender === 'user' ? `<span class="bubble-time">${msg.time}</span>` : ''}
+                        <div class="content">${safeText}</div>
+                        ${msg.sender === 'char' ? `<span class="bubble-time">${msg.time}</span>` : ''}
+                    </div>`;
+                }
+
+                if (msg.sender === 'user') {
+                    htmlStr += `<div class="preview-msg-row right" id="row-${msg.id}" onclick="handleMsgClickInMultiMode('${msg.id}', this)" ${touchEvents}><div class="msg-checkbox"></div>${contentHtml}<img src="${myAvatar}" class="preview-avatar"></div>`;
+                } else {
+                    htmlStr += `<div class="preview-msg-row left" id="row-${msg.id}" onclick="handleMsgClickInMultiMode('${msg.id}', this)" ${touchEvents}><img src="${charAvatar}" class="preview-avatar">${contentHtml}<div class="msg-checkbox"></div></div>`;
                 }
             }
             if (prepend) {
@@ -2054,6 +2072,7 @@ function openChatRoom(contactId) {
                 chatBody.insertAdjacentHTML('beforeend', htmlStr);
             }
         };
+
 
         // 首屏渲染
         renderRange(currentRenderStartIndex, allMsgs.length, false);
@@ -2319,7 +2338,10 @@ function calculateTokens(contact) {
     // 🌟 核心：只计算“未被总结”的新聊天记录 Token
     let lastSumIndex = contact.lastSummaryMsgIndex || 0;
     let recentMsgs = (contact.messages || []).slice(lastSumIndex);
-    recentMsgs.forEach(m => { chatToken += (m.text||'').length; });
+    // 🌟 按照 OpenAI Low Detail 协议，一张图固定视作消耗 85 个 Token 进行估算
+    recentMsgs.forEach(m => { chatToken += (m.type === 'image' ? 85 : (m.text||'').length); }); 
+
+
     
     // 🌟 核心：将所有已被压缩为“历史记忆”的文本纳入“其他”
     let otherToken = 0;
@@ -2570,6 +2592,93 @@ function sendChatMessage() {
     renderMsgList();
 }
 
+// 🌟 核心：照片压缩算法 (防止存储爆炸)
+function compressImage(file, maxWidth = 800, quality = 0.6) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                let w = img.width;
+                let h = img.height;
+                if (w > maxWidth) {
+                    h = Math.round(h * (maxWidth / w));
+                    w = maxWidth;
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', quality)); // 强行转为低质量 JPG
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function triggerChatPhotoUpload() {
+    closeChatPlusMenu(); // 收起面板
+    document.getElementById('chatPhotoUploadInput').click();
+}
+
+async function handleChatPhotoUpload(input) {
+    if (!currentChatContactId) return;
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    if (!contact) return;
+
+    const files = input.files;
+    if (files.length === 0) return;
+
+    showToast(`正在处理 ${files.length} 张图片...`);
+    const chatBody = document.getElementById('chatRoomBody');
+    const mySidebarAvatar = document.getElementById('img-sidebar-avatar');
+    const myAvatar = mySidebarAvatar ? mySidebarAvatar.src : 'https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg';
+
+    if (!contact.messages) contact.messages = [];
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    // 🌟 遍历处理多图
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const compressedBase64 = await compressImage(file);
+        
+        const msgId = 'msg_' + Date.now() + '_' + i;
+        contact.messages.push({
+            id: msgId,
+            sender: 'user',
+            type: 'image', // 标识为实体图片
+            imageUrl: compressedBase64,
+            text: '[图片]', // 列表外部显示的摘要
+            time: timeStr
+        });
+
+         let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
+        
+        const msgHtml = `
+        <div class="preview-msg-row right" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
+            <div class="msg-checkbox"></div>
+            <div class="image-msg-wrapper">
+                <span class="image-timestamp">${timeStr}</span>
+                <img src="${compressedBase64}" class="chat-sent-image">
+            </div>
+            <img src="${myAvatar}" class="preview-avatar">
+        </div>
+        `;
+        chatBody.insertAdjacentHTML('beforeend', msgHtml);
+    }
+
+    input.value = ''; // 清空 input 缓存
+    contact.sign = '[图片]';
+    contact.time = timeStr;
+    saveToDB('contacts_data', JSON.stringify(contactsList));
+    renderMsgList();
+
+    setTimeout(() => { chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' }); }, 50);
+}
+
+
 // ==========================================
 // 🌟 飞机按钮单击/双击中控器 & AI 回复调度器
 // ==========================================
@@ -2700,11 +2809,8 @@ function buildSystemPrompt(contact) {
 
 【最终输出格式严格协议】
 严禁返回纯文本，严禁包含任何解释性文字。
-(1) 气泡切割原则(极度重要！！！)：只要话题转换、语气停顿或单句超过20个字，就必须切分成一个新的气泡！绝对不允许出现长篇大论的单一气泡。
-(2) 必须且只能使用 || 作为多个气泡之间的分割符！
-(3) 错误示例：你在干嘛呢，怎么不理我，我生气了 (这是一个长气泡，严重错误)
-(4) 正确示例：你在干嘛呢||怎么不理我||再不说话我挂了啊 (正确分割成了三个短气泡)
-(5) 避免无意义的连续刷屏，以对话的自然流动感为准。
+(1) 气泡切割原则(极度重要！！！)：只要话题转换、语气停顿或单句超过20个字，就必须切分成一个新的气泡！必须且只能使用 || 作为多个气泡之间的分割符！绝对不允许出现长篇大论的单一气泡。
+(2) 避免无意义的连续刷屏，以对话的自然流动感为准。
 
 
 【user 设定相关 (我)】
@@ -2781,7 +2887,17 @@ async function triggerAiReply() {
         let recentMsgs = contact.messages.slice(lastSumIndex);
         
         recentMsgs.forEach(m => {
-            messagesPayload.push({ role: m.sender === 'user' ? "user" : "assistant", content: m.text });
+            if (m.type === 'image' && m.imageUrl) {
+                // 🌟 真实多模态图片发送：注入 Base64，并强制启用 detail: "low" 防止 Token 爆炸 (单张图只消耗 85 Token)
+                messagesPayload.push({
+                    role: m.sender === 'user' ? "user" : "assistant",
+                    content: [
+                        { type: "image_url", image_url: { url: m.imageUrl, detail: "low" } }
+                    ]
+                });
+            } else {
+                messagesPayload.push({ role: m.sender === 'user' ? "user" : "assistant", content: m.text });
+            }
         });
     } else {
         messagesPayload.push({ role: "system", content: "这是你们的第一句话，请主动跟对方打招呼破冰。" });
@@ -3688,15 +3804,12 @@ function openInnerVoice() {
 
     let myName = currentTempPlan['text-profile-name'] || baseDefaults['text-profile-name'];
     let myBday = currentTempPlan['text-detail-birthday'] || "";
-    let bdayStr = myBday ? myBday.split('-')[1] + myBday.split('-')[2] : "";
-    const correctPwd = `${myName}${bdayStr}`;
+    let bdayStr = myBday ? myBday.split('-')[1] + myBday.split('-')[2] : ""; // 提取MMDD
+    const correctPwd = `${getPinyinInitials(myName)}${bdayStr}`; // 🌟 修正为：拼音首字母 + 月日
 
     const pwdInput = document.getElementById('mind-pwd-input');
-    if (globalRememberVoicePwd) {
-        pwdInput.value = correctPwd; 
-    } else {
-        pwdInput.value = '';
-    }
+    // 🌟 自动填写绑定的身份卡的姓名首字母加上生日
+    pwdInput.value = correctPwd; 
 
     document.getElementById('mind-login-view').style.display = 'block';
     document.getElementById('mind-quiz-view').style.display = 'none';
@@ -3707,6 +3820,15 @@ function openInnerVoice() {
     if (futureSection) futureSection.style.display = 'none';
 
     document.getElementById('inner-voice-overlay').classList.add('active');
+    
+    // 🌟 延迟 800ms 自动模拟点击验证，顺滑进入选择题或心声界面（给予用户视觉停留时间感知密码的自动输入）
+    setTimeout(() => {
+        const loginView = document.getElementById('mind-login-view');
+        // 确保是在登录界面且确实展开了才自动进入
+        if (loginView && loginView.style.display !== 'none') {
+            verifyVoiceLogin();
+        }
+    }, 800);
 }
 
 
