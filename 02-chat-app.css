@@ -923,11 +923,12 @@
 /* ==========================================
    🌟 心声系统 (极简工业风打印机 + 登录保险箱)
 ========================================== */
-@import url('https://fonts.googleapis.com/css2?family=Zhi+Mang+Xing&display=swap');
+/* 🌟 引入两款可免费商用的 Google 顶级中文字体：马善政毛笔楷书 & 钟齐志莽行书 */
+@import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&display=swap');
 
 .voice-layout-wrapper {
     display: flex; flex-direction: column; align-items: center; width: 100%;
-    margin-top: 2vh; /* 🌟 核心：由原本的 5vh 缩小，大幅往上移，留出下方白卡视野 */
+    margin-top: calc(2vh - 60px); /* 🌟 核心：继续往上移 40px，总计上移 60px */
     opacity: 0; transform: translateY(10px);
     transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -995,7 +996,14 @@
 .mind-row { display: flex; flex-direction: column; margin-bottom: 12px; }
 .m-label { font-size: 8px; font-weight: 800; color: #b3b3b3; letter-spacing: 1.5px; margin-bottom: 4px; text-transform: uppercase; }
 .m-val { font-size: 12px; font-weight: 500; color: #333; line-height: 1.4; word-break: break-all; }
-.m-val.handwritten { font-family: 'Zhi Mang Xing', 'Kaiti', 'STKaiti', serif; font-size: 16px; color: #111; line-height: 1.6; letter-spacing: 1px; }
+.m-val.handwritten { 
+    font-family: 'Ma Shan Zheng', 'Zhi Mang Xing', cursive; /* 🌟 换用极具手写美感的马善政字体 */
+    font-size: 18px; /* 字体稍微放大一点更像真迹 */
+    color: #111; 
+    line-height: 1.6; 
+    letter-spacing: 2px; 
+}
+
 
 /* ==========================================
    🌟 独立纸张拓展区域：十年后评论与语音波动
@@ -1125,10 +1133,12 @@
     background: transparent;
 }
 .blur-text-mask {
-    font-size: 11px; font-weight: 600; color: #333;
-    line-height: 1.5; text-align: center;
+    font-family: 'Ma Shan Zheng', 'Zhi Mang Xing', cursive; /* 🌟 十年后留言也采用手写体 */
+    font-size: 16px; font-weight: 500; color: #333;
+    line-height: 1.5; text-align: center; letter-spacing: 1px;
     opacity: 0; filter: blur(4px); transition: all 0.5s ease;
 }
+
 .glass-text-layer.unlocked .blur-text-mask {
     opacity: 1; filter: blur(0px);
 }
@@ -1160,8 +1170,17 @@
 
 .mind-black-toast.active { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
 
+/* 🌟 修复工具栏 Bug：补充丢失的底层拦截遮罩，防止点击穿透和逻辑卡死 */
+.chat-plus-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: transparent; z-index: 2010; 
+    display: none;
+}
+.chat-plus-overlay.active { display: block; }
+
 .chat-plus-menu {
     position: fixed; /* 🌟 绝杀错位：必须用 fixed，将其死死钉在屏幕视口，防止滚动漂移导致误触！ */
+
     bottom: 0; left: 0; width: 100%; height: 260px;
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(20px) saturate(180%);

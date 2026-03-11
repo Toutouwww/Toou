@@ -1168,11 +1168,12 @@
                         <input type="password" id="mind-pwd-input" placeholder="PASSWORD" autocomplete="off">
                     </div>
 
-                    <!-- 记住密码开关 -->
+                     <!-- 显示/隐藏密码开关 -->
                     <div class="mind-remember-row" onclick="toggleMindRemember()">
                         <div class="mind-checkbox" id="mind-remember-chk"></div>
-                        <span>REMEMBER PWD.</span>
+                        <span>SHOW PWD.</span>
                     </div>
+
                     
                     <div class="mind-btn" onclick="verifyVoiceLogin()">ACCESS</div>
                 </div>
@@ -1226,13 +1227,14 @@
                     
                     <!-- 拟态风音频播放器容器 (内层保持不动) -->
                     <div class="audio-record-container" id="audio-record-container">
+
                         <!-- 中层：毛玻璃与模糊文字展示层 -->
-                        <div class="glass-text-layer" id="future-glass-layer">
                         <div class="glass-text-layer" id="future-glass-layer">
                             <div class="blur-text-mask" id="future-text-mask">
                                 <span id="future-comment-text"></span>
                             </div>
                         </div>
+
 
                         <!-- 顶层：播放/解封按钮 -->
                         <div class="play-btn-wrapper" id="future-play-btn" onclick="playFutureVoice()">

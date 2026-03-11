@@ -2804,12 +2804,12 @@ function buildSystemPrompt(contact) {
 
 3. 反刻板印象与真实感：
 - 拒绝标签化：冷漠≠只会说“嗯/哦”（也可以是礼貌的疏离）；傲娇≠脸红结巴（也可以是极强的自尊心攻击性）；暴躁≠无脑狂怒（也可以是缺乏耐心的躁郁）。
-- 真实语境：模拟真实打字习惯，包括断句、不爱用标点（用空格代替）、非正式口语、偶尔的错别字。另外，作为真实聊天软件，对方会撤回消息，你作为角色也同样拥有撤回消息的能力。同时也可以发送颜文字和网络热梗以及表情包。
+- 真实语境：模拟真实打字习惯，可以使用以下几种方式，包括但不限于断句、不爱用标点（用空格代替）、非正式口语、偶尔的错别字。另外，作为真实聊天软件，对方会撤回消息，你作为角色也同样拥有撤回消息的能力。同时也可以发送颜文字和网络热梗以及表情包。
 - 去油腻：保持成年人的社交距离感或真实亲密感，严禁悬浮的调情和“女人/男人”式的称呼。
 
 【最终输出格式严格协议】
 严禁返回纯文本，严禁包含任何解释性文字。
-(1) 气泡切割原则(：只要话题转换、语气停顿或单句超过20个字，就必须切分成一个新的气泡！必须且只能使用 || 作为多个气泡之间的分割符！不允许出现长篇大论的单一气泡。
+(1) 气泡切割原则(：只要话题转换、语气停顿或单句超过20个字，就必须切分成一个新的气泡！必须且只能使用 || 作为多个气泡之间的分割符！不允许出现长篇大论的单一气泡。分气泡时请注意空格和换行的使用，严禁分气泡又多换行等。
 (2) 但也不允许一句话放在同一个气泡能解决的，非要分好几个气泡而出现的无意义刷屏。一定要避免无意义连续刷屏。以对话的自然流动感为准。
 
 
@@ -3768,14 +3768,18 @@ function hideMindBlackToast() {
     document.removeEventListener('click', hideMindBlackToast);
 }
 
-let globalRememberVoicePwd = localStorage.getItem('toutou_remember_pwd') === 'true';
-
+// 🌟 彻底废弃旧的本地存储，改为纯粹的明文/密文显示切换逻辑
 function toggleMindRemember() {
-    globalRememberVoicePwd = !globalRememberVoicePwd;
-    localStorage.setItem('toutou_remember_pwd', globalRememberVoicePwd.toString());
+    const pwdInput = document.getElementById('mind-pwd-input');
     const chk = document.getElementById('mind-remember-chk');
-    if (globalRememberVoicePwd) chk.classList.add('active');
-    else chk.classList.remove('active');
+    
+    if (pwdInput.type === 'password') {
+        pwdInput.type = 'text'; // 变为明文
+        chk.classList.add('active');
+    } else {
+        pwdInput.type = 'password'; // 变为圆点
+        chk.classList.remove('active');
+    }
 }
 
 function openInnerVoice() {
@@ -3793,10 +3797,11 @@ function openInnerVoice() {
         return;
     }
 
-    // 自动装载 UI 状态
+    // 🌟 每次打开时，默认恢复为密文模式 (圆点)
+    const pwdInput = document.getElementById('mind-pwd-input');
     const chk = document.getElementById('mind-remember-chk');
-    if (globalRememberVoicePwd) chk.classList.add('active');
-    else chk.classList.remove('active');
+    pwdInput.type = 'password';
+    chk.classList.remove('active');
 
     let tag1 = contact.details && contact.details.tag1 ? contact.details.tag1 : "前缀";
     const displayId = `${tag1}@Toutou.com`;
@@ -3807,8 +3812,7 @@ function openInnerVoice() {
     let bdayStr = myBday ? myBday.split('-')[1] + myBday.split('-')[2] : ""; // 提取MMDD
     const correctPwd = `${getPinyinInitials(myName)}${bdayStr}`; // 🌟 修正为：拼音首字母 + 月日
 
-    const pwdInput = document.getElementById('mind-pwd-input');
-    // 🌟 自动填写绑定的身份卡的姓名首字母加上生日
+    // ✅ 去除了致命的重复 const 声明，起死回生！
     pwdInput.value = correctPwd; 
 
     document.getElementById('mind-login-view').style.display = 'block';
