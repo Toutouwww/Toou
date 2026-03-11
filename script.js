@@ -1,3 +1,28 @@
+// 🌟 提取中文首字母的轻量级计算引擎
+function getPinyinInitials(str) {
+    const letters = "abcdefghjklmnopqrstwxyz".split('');
+    const zh = "阿八嚓哒妸发旮哈讥咔垃妈拏噢妑七呥仨他哇夕丫匝".split('');
+    let result = "";
+    for (let char of str) {
+        if (/[a-zA-Z]/.test(char)) {
+            result += char.toLowerCase();
+        } else if (/[\u4e00-\u9fa5]/.test(char)) {
+            let found = false;
+            for (let i = zh.length - 1; i >= 0; i--) {
+                if (char.localeCompare(zh[i], 'zh-Hans-CN') >= 0) {
+                    result += letters[i];
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) result += char;
+        } else {
+            result += char;
+        }
+    }
+    return result;
+}
+
 // ==========================================
 // 🌟 终极防错位系统：底层锁定与软键盘强回收
 // ==========================================
@@ -998,6 +1023,28 @@ function confirmCustomPrompt() {
                     closeChatSettings(); // 清空后自动退回聊天室
                 }
             }
+        } 
+        // 🌟 新增：处理多选批量删除 (真删除逻辑)
+        else if (currentTargetId === 'action_multi_delete') {
+            const contact = contactsList.find(c => c.id === currentChatContactId);
+            if (contact) {
+                // 彻底过滤掉被选中的消息，实现物理删除
+                contact.messages = contact.messages.filter(msg => !selectedMsgIndices.has(msg.id));
+                // 重新校准列表页显示的“最后一条消息”
+                if (contact.messages.length > 0) {
+                    const lastMsg = contact.messages[contact.messages.length - 1];
+                    contact.sign = lastMsg.text.replace(/\n/g, ' ');
+                    contact.time = lastMsg.time;
+                } else {
+                    contact.sign = "";
+                    contact.time = "";
+                }
+                saveToDB('contacts_data', JSON.stringify(contactsList));
+                renderMsgList();
+                openChatRoom(currentChatContactId); 
+                exitMultiSelectMode();
+                showToast('已彻底删除选中消息');
+            }
         }
     } else if (currentPromptAction === 'confirm_action') {
 
@@ -1661,25 +1708,6 @@ function confirmNcCustomPrompt() {
             }
             let currentGrp = activeGroupEditMode === 'nc' ? ncSelectedGroup : csSelectedGroup;
             document.getElementById('nc-current-group-display-init').innerText = currentGrp;
-
-        } else if (ncCurrentPromptTarget === 'action_multi_delete') {
-            // 🌟 完美接管的多选批量删除功能 (再无结构错位)
-            const contact = contactsList.find(c => c.id === currentChatContactId);
-            if (contact) {
-                contact.messages = contact.messages.filter(msg => !selectedMsgIndices.has(msg.id));
-                if (contact.messages.length > 0) {
-                    const lastMsg = contact.messages[contact.messages.length - 1];
-                    contact.sign = lastMsg.text.replace(/\n/g, ' ');
-                    contact.time = lastMsg.time;
-                } else {
-                    contact.sign = "";
-                }
-                saveToDB('contacts_data', JSON.stringify(contactsList));
-                renderMsgList();
-                openChatRoom(currentChatContactId); 
-                exitMultiSelectMode();
-                showToast('已批量删除');
-            }
 
         } else if (ncCurrentPromptTarget === 'action_delete_contact') {
             // 🌟 删除角色联系人逻辑
@@ -2562,7 +2590,9 @@ function handleAiResponse(replyText, contact) {
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
     const charAvatar = contact.avatar; 
-    const bubbles = cleanReplyText.split('|||').map(t => t.trim()).filter(t => t);
+    // 🌟 强兼容：不管大模型出 || 还是抽风出了 |||，一律用正则洗平后再切分
+const bubbles = cleanReplyText.replace(/\|{3,}/g, '||').split('||').map(t => t.trim()).filter(t => t);
+
 
     if (bubbles.length > 0) {
         contact.sign = bubbles[bubbles.length - 1].replace(/\n/g, ' ');
@@ -2670,9 +2700,12 @@ function buildSystemPrompt(contact) {
 
 【最终输出格式严格协议】
 严禁返回纯文本，严禁包含任何解释性文字。
-(1) 气泡切割原则：只要话题转换、语气停顿或句子超过30个字，就必须切分成一个新的气泡！为了模拟连发消息的压迫感或生动感，必须使用 ||| 作为消息分割符(如果出现多余符号你将被扣除1000美金，要严格输出好格式)。例如：干嘛呢|||怎么不理我[生气]|||再不说话我挂了啊
-(2) 严禁长难句：绝对禁止发送超过3行的单一气泡。
-(3) 避免无意义的连续刷屏，以对话的自然流动感为准。
+(1) 气泡切割原则(极度重要！！！)：只要话题转换、语气停顿或单句超过20个字，就必须切分成一个新的气泡！绝对不允许出现长篇大论的单一气泡。
+(2) 必须且只能使用 || 作为多个气泡之间的分割符！
+(3) 错误示例：你在干嘛呢，怎么不理我，我生气了 (这是一个长气泡，严重错误)
+(4) 正确示例：你在干嘛呢||怎么不理我||再不说话我挂了啊 (正确分割成了三个短气泡)
+(5) 避免无意义的连续刷屏，以对话的自然流动感为准。
+
 
 【user 设定相关 (我)】
 ${userStr}
@@ -2883,12 +2916,13 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
 
     // 辅助函数：将纯净文本推入打字队列
     function processQueueText(str) {
+        // 🌟 容错机制：先把 AI 抽风发出的 ||| 强制降维打击成 ||
+        str = str.replace(/\|{3,}/g, '||'); 
+        
         while (str.length > 0) {
-            if (str.startsWith('|||')) {
+            if (str.startsWith('||')) {
                 charQueue.push('NEW_BUBBLE');
-                str = str.slice(3);
-            } else if (str.startsWith('||') && str.length === 2) {
-                unprocessedText = str + unprocessedText; break; 
+                str = str.slice(2);
             } else if (str.startsWith('|') && str.length === 1) {
                 unprocessedText = str + unprocessedText; break;
             } else {
@@ -2897,6 +2931,7 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
             }
         }
     }
+
 
     // 🚀 视觉渲染定时器：模拟真人打字速度！
     const typeInterval = setInterval(() => {
@@ -3734,8 +3769,9 @@ function verifyVoiceLogin() {
 
     let myName = currentTempPlan['text-profile-name'] || baseDefaults['text-profile-name'];
     let myBday = currentTempPlan['text-detail-birthday'] || "";
-    let bdayStr = myBday ? myBday.split('-')[1] + myBday.split('-')[2] : "";
-    const correctPwd = `${myName}${bdayStr}`;
+    let bdayStr = myBday ? myBday.split('-')[1] + myBday.split('-')[2] : ""; // 提取MMDD
+    const correctPwd = `${getPinyinInitials(myName)}${bdayStr}`; // 🌟 变更为：拼音首字母 + 月日
+
 
     const inputPwd = document.getElementById('mind-pwd-input').value.trim();
 
@@ -4059,6 +4095,6 @@ function updateMultiSelectHeader() {
 
 function deleteSelectedMessages() {
     if (selectedMsgIndices.size === 0 || !currentChatContactId) return;
-    // 🌟 修复：原生 confirm 在移动端可能会被拦截导致点不动，全面换用系统自带极简二次确认弹窗
-    openNcCustomPrompt('批量删除', 'action_multi_delete', `确定删除选中的 ${selectedMsgIndices.size} 条消息吗？`, 'confirm_delete');
+    // 🌟 换用层级最高、最稳定的全局弹窗，彻底解决出不来的Bug
+    openCustomPrompt('批量删除', 'action_multi_delete', `确定彻底删除选中的 ${selectedMsgIndices.size} 条消息吗？\n(删除后将从历史记录中永久抹除)`, 'confirm_delete');
 }
