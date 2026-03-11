@@ -926,6 +926,15 @@
 /* 🌟 引入两款可免费商用的 Google 顶级中文字体：马善政毛笔楷书 & 钟齐志莽行书 */
 @import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&display=swap');
 
+/* 🌟 引入自定义绝美手写字体 */
+@font-face {
+    font-family: 'ToutouHandwrite';
+    src: url('https://files.catbox.moe/poakg5.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 .voice-layout-wrapper {
     display: flex; flex-direction: column; align-items: center; width: 100%;
     margin-top: calc(2vh - 60px); /* 🌟 核心：继续往上移 40px，总计上移 60px */
@@ -997,12 +1006,13 @@
 .m-label { font-size: 8px; font-weight: 800; color: #b3b3b3; letter-spacing: 1.5px; margin-bottom: 4px; text-transform: uppercase; }
 .m-val { font-size: 12px; font-weight: 500; color: #333; line-height: 1.4; word-break: break-all; }
 .m-val.handwritten { 
-    font-family: 'Ma Shan Zheng', 'Zhi Mang Xing', cursive; /* 🌟 换用极具手写美感的马善政字体 */
+    font-family: 'ToutouHandwrite', 'Ma Shan Zheng', 'Zhi Mang Xing', cursive; /* 🌟 优先使用自定义手写字体 */
     font-size: 18px; /* 字体稍微放大一点更像真迹 */
     color: #111; 
     line-height: 1.6; 
     letter-spacing: 2px; 
 }
+
 
 
 /* ==========================================
@@ -1126,18 +1136,29 @@
     backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     display: flex; align-items: center; justify-content: center;
     transition: all 0.5s ease;
-    z-index: 2; padding: 0 15px;
+    z-index: 2; 
+    padding: 10px 15px; /* 🌟 上下增加边距，防止超长文字贴边 */
+    box-sizing: border-box;
 }
 .glass-text-layer.unlocked {
     backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px);
     background: transparent;
 }
 .blur-text-mask {
-    font-family: 'Ma Shan Zheng', 'Zhi Mang Xing', cursive; /* 🌟 十年后留言也采用手写体 */
+    font-family: 'ToutouHandwrite', 'Ma Shan Zheng', cursive; /* 🌟 使用全新的自定义手写字体 */
     font-size: 16px; font-weight: 500; color: #333;
     line-height: 1.5; text-align: center; letter-spacing: 1px;
     opacity: 0; filter: blur(4px); transition: all 0.5s ease;
+    
+    /* 🌟 核心：允许文字过多时上下滑动浏览，且隐藏丑陋的滚动条 */
+    max-height: 100%; 
+    width: 100%;
+    overflow-y: auto;
 }
+.blur-text-mask::-webkit-scrollbar { 
+    display: none; /* 隐藏滚动条保持极简 */
+}
+
 
 .glass-text-layer.unlocked .blur-text-mask {
     opacity: 1; filter: blur(0px);

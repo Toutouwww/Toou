@@ -488,36 +488,35 @@
                         </div>
                     </div> <!-- 🌟 核心修复：补回遗漏的闭合标签，拯救全盘 DOM 塌方！！！ -->
 
-                    <!-- 🌟 优化后：直接出列表的分组菜单 -->
+     <!-- 🌟 重构提权：新建与管理角色专属分组小白弹窗 (已提取至全局最外层) -->
+    <div class="custom-prompt-overlay" id="ncGroupInitMenuOverlay">
+        <div class="custom-prompt-box">
+            <div class="custom-prompt-title">选择或管理分组</div>
+            <div style="font-size: 11px; color: #666; margin-bottom: 10px; font-weight: 500;">当前选择: <span id="nc-current-group-display-init" style="color:#000; font-weight:800;">未分组</span></div>
+            
+            <!-- 分组列表容器 -->
+            <div class="model-list-modal" id="ncGroupListDirect" style="max-height: 180px; width: 100%; margin-bottom: 10px;"></div>
 
-                    <div class="custom-prompt-overlay" id="ncGroupInitMenuOverlay" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; border-radius: 24px; z-index: 1000;">
-                        <div class="custom-prompt-box">
-                            <div class="custom-prompt-title">选择或管理分组</div>
-                            <div style="font-size: 11px; color: #666; margin-bottom: 10px; font-weight: 500;">当前选择: <span id="nc-current-group-display-init" style="color:#000; font-weight:800;">未分组</span></div>
-                            
-                            <!-- 分组列表容器 -->
-                            <div class="model-list-modal" id="ncGroupListDirect" style="max-height: 180px; width: 100%; margin-bottom: 10px;"></div>
+            <div class="sheet-char-add-btn" onclick="triggerNewNcGroup()" style="width: 100%; margin-bottom: 15px; background: #111; color: #fff; border: none;">新建分组</div>
+            
+            <div class="custom-prompt-actions">
+                <div class="prompt-btn cancel" onclick="closeNcGroupInitMenu()">取消</div>
+            </div>
+        </div>
+    </div>
 
-                            <div class="sheet-char-add-btn" onclick="triggerNewNcGroup()" style="width: 100%; margin-bottom: 15px; background: #111; color: #fff; border: none;">新建分组</div>
-                            
-                            <div class="custom-prompt-actions">
-                                <div class="prompt-btn cancel" onclick="closeNcGroupInitMenu()">取消</div>
-                            </div>
-                        </div>
-                    </div>
-
-                     <!-- 🌟 弹窗 3：超级小白通用确认弹窗 (支持打字输入 / 二次确认删除) -->
-                    <div class="custom-prompt-overlay" id="ncCustomPromptOverlay" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; border-radius: 24px; z-index: 1020;">
-                        <div class="custom-prompt-box">
-                            <div class="custom-prompt-title" id="ncPromptTitle">编辑内容</div>
-                            <input type="text" class="custom-prompt-input" id="ncPromptInput" autocomplete="off">
-                            <div class="custom-prompt-msg" id="ncPromptMsg" style="display: none; font-size: 13px; color: #666; margin-bottom: 20px; text-align: center; line-height: 1.5;">确认操作？</div>
-                            <div class="custom-prompt-actions">
-                                <div class="prompt-btn cancel" onclick="closeNcCustomPrompt()">取消</div>
-                                <div class="prompt-btn confirm" id="ncPromptConfirmBtn" onclick="confirmNcCustomPrompt()">确定</div>
-                            </div>
-                        </div>
-                    </div>
+    <!-- 🌟 重构提权：超级小白通用确认弹窗 (支持打字输入 / 二次确认删除，全局居中) -->
+    <div class="custom-prompt-overlay" id="ncCustomPromptOverlay">
+        <div class="custom-prompt-box">
+            <div class="custom-prompt-title" id="ncPromptTitle">编辑内容</div>
+            <input type="text" class="custom-prompt-input" id="ncPromptInput" autocomplete="off">
+            <div class="custom-prompt-msg" id="ncPromptMsg" style="display: none; font-size: 13px; color: #666; margin-bottom: 20px; text-align: center; line-height: 1.5;">确认操作？</div>
+            <div class="custom-prompt-actions">
+                <div class="prompt-btn cancel" onclick="closeNcCustomPrompt()">取消</div>
+                <div class="prompt-btn confirm" id="ncPromptConfirmBtn" onclick="confirmNcCustomPrompt()">确定</div>
+            </div>
+        </div>
+    </div>
 
                 </div> <!-- 结束 phone-frame-wrapper -->
             </div> <!-- 结束 app-main-content -->

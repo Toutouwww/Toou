@@ -1317,22 +1317,30 @@ function saveCurrentPlan() {
 function executeSavePlan(planName) {
     if (currentActivePlanId !== 'temp_new') {
         const planIndex = profilePlans.findIndex(p => p.id === currentActivePlanId);
-        if (planIndex > -1) { profilePlans[planIndex].name = planName; profilePlans[planIndex].data = { ...currentTempPlan }; } 
-        else { currentActivePlanId = "plan_" + Date.now(); profilePlans.push({ id: currentActivePlanId, name: planName, data: { ...currentTempPlan } }); }
-    } else { currentActivePlanId = "plan_" + Date.now(); profilePlans.push({ id: currentActivePlanId, name: planName, data: { ...currentTempPlan } }); }
+        if (planIndex > -1) { 
+            // 🌟 修复：如果当前是在“默认系统方案”上修改并保存了新名字，强制它另存为一个新方案！
+            // 防止最基础的空白白板直接被改名并彻底覆盖掉
+            if (currentActivePlanId === 'default' && planName !== profilePlans[planIndex].name) {
+                currentActivePlanId = "plan_" + Date.now(); 
+                profilePlans.push({ id: currentActivePlanId, name: planName, data: { ...currentTempPlan } }); 
+            } else {
+                // 普通方案的重命名或同名覆盖
+                profilePlans[planIndex].name = planName; 
+                profilePlans[planIndex].data = { ...currentTempPlan }; 
+            }
+        } 
+        else { 
+            currentActivePlanId = "plan_" + Date.now(); 
+            profilePlans.push({ id: currentActivePlanId, name: planName, data: { ...currentTempPlan } }); 
+        }
+    } else { 
+        currentActivePlanId = "plan_" + Date.now(); 
+        profilePlans.push({ id: currentActivePlanId, name: planName, data: { ...currentTempPlan } }); 
+    }
     
     document.getElementById('current-plan-name').innerText = planName;
-    saveToDB('profile_plans', JSON.stringify(profilePlans)); saveToDB('active_plan_id', currentActivePlanId);
-}
-
-function promptApplyPlan() { togglePlanMenu(); openCustomPrompt('提示', 'action_apply_plan', '确定要应用这套个人资料吗？', 'confirm_action'); }
-
-function executeApplyPlan() {
-    const avatarUrl = currentTempPlan['avatar'] || baseDefaults['avatar'];
-    const nickName = currentTempPlan['text-profile-name'] || baseDefaults['text-profile-name'];
-    const sAva = document.getElementById('img-sidebar-avatar'); if(sAva) sAva.src = avatarUrl;
-    const sName = document.getElementById('text-sidebar-name'); if(sName) sName.innerText = nickName;
-    saveToDB('global_applied_profile', JSON.stringify({ avatar: avatarUrl, name: nickName }));
+    saveToDB('profile_plans', JSON.stringify(profilePlans)); 
+    saveToDB('active_plan_id', currentActivePlanId);
 }
 
 function deleteCurrentPlan() {
@@ -1542,7 +1550,18 @@ function openNewContactSheet() {
     document.getElementById('nc-sheet-overlay').classList.add('active');
     document.getElementById('nc-bottom-sheet').classList.add('active');
     
+    // 🌟 修复：每次打开新建面板，彻底清空一切可能残留的上一次输入数据
     document.getElementById('text-nc-name').innerText = '新角色';
+    document.getElementById('text-nc-remark').innerText = '点击设置备注';
+    document.getElementById('input-nc-gender').value = '';
+    document.getElementById('input-nc-age').value = '';
+    document.getElementById('display-nc-birthday').value = '';
+    document.getElementById('input-nc-birthday').value = '';
+    document.getElementById('input-nc-zodiac').value = '';
+    document.getElementById('input-nc-location').value = '';
+    document.getElementById('input-nc-tag1').value = '';
+    document.getElementById('input-nc-secret-file').value = '';
+    
     ncSelectedGroup = '未分组';
     document.getElementById('nc-group-dogtag').innerText = ncSelectedGroup;
     
@@ -1750,11 +1769,9 @@ function saveNewContact() {
     const remark = document.getElementById('text-nc-remark').innerText.trim();
     
     // 识别有没有认真填
-    // 🌟 修复Bug：将默认占位名从生硬的“未命名角色”统一改为顺耳的“新角色”，彻底解决被过滤的问题
     const finalRealName = (realName === '新角色' || realName === '在这里输入真实名称' || realName === '') ? '新角色' : realName;
     
     // UI 显示逻辑：主标题大字 (如果有备注，优先显示备注，否则显示真名)
-
     let displayTitle = finalRealName;
     if (remark !== '点击设置备注' && remark !== '') {
         displayTitle = remark;
@@ -1771,11 +1788,23 @@ function saveNewContact() {
         sign: "",             // 下方灰字代表“最后一条消息”，新建时没聊过天，直接给个空字符串，绝对留白！
         group: ncSelectedGroup, 
         chatType: 'FRIEND', 
-        time: timeStr
+        time: timeStr,
+        remark: remark !== '点击设置备注' ? remark : '' // 🌟 修复：补全备注字段
     };
 
     newContact.boundProfileId = tempNcBoundProfileId;
-    newContact.details = { tag1: document.getElementById('input-nc-tag1').value.trim() };
+    
+    // 🌟 绝杀修复：补全被遗漏的所有个人资料设定，彻底解决资料“失忆”问题！
+    newContact.details = {
+        gender: document.getElementById('input-nc-gender').value.trim(),
+        age: document.getElementById('input-nc-age').value.trim(),
+        location: document.getElementById('input-nc-location').value.trim(),
+        birthday: document.getElementById('display-nc-birthday').value.trim(),
+        zodiac: document.getElementById('input-nc-zodiac').value.trim(),
+        tag1: document.getElementById('input-nc-tag1').value.trim(),
+        secretFile: document.getElementById('input-nc-secret-file').value.trim(),
+        secretMode: document.getElementById('nc-secretToggleSwitch').classList.contains('active')
+    };
 
     contactsList.push(newContact);
     saveToDB('contacts_data', JSON.stringify(contactsList));
@@ -2749,7 +2778,9 @@ function handlePlaneClick() {
 // 组装完美的系统提示词 (根据你的规定顺序)
 function buildSystemPrompt(contact) {
     // 1. 获取 user 资料 (当前生效的身份资料卡)
-    let appliedProfile = profilePlans.find(p => p.id === currentActivePlanId) || profilePlans[0];
+    // 🌟 修复：不再读取全局最后查看的资料卡，而是强制精准抓取此角色专属绑定的身份卡！
+    let boundId = contact.boundProfileId || 'default';
+    let appliedProfile = profilePlans.find(p => p.id === boundId) || profilePlans[0];
     let ud = appliedProfile.data || {};
     let userStr = `姓名: ${ud['text-profile-name']}\n性别: ${ud['text-detail-gender']}\n年龄: ${ud['text-detail-age']}\n`;
     if(ud['text-secret-file']) userStr += `个人档案: ${ud['text-secret-file']}\n`;
@@ -3597,7 +3628,9 @@ async function doAutoSummaryCall(contact, msgsToSummarize) {
     const apiConfig = apiPlans.find(p => p.id === activeApiPlanId)?.data;
     if (!apiConfig || !apiConfig.apiKey) return;
 
-    let ud = profilePlans.find(p => p.id === currentActivePlanId)?.data || {};
+    // 🌟 修复：后台自动总结引擎也必须强制读取该角色专属绑定的身份卡
+    let boundProfileId = contact.boundProfileId || 'default';
+    let ud = profilePlans.find(p => p.id === boundProfileId)?.data || {};
     let cd = contact.details || {};
     let userStr = `姓名:${ud['text-profile-name']} 性别:${ud['text-detail-gender']} 档案:${ud['text-secret-file']||'无'}`;
     let charStr = `姓名:${contact.realName||contact.name} 性别:${cd.gender} 设定:${cd.secretFile||'无'}`;
