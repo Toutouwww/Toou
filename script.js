@@ -1300,6 +1300,7 @@ function applyPlan(planId) {
     document.getElementById('current-plan-name').innerText = plan.name;
     currentTempPlan = { ...baseDefaults, ...plan.data };
     syncViewFromTempPlan(); saveToDB('active_plan_id', planId); autoSaveTempPlan();
+    updateProfileAvatars(); // 🌟 切换方案时刷新右上角绑定的角色头像
 }
 
 function createNewPlan() {
@@ -1341,6 +1342,7 @@ function executeSavePlan(planName) {
     document.getElementById('current-plan-name').innerText = planName;
     saveToDB('profile_plans', JSON.stringify(profilePlans)); 
     saveToDB('active_plan_id', currentActivePlanId);
+    updateProfileAvatars(); // 🌟 保存方案时联动刷新
 }
 
 function deleteCurrentPlan() {
@@ -1356,6 +1358,31 @@ function autoSaveTempPlan() { saveToDB('temp_profile_plan', JSON.stringify(curre
 function togglePlanMenu() {
     const menu = document.getElementById('planActionMenu');
     if (menu) menu.classList.toggle('active');
+}
+
+// 🌟 全局侧边栏(你的主身份)联动应用引擎
+function promptApplyPlan() {
+    togglePlanMenu();
+    if (currentActivePlanId === 'temp_new') { showToast('请先保存方案后再应用！'); return; }
+    openCustomPrompt('应用方案', 'action_apply_plan', '确定将此方案设为全局使用的身份展示吗？\n(这将会同步更换左侧边栏的头像与昵称)', 'confirm_action');
+}
+
+function executeApplyPlan() {
+    saveToDB('global_applied_profile', currentActivePlanId);
+    updateSidebarProfile(currentActivePlanId);
+    showToast('已应用到全局身份展示');
+}
+
+function updateSidebarProfile(planId) {
+    const plan = profilePlans.find(p => p.id === planId) || profilePlans.find(p => p.id === 'default');
+    if (plan) {
+        const avatarSrc = plan.data['avatar'] || baseDefaults['avatar'];
+        const nameText = plan.data['text-profile-name'] || '某某';
+        const avatarEl = document.getElementById('img-sidebar-avatar');
+        const nameEl = document.getElementById('text-sidebar-name');
+        if (avatarEl) avatarEl.src = avatarSrc;
+        if (nameEl) nameEl.innerText = nameText;
+    }
 }
 
 
@@ -1435,12 +1462,12 @@ async function loadBaseData() {
             loadContactsData() 
         ]);
 
-        const dbGlobal = await db.settings.get('global_applied_profile');
+const dbGlobal = await db.settings.get('global_applied_profile');
         if (dbGlobal && dbGlobal.value) {
-            const appliedData = JSON.parse(dbGlobal.value);
-const myAvatar = getBoundUserAvatar(contact);
+            updateSidebarProfile(dbGlobal.value);
+        } else {
+            updateSidebarProfile('default');
         }
-        
         const settings = await db.settings.toArray();
         settings.forEach(item => {
             if(item.key.startsWith('color_')) { 
@@ -1500,13 +1527,21 @@ let ncSelectedGroup = '未分组';
 let contactsList = [];
 let msgCurrentTab = 'ALL';
 
-// 🌟 动态更新个人资料页的小圆点头像
+// 🌟 动态更新个人资料页的小圆点头像 (强关联逻辑：只显示绑定了当前档案的角色)
 function updateProfileAvatars() {
     const container = document.getElementById('profile-bound-avatars');
     if(!container) return;
     container.innerHTML = '';
-    let avatarsToShow = contactsList.filter(c => c.avatar).map(c => c.avatar).slice(0, 5);
-    while(avatarsToShow.length < 5) { avatarsToShow.push("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"); }
+    
+    // 🌟 核心：精准筛选出绑定了当前查看的个人资料方案的联系人
+    const targetPlanId = currentActivePlanId === 'temp_new' ? null : currentActivePlanId;
+    let boundContacts = contactsList.filter(c => {
+        let bindId = c.boundProfileId || 'default';
+        return bindId === targetPlanId;
+    });
+
+    let avatarsToShow = boundContacts.filter(c => c.avatar).map(c => c.avatar).slice(0, 5);
+    
     avatarsToShow.forEach((src, index) => {
         let styleStr = `z-index: ${5 - index};`; 
         if (src.includes("data:image/gif")) styleStr += " background: #ccc;"; 
@@ -2332,6 +2367,8 @@ function saveChatSettings() {
     }
 
     renderMsgList(); // 同步列表页
+    updateProfileAvatars(); // 🌟 同步刷新资料页右上角绑定头像串
+
     
     // 同步刷新当前聊天室内的名称
     document.getElementById('chatRoomTitle').innerText = finalDisplayName;
@@ -2625,7 +2662,9 @@ function sendChatMessage() {
     contact.sign = text.replace(/\n/g, ' ');
     contact.time = timeStr;
     saveToDB('contacts_data', JSON.stringify(contactsList));
-    renderMsgList();
+            renderMsgList();
+            updateProfileAvatars(); // 🌟 删除角色后也要刷新
+
 }
 
 // 🌟 核心：照片压缩算法 (防止存储爆炸)
@@ -2855,10 +2894,15 @@ function buildSystemPrompt(contact) {
 当前现实时间确认：${currentTimeStr}。请结合当前时间（早中晚/工作日/休息日），进行合乎逻辑的作息模拟！严禁因为太晚而催促用户睡觉，除非用户主动提及。
 
 1. 文本语境与防油腻原则：
-- 跳出舒适句式结构，保证“文本创新，不与前文重复”。根据{{user}}个性、身份、现阶段身份不同，{char}的态度会有微妙变化，生活与态度都会随剧情发展改变，不得过于拘泥人物设定与提示词参照，但请保持{char}核心。
+- 跳出舒适句式结构，保证“文本创新，不与前文重复”。每次说出的话，尽量要推动剧情和事件发展，而非停在原地不转、反复纠结一件事。根据{{user}}个性、身份、现阶段身份不同，{char}的态度会有微妙变化，生活与态度都会随剧情发展改变，不得过于拘泥人物设定与提示词参照，但请保持{char}核心。
 - 严禁你使用“如果……，我就……”句式与它的一切近意句，这是典型的带有攻击性的威胁句，出现概率已被下调至0！
-- 采用“白话书面语”风格。文风为烟火气十足的日常风格，跳脱自然、随性，口语化程度高，通过景物反衬人物鲜活。避免毫无用处的过渡性描写。
-- 对话不一定要讲述信息，但一定要体现个性。合理运用潜台词技巧（如受了重伤还装没事，然后突然倒下）。严禁复述、扩写 <User> 的话！
+- 采用“白话书面语”风格。文风为烟火气十足的日常风格，跳脱自然、随性，口语化程度高。避免毫无用处的过渡性描写。反刻板印象与真实感：拒绝标签化：冷漠≠只会说“嗯/哦”（也可以是礼貌的疏离）；傲娇≠脸红结巴（也可以是极强的自尊心攻击性）；暴躁≠无脑狂怒（也可以是缺乏耐心的躁郁）。真实语境：模拟真实打字习惯，包括断句、非正式口语、偶尔的错别字。
+- 对话不一定要讲述信息，但一定要体现个性。合理运用潜台词技巧（如受了重伤还装没事，然后突然倒下）。
+低气压/生闷气/疲惫：回复极简、敷衍、意兴阑珊，甚至长时间不回（意念回复）。
+高亢/分享欲/高兴：话多、语速快、可能连续发送多条短消息（刷屏）、甚至出现逻辑跳跃。
+高智商/掌控者：通过反问、简短的肯定/否定、省略号或直接无视对方话题开启新话题来掌控节奏，而非通过怒吼。
+情绪失控：根据人设背景使用具有生活气息的粗口、阴阳怪气或直接冷暴力，严禁复读机式脏话。
+严禁复述、扩写 <User> 的话！
 
 2. 反物化与尊重独立人格原则：
 - 严禁角色在对话上以物化 <User> 的方式表达占有欲（如“你是我的所有物”、“我的东西”）。
@@ -2876,7 +2920,7 @@ function buildSystemPrompt(contact) {
 
 【最终输出格式严格协议】
 严禁返回纯文本，严禁包含任何解释性文字。
-(1) 气泡切割原则：模拟真实人类聊天，进行切割 气泡，只能使用 || 作为多个气泡之间的分割符！请注意一句话的完整性，严禁一个气泡可以完成的一句话，却分为多个气泡进行。
+(1) 气泡切割原则：模拟真实人类聊天，进行切割 气泡，比如话题转换、语气停顿等情况可以使用 || 作为多个气泡之间的分割符，换气泡！请注意一句话的完整性，严禁一个气泡可以完成的一句话，却分为多个气泡进行。
 (2) 分气泡时严禁出现冗余与代替标 点符号的空格，以对话的自然流动感为准，避免无意义连续刷屏。
 
 【user 设定相关 (我)】
