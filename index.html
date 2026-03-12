@@ -1092,7 +1092,13 @@
     <!-- 底部全局透明小弹窗 -->
     <div class="toast-msg" id="globalToast">操作成功</div>
 
-    <script src="script.js"></script>
+    <!-- 🌟 模块化拆分引擎载入 (注意加载顺序) -->
+    <script src="00-utils.js"></script>
+    <script src="01-data-store.js"></script>
+    <script src="02-ui-components.js"></script>
+    <script src="04-profile-worldbook.js"></script>
+    <script src="05-mind-voice.js"></script>
+    <script src="03-api-chat.js"></script>
 
     <!-- 🌟 自定义气泡专属小白弹窗 -->
     <div class="custom-prompt-overlay" id="bubbleMenuOverlay">
