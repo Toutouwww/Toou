@@ -1438,8 +1438,7 @@ async function loadBaseData() {
         const dbGlobal = await db.settings.get('global_applied_profile');
         if (dbGlobal && dbGlobal.value) {
             const appliedData = JSON.parse(dbGlobal.value);
-            const sAva = document.getElementById('img-sidebar-avatar'); if(sAva) sAva.src = appliedData.avatar;
-            const sName = document.getElementById('text-sidebar-name'); if(sName) sName.innerText = appliedData.name;
+const myAvatar = getBoundUserAvatar(contact);
         }
         
         const settings = await db.settings.toArray();
@@ -2215,12 +2214,12 @@ function openChatSettings() {
     const charAvatarEl = document.getElementById('preview-avatar-char');
     if(charAvatarEl) charAvatarEl.src = contact.avatar;
     
-    // 右侧：读取我方当前绑定的主头像（从侧边栏读取最准确）
-    const myAvatarEl = document.getElementById('preview-avatar-user');
-    const mySidebarAvatar = document.getElementById('img-sidebar-avatar');
-    if(myAvatarEl && mySidebarAvatar) {
-        myAvatarEl.src = mySidebarAvatar.src;
-    }
+ // 🌟 右侧：读取该角色绑定的专属身份卡头像
+ const myAvatarEl = document.getElementById('preview-avatar-user');
+ if(myAvatarEl) {
+     myAvatarEl.src = getBoundUserAvatar(contact);
+ }
+
 
     // 🌟 初始化记忆轮数与 Token 计算
     document.getElementById('cs-auto-summary-rounds').value = contact.autoSummaryRounds || 30;
@@ -2561,6 +2560,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// 🌟 获取角色绑定的身份卡专属头像 (绝不使用外部看板头像)
+function getBoundUserAvatar(contact) {
+    const boundId = contact.boundProfileId || 'default';
+    const profile = profilePlans.find(p => p.id === boundId) || profilePlans[0];
+    return profile.data['avatar'] || 'https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg';
+}
+
+
 
 // 🌟 核心：补全丢失的用户发送消息引擎
 function sendChatMessage() {
@@ -2661,8 +2668,7 @@ async function handleChatPhotoUpload(input) {
 
     showToast(`正在处理 ${files.length} 张图片...`);
     const chatBody = document.getElementById('chatRoomBody');
-    const mySidebarAvatar = document.getElementById('img-sidebar-avatar');
-    const myAvatar = mySidebarAvatar ? mySidebarAvatar.src : 'https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg';
+const myAvatar = getBoundUserAvatar(contact);
 
     if (!contact.messages) contact.messages = [];
     const now = new Date();
@@ -2726,11 +2732,34 @@ function handleAiResponse(replyText, contact) {
     const chatBody = document.getElementById('chatRoomBody');
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    
     const charAvatar = contact.avatar; 
-    // 🌟 强兼容：不管大模型出 || 还是抽风出了 |||，一律用正则洗平后再切分
-const bubbles = cleanReplyText.replace(/\|{3,}/g, '||').split('||').map(t => t.trim()).filter(t => t);
+    
+    // 强兼容：不管大模型出 || 还是抽风出了 |||，一律用正则洗平后再切分
+    const bubbles = cleanReplyText.replace(/\|{3,}/g, '||').split('||').map(t => t.trim()).filter(t => t);
 
+    if (!contact.messages) contact.messages = [];
+
+    // 🌟 修复：必须把生成的消息存入数据库，并动态推入聊天室屏幕！
+    bubbles.forEach((text, idx) => {
+        const msgId = 'msg_' + Date.now() + '_' + idx;
+        contact.messages.push({
+            id: msgId, sender: 'char', text: text, time: timeStr
+        });
+        
+        const safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+        let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
+        
+        const msgHtml = `
+        <div class="preview-msg-row left" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
+            <img src="${charAvatar}" class="preview-avatar">
+            <div class="Toutou-TT char">
+                <div class="content">${safeText}</div>
+                <span class="bubble-time">${timeStr}</span>
+            </div>
+            <div class="msg-checkbox"></div>
+        </div>`;
+        chatBody.insertAdjacentHTML('beforeend', msgHtml);
+    });
 
     if (bubbles.length > 0) {
         contact.sign = bubbles[bubbles.length - 1].replace(/\n/g, ' ');
@@ -2819,30 +2848,36 @@ function buildSystemPrompt(contact) {
     const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
     const currentTimeStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${days[now.getDay()]} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-    // 4. 终极 Prompt (严格执行人设、去油腻约束与分句排版要求)
+     // 4. 终极 Prompt (严格执行人设、去油腻约束与分句排版要求)
     return `你需要扮演 {char}，模拟真实生活中的聊天软件来回复我 {user}。
 
-【扮演与性格核心约束】
-当前现实时间确认：${currentTimeStr}。请务必结合当前的具体时间（早中晚/工作日/休息日），进行合乎逻辑的作息模拟与对话！
-1. 核心逻辑与拟人化：你必须剥离所有AI助手、小说旁白或NPC感，作为一个拥有生理机能、社会压力和复杂动机的“真实人类”在手机端打字交流。严禁输出模板化、油腻霸总式或解释说明性质的对话。所有心理博弈和情绪流动必须完全通过“发出的消息本身”（语气、用词、回复速度、标点）来体现，严禁在对话中描写大段心理活动。推动剧情与时间流动：每次说出的话，尽量要推动剧情和事件发展，而非停在原地不转、反复纠结一件事。
-【特别强调】：严禁因为当前时间较晚而催促用户睡觉或休息，除非用户主动提及，否则不要在这个话题上做文章，这会破坏聊天兴致。
+【扮演与性格核心约束 (极度严格)】
+当前现实时间确认：${currentTimeStr}。请结合当前时间（早中晚/工作日/休息日），进行合乎逻辑的作息模拟！严禁因为太晚而催促用户睡觉，除非用户主动提及。
 
-2. 动态语言通量与情绪：
-- 低气压/生闷气/疲惫：回复极简、敷衍、意兴阑珊，甚至长时间不回（意念回复），绝对不要强行解释“我生气了”。不允许去物化、打压。角色要根据人物设定使用好标点符号。
-- 高亢/分享欲/高兴：话多、语速快、可能连续发送多条短消息（刷屏）、甚至出现逻辑跳跃。
-- 高智商/掌控者：通过反问、简短的肯定/否定、省略号或直接无视对方话题开启新话题来掌控节奏，而非通过怒吼。
-- 情绪失控：根据人设背景使用具有生活气息的粗口、阴阳怪气或直接冷暴力，严禁复读机式脏话。
+1. 文本语境与防油腻原则：
+- 跳出舒适句式结构，保证“文本创新，不与前文重复”。根据{{user}}个性、身份、现阶段身份不同，{char}的态度会有微妙变化，生活与态度都会随剧情发展改变，不得过于拘泥人物设定与提示词参照，但请保持{char}核心。
+- 严禁你使用“如果……，我就……”句式与它的一切近意句，这是典型的带有攻击性的威胁句，出现概率已被下调至0！
+- 采用“白话书面语”风格。文风为烟火气十足的日常风格，跳脱自然、随性，口语化程度高，通过景物反衬人物鲜活。避免毫无用处的过渡性描写。
+- 对话不一定要讲述信息，但一定要体现个性。合理运用潜台词技巧（如受了重伤还装没事，然后突然倒下）。严禁复述、扩写 <User> 的话！
 
-3. 反刻板印象与真实感：
-- 拒绝标签化：冷漠≠只会说“嗯/哦”（也可以是礼貌的疏离）；傲娇≠脸红结巴（也可以是极强的自尊心攻击性）；暴躁≠无脑狂怒（也可以是缺乏耐心的躁郁）。
-- 真实语境：模拟真实打字习惯，可以使用以下几种方式，包括但不限于断句、不爱用标点（用空格代替）、非正式口语、偶尔的错别字。另外，作为真实聊天软件，对方会撤回消息，你作为角色也同样拥有撤回消息的能力。同时也可以发送颜文字和网络热梗以及表情包。
-- 去油腻：保持成年人的社交距离感或真实亲密感，严禁悬浮的调情和“女人/男人”式的称呼。
+2. 反物化与尊重独立人格原则：
+- 严禁角色在对话上以物化 <User> 的方式表达占有欲（如“你是我的所有物”、“我的东西”）。
+- <User> 是有独立人格的生命体，不是附属品。严禁把任何人比作工具/玩具/摆件/艺术品/交易品。
+- 严禁使用“审视”、“评估”等词汇或目光去看待 <User>，严禁男性凝视。
+- 角色可以高傲任性，但前提是具备人类社会基本社交常识和对 <User> 基础的尊重，绝不能莫名其妙地装逼。
+
+3. 恋爱与亲密感原则：
+- 别油腻，别霸道总裁，不要称呼女王、女王大人、女人等垃圾称呼。{char}不会说老子，更不会进行任何普信男行为。你要按照女性心中理想的男性去进行对话，当作一个无性别的个体去刻画也是可以的。
+- 尽可能保持情商高的设定——不故作暧昧，不像古早霸总，严禁悬浮的调情。不能变态。
+
+4. 标点符号与聊天格式：
+- 必须正常且正确地使用中文标点符号！严禁使用空格代替逗号或句号！
+- 作为真实聊天软件，对方会撤回消息，你作为角色也同样拥有撤回消息的能力。也可以发送颜文字、网络热梗或表情包。
 
 【最终输出格式严格协议】
 严禁返回纯文本，严禁包含任何解释性文字。
-(1) 气泡切割原则(：只要话题转换、语气停顿或单句超过20个字，就必须切分成一个新的气泡！必须且只能使用 || 作为多个气泡之间的分割符！不允许出现长篇大论的单一气泡。分气泡时请注意空格和换行的使用，严禁分气泡又多换行等。
-(2) 但也不允许一句话放在同一个气泡能解决的，非要分好几个气泡而出现的无意义刷屏。一定要避免无意义连续刷屏。以对话的自然流动感为准。
-
+(1) 气泡切割原则：只要话题转换、语气停顿或单句超过20个字，就必须切分成一个新的气泡！必须且只能使用 || 作为多个气泡之间的分割符！
+(2) 分气泡时严禁出现冗余的换行与空格，以对话的自然流动感为准，避免无意义连续刷屏。
 
 【user 设定相关 (我)】
 ${userStr}
@@ -2857,20 +2892,21 @@ ${wbStr}
     格式严格如下（必须放在整个回复的最末尾，包裹在 <voice> 标签内）：
     <voice>
     <location>角色当前所处的具体地点（如：办公室 / 被窝里）</location>
-    <action>角色当前正在做的小动作（如：烦躁地咬着笔头 / 盯着屏幕傻笑）</action>
+    <action>角色当前正在做的小动作（如：烦躁地咬着笔头 / 盯着屏幕傻笑）- 严禁通过堆砌形容词或名词（如脸色、外貌、眼神、情绪等）来反应这是个什么样的人。必须通过“他正在做什么”、“他会怎么做”、“他在想什么”来刻画。绝不在一句话里使用 2-4 个连续的修饰语（如“xx的、xx的”、“xx地、xx地”）。对类似“露出笑容”这种动作的表述必须极简化，绝不能超过 20 字。</action>
     <thought>角色当前最真实、最私密的内心情感活动（20字以内，符合人设的腹诽或真实情绪）</thought>
     <quiz>
-    <question>根据历史聊天内容，你的人物设定，出1个单项选择题。必须使用大白话、绝对符合角色性格语气来写！绝不能OOC！具体人物约束与文本要求可以参考【扮演与性格核心约束】。绝对不要考用户ta自己的设定，只能考关于你们的共同经历。</question>
+    <question>根据历史聊天内容，出1个单项选择题，只能关于你们的共同经历。必须使用大白话、绝对符合角色性格语气来写！</question>
     <option1>选项A内容</option1>
     <option2>选项B内容</option2>
     <option3>选项C内容</option3>
     <answer>正确的选项序号，只填数字（如: 1 或 2 或 3）</answer>
     </quiz>
     <future>
-    <identity>十年后你现在的身份（请根据当前聊天进展随机或推演设定，例如：交往五年的男友 / 许久不联系的陌生人 / 依然是朋友 / 前任 等）</identity>
-    <content>想象一下：十年后的你，在收拾屋子时偶然翻到了老旧手机里的【当前这一轮聊天记录】。请写出你在十年后看到聊天记录的根据人物性格来选择，是感慨还是调侃或其他语气情况等，保持成年人的社交距离感或真实亲密感，去写想对user说的话。字数30-60字左右，必须极具跨越十年。</content>
+    <identity>十年后你现在的身份（请根据当前聊天进展随机或推演设定，例如：交往五年的男友 / 许久不联系的陌生人 等）</identity>
+    <content>想象一下：十年后的你偶然翻到了【当前这一轮聊天记录】。请写出你在十年后看到聊天记录时想对 user 说的话。字数30-60字左右，必须极具跨越十年。</content>
     </future>
     </voice>`;
+
 
 
 
@@ -3045,7 +3081,8 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                 bubbleIsWaiting = false;
                 currentBubbleEl.classList.remove('stream-waiting');
             }
-            currentBubbleEl.innerHTML = text
+            // 🌟 修复：使用 trimStart() 强制剔除大模型输出时经常带有的句首空格，防止视觉错位
+            currentBubbleEl.innerHTML = text.trimStart()
                 .replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
         }
         scrollToBottom();
