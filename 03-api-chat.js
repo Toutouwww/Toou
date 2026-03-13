@@ -477,6 +477,7 @@ function openChatRoom(contactId) {
 
                 let contentHtml = '';
                 if (msg.type === 'image' && msg.imageUrl) {
+                    // 原本发图片的逻辑不变
                     contentHtml = `
                     <div class="image-msg-wrapper">
                         ${msg.sender === 'user' ? `<span class="image-timestamp">${msg.time}</span>` : ''}
@@ -484,13 +485,38 @@ function openChatRoom(contactId) {
                         ${msg.sender === 'char' ? `<span class="image-timestamp">${msg.time}</span>` : ''}
                     </div>`;
                 } else {
-                    contentHtml = `
-                    <div class="Toutou-TT ${msg.sender}">
-                        ${msg.sender === 'user' ? `<span class="bubble-time">${msg.time}</span>` : ''}
-                        <div class="content">${safeText}</div>
-                        ${msg.sender === 'char' ? `<span class="bubble-time">${msg.time}</span>` : ''}
-                    </div>`;
+                    // 🌟 核心：正则拦截 [STICKER:xxx] 并转为纯净图片
+                    let safeText = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+                    let hasSticker = false;
+                    safeText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
+                        hasSticker = true;
+                        const sName = name.trim();
+                        let sticker = myStickers.find(s => s.name === sName) || myStickers.find(s => s.name.includes(sName));
+                        if (sticker) return `<img src="${sticker.src}" class="chat-sent-sticker">`;
+                        // 如果AI瞎编的表情没找到，随机发一个，防止破功
+                        if (myStickers.length > 0) return `<img src="${myStickers[Math.floor(Math.random() * myStickers.length)].src}" class="chat-sent-sticker">`;
+                        return `<span style="color:#aaa;font-size:12px;">[${sName}]</span>`;
+                    });
+
+                    // 如果整句话只有表情包，去掉原本丑陋的气泡框底色
+                    if (hasSticker && safeText.replace(/<img[^>]*>/g, '').trim() === '') {
+                        contentHtml = `
+                        <div style="display:flex; flex-direction:column; align-items:${msg.sender === 'user' ? 'flex-end' : 'flex-start'};">
+                            ${msg.sender === 'user' ? `<span class="bubble-time" style="margin-bottom:2px;">${msg.time}</span>` : ''}
+                            ${safeText}
+                            ${msg.sender === 'char' ? `<span class="bubble-time" style="margin-top:2px;">${msg.time}</span>` : ''}
+                        </div>`;
+                    } else {
+                        // 正常气泡包含文字或文字+表情
+                        contentHtml = `
+                        <div class="Toutou-TT ${msg.sender}">
+                            ${msg.sender === 'user' ? `<span class="bubble-time">${msg.time}</span>` : ''}
+                            <div class="content">${safeText}</div>
+                            ${msg.sender === 'char' ? `<span class="bubble-time">${msg.time}</span>` : ''}
+                        </div>`;
+                    }
                 }
+
 
                 if (msg.sender === 'user') {
                     htmlStr += `<div class="preview-msg-row right" id="row-${msg.id}" onclick="handleMsgClickInMultiMode('${msg.id}', this)" ${touchEvents}><div class="msg-checkbox"></div>${contentHtml}<img src="${myAvatar}" class="preview-avatar"></div>`;
@@ -1219,7 +1245,15 @@ function buildSystemPrompt(contact) {
     const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
     const currentTimeStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${days[now.getDay()]} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
+    // 🌟 将用户的表情包库存喂给 AI
+    let stickerRule = "";
+    if (myStickers && myStickers.length > 0) {
+        const stickerNames = myStickers.map(s => s.name).join('、');
+        stickerRule = `\n【表情包能力】\n你现在可以使用表情包了！你的表情包库存名称如下：[${stickerNames}]。\n如果你想发表情包，请在聊天文本中插入格式：[STICKER:表情名]（例如：[STICKER:开心]）。\n注意：必须从库存中选择，严禁编造库存里没有的名字！严禁在文本里描述“发送了一个表情”。`;
+    }
+
     return `你需要扮演 {char}，模拟真实生活中的聊天软件来回复我 {user}。严禁复述、扩写{user} 的话！
+${stickerRule}
 
 【扮演与性格核心约束 (极度严格)】
 当前现实时间确认：${currentTimeStr}。请结合当前时间（早中晚/工作日/休息日），进行合乎逻辑的作息模拟！严禁因为太晚而催促用户睡觉，除非用户主动提及。
@@ -1945,3 +1979,188 @@ function deleteSelectedMessages() {
     if (selectedMsgIndices.size === 0 || !currentChatContactId) return;
     openCustomPrompt('批量删除', 'action_multi_delete', `确定彻底删除选中的 ${selectedMsgIndices.size} 条消息吗？\n(删除后将从历史记录中永久抹除)`, 'confirm_delete');
 }
+
+// ==========================================
+// 8. 表情包系统：上传、渲染与管理
+// ==========================================
+let stickerPressTimer = null;
+let isStickerEditMode = false;
+
+function openStickerPanel(event) {
+    if (event) event.stopPropagation();
+    document.getElementById('sticker-overlay').classList.add('active');
+    document.getElementById('sticker-panel').classList.add('active');
+    document.getElementById('chatRoomScreen').classList.add('plus-active'); // 复用顶起输入框的类
+    isStickerEditMode = false;
+    renderStickerGrid();
+}
+
+function closeStickerPanel() {
+    document.getElementById('sticker-overlay').classList.remove('active');
+    document.getElementById('sticker-panel').classList.remove('active');
+    document.getElementById('chatRoomScreen').classList.remove('plus-active');
+}
+
+function renderStickerGrid() {
+    const container = document.getElementById('sticker-grid-container');
+    container.innerHTML = '';
+    
+    if (myStickers.length === 0) {
+        container.innerHTML = `<div style="grid-column:1/-1; text-align:center; margin-top:30px; color:#aaa; font-size:12px; font-weight:bold;">暂无表情包，快去添加吧</div>`;
+        return;
+    }
+
+    myStickers.forEach(sticker => {
+        const box = document.createElement('div');
+        box.className = 'sticker-item-box';
+        
+        let touchEvents = `
+            ontouchstart="startStickerPress('${sticker.id}')" ontouchend="endStickerPress()" ontouchmove="endStickerPress()"
+            onmousedown="startStickerPress('${sticker.id}')" onmouseup="endStickerPress()" onmouseleave="endStickerPress()"
+            onclick="handleStickerClick('${sticker.id}')"
+        `;
+
+        box.innerHTML = `
+            <div class="sticker-img-wrapper" ${touchEvents}>
+                <img src="${sticker.src}">
+                <div class="sticker-delete-badge" onclick="event.stopPropagation(); deleteSticker('${sticker.id}')">×</div>
+            </div>
+            <span class="sticker-name">${sticker.name}</span>
+        `;
+        container.appendChild(box);
+    });
+}
+
+function startStickerPress(id) {
+    stickerPressTimer = setTimeout(() => {
+        isStickerEditMode = true;
+        document.querySelectorAll('.sticker-item-box').forEach(el => el.classList.add('shake'));
+        if(navigator.vibrate) navigator.vibrate(50);
+    }, 600);
+}
+function endStickerPress() { if (stickerPressTimer) clearTimeout(stickerPressTimer); }
+
+function handleStickerClick(id) {
+    if (isStickerEditMode) {
+        isStickerEditMode = false;
+        document.querySelectorAll('.sticker-item-box').forEach(el => el.classList.remove('shake'));
+        return;
+    }
+    const sticker = myStickers.find(s => s.id === id);
+    if (sticker) {
+        sendStickerMessage(sticker);
+        closeStickerPanel();
+    }
+}
+
+function deleteSticker(id) {
+    if(confirm('确定删除这个表情包吗？')) {
+        myStickers = myStickers.filter(s => s.id !== id);
+        saveToDB('my_stickers_data', JSON.stringify(myStickers));
+        renderStickerGrid();
+    }
+}
+
+// 本地上传单张表情包
+let tempUploadStickerBase64 = null;
+function triggerLocalStickerUpload() { document.getElementById('localStickerInput').click(); }
+
+async function handleLocalStickerUpload(input) {
+    const file = input.files[0]; if (!file) return;
+    tempUploadStickerBase64 = await compressImage(file, 400, 0.8); // 压缩表情包体积
+    input.value = ''; 
+    openCustomPrompt('设定表情含义', 'action_save_local_sticker', '如：开心/震惊/哭泣...', 'input');
+}
+
+// 批量网络导入
+function openBatchStickerPrompt() {
+    document.getElementById('batchStickerInput').value = '';
+    document.getElementById('batchStickerPromptOverlay').classList.add('active');
+}
+
+function processBatchStickerImport() {
+    const text = document.getElementById('batchStickerInput').value.trim();
+    if (!text) return;
+    
+    const lines = text.split('\n');
+    let count = 0;
+    
+    lines.forEach(line => {
+        let urlMatch = line.match(/(https?:\/\/[^\s]+)/);
+        if (urlMatch) {
+            let url = urlMatch[1];
+            // 清理名字里的链接和分隔符 (+, -, |, 空格)
+            let name = line.replace(url, '').replace(/[\+\-\|]/g, ' ').trim();
+            if (!name) name = '未命名';
+            
+            myStickers.push({ id: 'stk_' + Date.now() + Math.random(), src: url, name: name });
+            count++;
+        }
+    });
+    
+    if (count > 0) {
+        saveToDB('my_stickers_data', JSON.stringify(myStickers));
+        renderStickerGrid();
+        showToast(`成功导入 ${count} 个表情包`);
+        document.getElementById('batchStickerPromptOverlay').classList.remove('active');
+    } else {
+        showToast("未识别到有效的图片链接格式");
+    }
+}
+
+// 拦截小白弹窗的保存逻辑，支持表情包命名
+const originalConfirmCustomPrompt = confirmCustomPrompt; // 保留原有逻辑
+confirmCustomPrompt = function() {
+    if (currentPromptAction === 'input' && currentTargetId === 'action_save_local_sticker') {
+        const val = document.getElementById('promptInput').value.trim();
+        const name = val || '未命名';
+        myStickers.push({ id: 'stk_' + Date.now(), src: tempUploadStickerBase64, name: name });
+        saveToDB('my_stickers_data', JSON.stringify(myStickers));
+        renderStickerGrid();
+        showToast(`表情 [${name}] 已添加`);
+        closeCustomPrompt();
+        tempUploadStickerBase64 = null;
+        return;
+    }
+    originalConfirmCustomPrompt(); 
+};
+
+// 实际发送表情包到聊天室的函数
+function sendStickerMessage(sticker) {
+    if (!currentChatContactId) return;
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    if (!contact) return;
+
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    const msgId = 'msg_' + Date.now();
+    // 注入特殊标记，渲染引擎会把它变成图片
+    const stickerTag = `[STICKER:${sticker.name}]`; 
+
+    if (!contact.messages) contact.messages = [];
+    contact.messages.push({ id: msgId, sender: 'user', text: stickerTag, time: timeStr, isSticker: true });
+
+    contact.sign = `[表情: ${sticker.name}]`;
+    contact.time = timeStr;
+    saveToDB('contacts_data', JSON.stringify(contactsList));
+    
+    // 局部渲染到屏幕
+    const chatBody = document.getElementById('chatRoomBody');
+    const myAvatar = getBoundUserAvatar(contact);
+    let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)"`;
+
+    const msgHtml = `
+    <div class="preview-msg-row right" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
+        <div class="msg-checkbox"></div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end;">
+            <span class="bubble-time" style="margin-bottom:2px;">${timeStr}</span>
+            <img src="${sticker.src}" class="chat-sent-sticker">
+        </div>
+        <img src="${myAvatar}" class="preview-avatar">
+    </div>`;
+    chatBody.insertAdjacentHTML('beforeend', msgHtml);
+    setTimeout(() => chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' }), 10);
+    renderMsgList();
+}
+

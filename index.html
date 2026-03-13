@@ -488,38 +488,8 @@
                         </div>
                     </div> <!-- 🌟 核心修复：补回遗漏的闭合标签，拯救全盘 DOM 塌方！！！ -->
 
-     <!-- 🌟 重构提权：新建与管理角色专属分组小白弹窗 (已提取至全局最外层) -->
-    <div class="custom-prompt-overlay" id="ncGroupInitMenuOverlay">
-        <div class="custom-prompt-box">
-            <div class="custom-prompt-title">选择或管理分组</div>
-            <div style="font-size: 11px; color: #666; margin-bottom: 10px; font-weight: 500;">当前选择: <span id="nc-current-group-display-init" style="color:#000; font-weight:800;">未分组</span></div>
-            
-            <!-- 分组列表容器 -->
-            <div class="model-list-modal" id="ncGroupListDirect" style="max-height: 180px; width: 100%; margin-bottom: 10px;"></div>
-
-            <div class="sheet-char-add-btn" onclick="triggerNewNcGroup()" style="width: 100%; margin-bottom: 15px; background: #111; color: #fff; border: none;">新建分组</div>
-            
-            <div class="custom-prompt-actions">
-                <div class="prompt-btn cancel" onclick="closeNcGroupInitMenu()">取消</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 🌟 重构提权：超级小白通用确认弹窗 (支持打字输入 / 二次确认删除，全局居中) -->
-    <div class="custom-prompt-overlay" id="ncCustomPromptOverlay">
-        <div class="custom-prompt-box">
-            <div class="custom-prompt-title" id="ncPromptTitle">编辑内容</div>
-            <input type="text" class="custom-prompt-input" id="ncPromptInput" autocomplete="off">
-            <div class="custom-prompt-msg" id="ncPromptMsg" style="display: none; font-size: 13px; color: #666; margin-bottom: 20px; text-align: center; line-height: 1.5;">确认操作？</div>
-            <div class="custom-prompt-actions">
-                <div class="prompt-btn cancel" onclick="closeNcCustomPrompt()">取消</div>
-                <div class="prompt-btn confirm" id="ncPromptConfirmBtn" onclick="confirmNcCustomPrompt()">确定</div>
-            </div>
-        </div>
-    </div>
-
-                </div> <!-- 结束 phone-frame-wrapper -->
-            </div> <!-- 结束 app-main-content -->
+                </div> <!-- 🌟 补回：结束 phone-frame-wrapper -->
+            </div> <!-- 🌟 补回：结束 app-main-content -->
         </div> <!-- 结束 app-container -->
 
         <!-- 🌟 唯一关键词：【嵌套圆角顶栏聊天室】彻底修复并提权到最外层 -->
@@ -599,7 +569,7 @@
                 </div>
 
                 <!-- 🌟 新增：左缩后的微笑表情包按钮 -->
-                <div class="chat-emoji-btn" onclick="showToast('表情包功能开发中')">
+<div class="chat-emoji-btn" onclick="openStickerPanel(event)">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"></circle>
                         <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
@@ -1196,8 +1166,33 @@
         </div>
     </div>
 
+    <!-- 🌟 修复层级Bug：将角色分组弹窗移动到全局绝对最外层 -->
+    <div class="custom-prompt-overlay" id="ncGroupInitMenuOverlay">
+        <div class="custom-prompt-box">
+            <div class="custom-prompt-title">选择或管理分组</div>
+            <div style="font-size: 11px; color: #666; margin-bottom: 10px; font-weight: 500;">当前选择: <span id="nc-current-group-display-init" style="color:#000; font-weight:800;">未分组</span></div>
+            <div class="model-list-modal" id="ncGroupListDirect" style="max-height: 180px; width: 100%; margin-bottom: 10px;"></div>
+            <div class="sheet-char-add-btn" onclick="triggerNewNcGroup()" style="width: 100%; margin-bottom: 15px; background: #111; color: #fff; border: none;">新建分组</div>
+            <div class="custom-prompt-actions"><div class="prompt-btn cancel" onclick="closeNcGroupInitMenu()">取消</div></div>
+        </div>
+    </div>
+
+    <!-- 🌟 修复层级Bug：将角色新建资料弹窗移动到全局绝对最外层 -->
+    <div class="custom-prompt-overlay" id="ncCustomPromptOverlay">
+        <div class="custom-prompt-box">
+            <div class="custom-prompt-title" id="ncPromptTitle">编辑内容</div>
+            <input type="text" class="custom-prompt-input" id="ncPromptInput" autocomplete="off">
+            <div class="custom-prompt-msg" id="ncPromptMsg" style="display: none; font-size: 13px; color: #666; margin-bottom: 20px; text-align: center; line-height: 1.5;">确认操作？</div>
+            <div class="custom-prompt-actions">
+                <div class="prompt-btn cancel" onclick="closeNcCustomPrompt()">取消</div>
+                <div class="prompt-btn confirm" id="ncPromptConfirmBtn" onclick="confirmNcCustomPrompt()">确定</div>
+            </div>
+        </div>
+    </div>
+
     <!-- 底部全局透明小弹窗 -->
     <div class="toast-msg" id="globalToast">操作成功</div>
+
 
     <!-- 🌟 模块化拆分引擎载入 (注意加载顺序) -->
     <script src="00-utils.js"></script>
@@ -1322,8 +1317,19 @@
             <!-- 🌟 新增：拓展的十年后评论区域 (放置在心声密码箱外侧正下方) -->
             <div id="future-comment-section" class="future-section-wrapper" style="display: none;">
                 
+                <!-- 🌟 绝美恢复：简约日历长方形白卡片 -->
+                <div class="future-calendar-card" style="margin-bottom: 8px;">
+                    <div class="cal-item"><span class="cal-eng">SEVEN</span><div class="cal-line"></div><span class="cal-num">7</span></div>
+                    <div class="cal-item"><span class="cal-eng">EIGHT</span><div class="cal-line"></div><span class="cal-num">8</span></div>
+                    <div class="cal-item"><span class="cal-eng">NINE</span><div class="cal-line"></div><span class="cal-num">9</span></div>
+                    <div class="cal-item active"><span class="cal-eng">TEN</span><div class="cal-line"></div><span class="cal-num">10</span></div>
+                    <div class="cal-item"><span class="cal-eng">ELEVEN</span><div class="cal-line"></div><span class="cal-num">11</span></div>
+                    <div class="cal-item"><span class="cal-eng">TWELVE</span><div class="cal-line"></div><span class="cal-num">12</span></div>
+                </div>
+
                 <!-- 独立十年后朋友圈帖子卡片区 -->
                 <div class="future-post-card">
+
                     
                     <!-- 顶部的头像与AI独立身份名 -->
                     <div class="post-header">
@@ -1448,6 +1454,39 @@
             <div class="b-action-item danger" onclick="bubbleAction('delete')">删除</div>
         </div>
     </div>
+
+    <!-- 🌟 表情包底部抽屉菜单 -->
+    <div class="chat-plus-overlay" id="sticker-overlay" onclick="closeStickerPanel()"></div>
+    <div class="chat-plus-menu" id="sticker-panel" style="padding-top: 15px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding: 0 20px 15px 20px; border-bottom: 1px solid rgba(0,0,0,0.05);">
+            <span style="font-size: 14px; font-weight: 800; color: #111;">我的表情</span>
+            <div style="display:flex; gap: 15px;">
+                <span style="font-size: 12px; font-weight: 700; color: #666; cursor: pointer;" onclick="triggerLocalStickerUpload()">+ 本地</span>
+                <span style="font-size: 12px; font-weight: 700; color: #666; cursor: pointer;" onclick="openBatchStickerPrompt()">+ 网络批量</span>
+            </div>
+        </div>
+        <input type="file" id="localStickerInput" accept="image/*" style="display:none" onchange="handleLocalStickerUpload(this)">
+        
+        <div class="sticker-grid-container" id="sticker-grid-container">
+            <!-- 动态渲染表情包 -->
+        </div>
+    </div>
+
+    <!-- 🌟 网络表情包批量导入弹窗 -->
+    <div class="custom-prompt-overlay" id="batchStickerPromptOverlay">
+        <div class="custom-prompt-box" style="width: 300px;">
+            <div class="custom-prompt-title">批量导入网络表情</div>
+            <div style="font-size: 10px; color: #888; margin-bottom: 10px; line-height: 1.5; text-align:left; width:100%;">
+                格式：名字与链接同行，可用空格、+、-、| 隔开。<br>如：<br>开心 https://img.com/1.jpg<br>大哭 | https://img.com/2.jpg
+            </div>
+            <textarea id="batchStickerInput" style="width:100%; height:120px; background:#f5f5f5; border:none; border-radius:12px; padding:10px; font-size:12px; outline:none; resize:none; margin-bottom:15px;"></textarea>
+            <div class="custom-prompt-actions">
+                <div class="prompt-btn cancel" onclick="document.getElementById('batchStickerPromptOverlay').classList.remove('active')">取消</div>
+                <div class="prompt-btn confirm" onclick="processBatchStickerImport()">导入</div>
+            </div>
+        </div>
+    </div>
+
 
 </body>
 </html>

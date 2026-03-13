@@ -937,10 +937,12 @@
 
 .voice-layout-wrapper {
     display: flex; flex-direction: column; align-items: center; width: 100%;
-    margin-top: calc(2vh - 110px); /* 🌟 核心：往上移动50px，总计上移 110px */
+    margin-top: calc(2vh - 100px); /* 🌟 修复：精准上移，回调到 -110px，防止顶破屏幕 */
     opacity: 0; transform: translateY(10px);
     transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
+
+
 
 /* 🌟 心声系统修复：让包裹层在激活时恢复透明度与定位 */
 .custom-prompt-overlay.active .voice-layout-wrapper {
@@ -1019,7 +1021,26 @@
     margin-top: 15px; /* 在白色纸张正下方拉开距离 */
 }
 
+/* 🌟 恢复的日历长方形白卡片样式 */
+.future-calendar-card {
+    width: 100%; background: #ffffff; border-radius: 12px; padding: 10px 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.04); display: flex; justify-content: space-between;
+    align-items: center; border: 1px solid #eaeaea;
+}
+.cal-item {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    flex: 1; height: 46px; border-radius: 8px; margin: 0 2px; transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.cal-eng { font-size: 8px; transform: scale(0.85); font-weight: 800; color: #888; letter-spacing: 0.5px; margin-bottom: 2px; }
+.cal-line { width: 12px; height: 1.5px; background: #ccc; border-radius: 1px; margin-bottom: 4px; }
+.cal-num { font-size: 14px; font-weight: 800; color: #333; font-family: -apple-system, monospace; }
+/* 日历选中态 */
+.cal-item.active { background: #111; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.cal-item.active .cal-eng, .cal-item.active .cal-num { color: #ffffff; }
+.cal-item.active .cal-line { background: #ffffff; }
+
 /* 🌟 全新：朋友圈帖子卡片 */
+
 .future-post-card {
     width: 100%;
     background: #ffffff;
@@ -1352,3 +1373,53 @@
 .plus-pagination .dot.active { 
     background: rgba(0, 0, 0, 0.4); 
 }
+
+
+/* ==========================================
+   🌟 表情包系统专属样式
+========================================== */
+.sticker-grid-container {
+    width: 100%; flex: 1; overflow-y: auto; overflow-x: hidden;
+    padding: 15px 20px; display: grid;
+    grid-template-columns: repeat(4, 1fr); gap: 15px;
+    align-content: start;
+}
+.sticker-grid-container::-webkit-scrollbar { display: none; }
+
+/* 表情包容器 (继承极简凹陷质感) */
+.sticker-item-box {
+    display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; position: relative;
+}
+.sticker-img-wrapper {
+    width: 60px; height: 60px; border-radius: 16px;
+    background: rgba(245, 245, 245, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.02);
+    box-shadow: inset 4px 4px 8px rgba(0,0,0,0.06), inset -4px -4px 8px rgba(255,255,255,1);
+    display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 5px;
+    transition: all 0.2s ease;
+}
+.sticker-item-box:active .sticker-img-wrapper {
+    transform: scale(0.92);
+    background: rgba(235, 235, 235, 0.6);
+    box-shadow: inset 6px 6px 12px rgba(0,0,0,0.1), inset -6px -6px 12px rgba(255,255,255,1);
+}
+.sticker-img-wrapper img {
+    max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none;
+}
+.sticker-name { font-size: 10px; color: #777; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px; }
+
+/* 长按删除的小红叉 */
+.sticker-delete-badge {
+    position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; border-radius: 50%;
+    background: #ff3b30; color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: bold; box-shadow: 0 2px 5px rgba(255,59,48,0.3);
+    opacity: 0; transform: scale(0); transition: all 0.2s;
+}
+.sticker-item-box.shake .sticker-delete-badge { opacity: 1; transform: scale(1); }
+.sticker-item-box.shake { animation: sticker-shake 0.3s infinite alternate; }
+
+@keyframes sticker-shake { 0% { transform: rotate(-2deg); } 100% { transform: rotate(2deg); } }
+
+/* 聊天室内展示的表情包图片 (去掉气泡背景，纯净展示) */
+.chat-sent-sticker { max-width: 120px; max-height: 120px; object-fit: contain; display: block; margin: 4px; border-radius: 8px; }

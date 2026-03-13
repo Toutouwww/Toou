@@ -36,6 +36,10 @@ let msgCurrentTab = 'ALL';
 let customBubblePlans = [];
 let tempPreviewBubbleData = null; 
 
+// --- 表情包相关 ---
+let myStickers = [];
+
+
 
 // ==========================================
 // 2. Dexie 数据库初始化与基础操作
@@ -148,6 +152,15 @@ async function loadContactsData() {
     } catch (e) { console.error("通讯录读取失败", e); }
 }
 
+// 加载表情包数据
+async function loadStickersData() {
+    try {
+        const dbData = await db.settings.get('my_stickers_data');
+        if (dbData && dbData.value) { myStickers = JSON.parse(dbData.value); }
+    } catch (e) { console.error("表情包读取失败", e); }
+}
+
+
 // 加载自定义气泡美化方案
 async function loadCustomBubblePlans() {
     try {
@@ -183,8 +196,10 @@ async function loadBaseData() {
             loadPlans(),
             loadApiPlansData(),
             loadWorldbooksData(),
-            loadContactsData() 
+            loadContactsData(), // 🌟 修复Bug：补上了这里遗漏的致命逗号
+            loadStickersData()
         ]);
+
 
         const dbGlobal = await db.settings.get('global_applied_profile');
         if (dbGlobal && dbGlobal.value) {
