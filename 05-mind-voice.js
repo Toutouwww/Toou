@@ -481,7 +481,10 @@ function showMindContent(contact) {
     
     if (contact.innerVoice.future && contact.innerVoice.future.content) {
         futureSection.style.display = 'flex'; 
-        document.getElementById('future-identity-pill').innerText = `十年后的${contact.innerVoice.future.identity}正在评论`;
+        
+        // 🌟 核心：将角色的专属头像，以及AI独立推演的10年后身份名称写入帖子 UI 中
+        document.getElementById('future-post-avatar').src = contact.avatar;
+        document.getElementById('future-post-name').innerText = contact.innerVoice.future.identity || "十年后的对方";
         
         const playBtn = document.getElementById('future-play-btn');
         const glassLayer = document.getElementById('future-glass-layer');

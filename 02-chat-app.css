@@ -937,11 +937,10 @@
 
 .voice-layout-wrapper {
     display: flex; flex-direction: column; align-items: center; width: 100%;
-    margin-top: calc(2vh - 60px); /* 🌟 核心：继续往上移 40px，总计上移 60px */
+    margin-top: calc(2vh - 110px); /* 🌟 核心：往上移动50px，总计上移 110px */
     opacity: 0; transform: translateY(10px);
     transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-
 
 /* 🌟 心声系统修复：让包裹层在激活时恢复透明度与定位 */
 .custom-prompt-overlay.active .voice-layout-wrapper {
@@ -949,9 +948,8 @@
 }
 
 /* 打印机本体：压低亮度，充当背景 */
-
 .printer-machine {
-    width: 180px; /* 🌟 宽度加大，更匹配下方卡片 */
+    width: 180px; 
     background: #222; border-radius: 2px 2px 0 0;
     box-shadow: 0 5px 15px rgba(0,0,0,0.06); display: flex; flex-direction: column; align-items: center;
 }
@@ -960,7 +958,7 @@
 
 /* 下方的心声密码箱：白底细线，极度克制 */
 .mind-box {
-    width: 280px; /* 🌟 宽度变宽，从原本 240 变为 280，更具阅读舒适感 */
+    width: 280px; 
     background: #ffffff; border: 1px solid #eaeaea; border-radius: 4px;
     padding: 25px 20px; margin-top: 25px; 
     box-shadow: 0 10px 30px rgba(0,0,0,0.03);
@@ -1006,92 +1004,23 @@
 .m-label { font-size: 8px; font-weight: 800; color: #b3b3b3; letter-spacing: 1.5px; margin-bottom: 4px; text-transform: uppercase; }
 .m-val { font-size: 12px; font-weight: 500; color: #333; line-height: 1.4; word-break: break-all; }
 .m-val.handwritten { 
-    font-family: 'ToutouHandwrite', 'Ma Shan Zheng', 'Zhi Mang Xing', cursive; /* 🌟 优先使用自定义手写字体 */
-    font-size: 18px; /* 字体稍微放大一点更像真迹 */
-    color: #111; 
-    line-height: 1.6; 
-    letter-spacing: 2px; 
+    font-family: 'ToutouHandwrite', 'Ma Shan Zheng', 'Zhi Mang Xing', cursive;
+    font-size: 18px; color: #111; line-height: 1.6; letter-spacing: 2px; 
 }
 
 
-
 /* ==========================================
-   🌟 独立纸张拓展区域：十年后评论与语音波动
+   🌟 独立纸张拓展区域：十年后评论帖子样式
 ========================================== */
 .future-section-wrapper {
     width: 280px; /* 和上方的 mind-box 保持完美等宽对齐 */
     display: flex;
     flex-direction: column;
-    gap: 12px;
     margin-top: 15px; /* 在白色纸张正下方拉开距离 */
 }
 
-/* 🌟 全新：日历长方形白卡片 */
-.future-calendar-card {
-    width: 100%;
-    background: #ffffff;
-    border-radius: 12px;
-    padding: 10px 8px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.04);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid #eaeaea;
-}
-
-.cal-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    height: 46px;
-    border-radius: 8px;
-    margin: 0 2px;
-    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.cal-eng {
-    font-size: 8px;
-    transform: scale(0.85); /* 将英文强制压缩，变得极其精致不抢风头 */
-    font-weight: 800;
-    color: #888;
-    letter-spacing: 0.5px;
-    margin-bottom: 2px;
-}
-
-.cal-line {
-    width: 12px; /* 强制固定长度，约为英文长度的一半 */
-    height: 1.5px;
-    background: #ccc;
-    border-radius: 1px;
-    margin-bottom: 4px;
-}
-
-.cal-num {
-    font-size: 14px;
-    font-weight: 800;
-    color: #333;
-    font-family: -apple-system, monospace;
-}
-
-/* 🌟 日历选中态 (纯黑翻转质感) */
-.cal-item.active {
-    background: #111;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.cal-item.active .cal-eng,
-.cal-item.active .cal-num {
-    color: #ffffff;
-}
-
-.cal-item.active .cal-line {
-    background: #ffffff; /* 选中时的分割线反转为纯白 */
-}
-
-/* 🌟 十年后内容独立白卡片 */
-.future-content-card {
+/* 🌟 全新：朋友圈帖子卡片 */
+.future-post-card {
     width: 100%;
     background: #ffffff;
     border-radius: 12px;
@@ -1100,25 +1029,39 @@
     border: 1px solid #eaeaea;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    gap: 12px;
 }
-
-.future-black-pill {
-    display: inline-block;
-    background: #111;
-    color: #fff;
+.post-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.post-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #eee;
+}
+.post-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.post-name {
+    font-size: 13px;
+    font-weight: 800;
+    color: #111;
+}
+.post-time {
     font-size: 10px;
-    font-weight: 700;
-    padding: 5px 14px;
-    border-radius: 20px;
-    margin-bottom: 12px;
+    font-weight: 600;
+    color: #999;
     letter-spacing: 0.5px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    align-self: flex-start;
+    margin-top: 2px;
 }
 
 .audio-record-container {
-    /* 保持内部拟态波动框完美不变 */
     position: relative;
     width: 100%;
     height: 90px;
@@ -1137,7 +1080,7 @@
     display: flex; align-items: center; justify-content: center;
     transition: all 0.5s ease;
     z-index: 2; 
-    padding: 10px 15px; /* 🌟 上下增加边距，防止超长文字贴边 */
+    padding: 10px 15px; 
     box-sizing: border-box;
 }
 .glass-text-layer.unlocked {
@@ -1145,20 +1088,17 @@
     background: transparent;
 }
 .blur-text-mask {
-    font-family: 'ToutouHandwrite', 'Ma Shan Zheng', cursive; /* 🌟 使用全新的自定义手写字体 */
+    font-family: 'ToutouHandwrite', 'Ma Shan Zheng', cursive; 
     font-size: 16px; font-weight: 500; color: #333;
     line-height: 1.5; text-align: center; letter-spacing: 1px;
     opacity: 0; filter: blur(4px); transition: all 0.5s ease;
-    
-    /* 🌟 核心：允许文字过多时上下滑动浏览，且隐藏丑陋的滚动条 */
     max-height: 100%; 
     width: 100%;
     overflow-y: auto;
 }
 .blur-text-mask::-webkit-scrollbar { 
-    display: none; /* 隐藏滚动条保持极简 */
+    display: none; 
 }
-
 
 .glass-text-layer.unlocked .blur-text-mask {
     opacity: 1; filter: blur(0px);
@@ -1178,75 +1118,6 @@
 .play-btn-wrapper.hidden-anim {
     opacity: 0; transform: translate(-50%, -50%) scale(0.5); pointer-events: none;
 }
-
-
-/* 🌟 黑色报错小弹窗 (纯黑白，压低情绪，彻底去除阴影) */
-.mind-black-toast {
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95);
-    background: #111; color: #fff; padding: 20px 25px; border-radius: 8px;
-    font-size: 12px; font-weight: 500; line-height: 1.6; text-align: left;
-    max-width: 280px; width: 85%; z-index: 4000; box-shadow: none;
-    opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.mind-black-toast.active { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
-
-/* 🌟 修复工具栏 Bug：补充丢失的底层拦截遮罩，防止点击穿透和逻辑卡死 */
-.chat-plus-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: transparent; z-index: 2010; 
-    display: none;
-}
-.chat-plus-overlay.active { display: block; }
-
-.chat-plus-menu {
-    position: fixed; /* 🌟 绝杀错位：必须用 fixed，将其死死钉在屏幕视口，防止滚动漂移导致误触！ */
-
-    bottom: 0; left: 0; width: 100%; height: 260px;
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border-top: 1px solid rgba(255, 255, 255, 0.5); 
-    z-index: 2020;
-    transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-    display: flex; flex-direction: column; padding: 20px 15px; box-sizing: border-box;
-}
-.chat-plus-menu.active { transform: translateY(0); }
-
-.plus-grid {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px 10px;
-}
-.plus-item {
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
-}
-.plus-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 18px; 
-    /* 🌟 核心修改：默认凹陷的深邃液态腔体 */
-    background: rgba(245, 245, 245, 0.5);
-    border: 1px solid rgba(0, 0, 0, 0.02); /* 极度微弱的暗边勾勒物理凹槽 */
-    box-shadow: 
-        inset 4px 4px 8px rgba(0, 0, 0, 0.06), /* 内部左上的暗部投影 */
-        inset -4px -4px 8px rgba(255, 255, 255, 1), /* 内部右下的极致高光反光 */
-        0 1px 2px rgba(255, 255, 255, 0.8); /* 凹槽外圈的一点点受光亮边 */
-    color: #555; /* SVG 图标颜色稍微加深一点适应凹陷背景 */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-}
-
-.plus-item:active .plus-icon {
-    transform: scale(0.94); /* 已经凹陷了，按压时只需要轻微缩放 */
-    background: rgba(235, 235, 235, 0.6);
-    box-shadow: 
-        inset 6px 6px 12px rgba(0, 0, 0, 0.1), 
-        inset -6px -6px 12px rgba(255, 255, 255, 1),
-        0 1px 1px rgba(255, 255, 255, 0.5);
-}
-
-.plus-item span { font-size: 11px; color: #666; font-weight: 500; }
 
 /* ==========================================
    🌟 气泡长按菜单引擎 (高级磨砂浅灰玻璃)
@@ -1354,3 +1225,130 @@
 
 @keyframes slideDownFade { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes scaleIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* ==========================================
+   🌟 全新：表情包按钮样式与顶升高度修正
+========================================== */
+.chat-emoji-btn {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: transform 0.1s;
+    margin-bottom: 10px; /* 向上提，脱离底部 */
+    flex-shrink: 0; margin-right: 2px;
+}
+.chat-emoji-btn:active { transform: scale(0.9); }
+
+/* 聊天室内顶起高度适应加号菜单：缩小顶起高度，精准保留约 20px 间距 */
+.chat-room-screen.plus-active .chat-room-input-bar { 
+    transform: translateY(calc(-210px - env(safe-area-inset-bottom, 0px))); 
+}
+.chat-room-screen.plus-active .chat-room-body { 
+    transform: translateY(calc(-210px - env(safe-area-inset-bottom, 0px))); 
+}
+
+
+/* ==========================================
+   🌟 聊天加号底部菜单 (100% 恢复原版绝美质感)
+========================================== */
+.chat-plus-overlay {
+    position: fixed; /* 固定在屏幕上，覆盖整个页面 */
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: transparent; /* 透明背景 */
+    z-index: 2010; 
+    display: none; /* 默认隐藏 */
+}
+.chat-plus-overlay.active { display: block; } /* 激活时显示 */
+
+.chat-plus-menu {
+    position: fixed; /* 固定在屏幕底部 */
+    bottom: 0; left: 0; width: 100%; 
+    /* 兼容滑动双页的自适应高度，同时保留底部安全距离 */
+    padding: 20px 0 calc(10px + env(safe-area-inset-bottom, 0px)) 0; 
+    /* 🌟 80% 透明纯白 + 高强度毛玻璃效果 (绝对原版) */
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-top: 1px solid rgba(255, 255, 255, 0.5); 
+    border-radius: 24px 24px 0 0; /* 增加顶部圆角更贴合屏幕 */
+    z-index: 2020;
+    transform: translateY(100%); /* 默认隐藏在屏幕下方 */
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); /* 平滑弹出动画 */
+    display: flex; flex-direction: column; box-sizing: border-box;
+}
+.chat-plus-menu.active { transform: translateY(0); } /* 激活时滑入屏幕 */
+
+/* ==========================================
+   🌟 滑动双页容器 (嵌套原版网格)
+========================================== */
+.plus-pages-container {
+    display: flex; width: 100%; overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory; scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+.plus-pages-container::-webkit-scrollbar { display: none; }
+
+.plus-page {
+    flex: 0 0 100%; width: 100%;
+    scroll-snap-align: center;
+    padding: 0 15px; box-sizing: border-box;
+}
+
+/* 网格布局：默认一行4个 (绝对原版) */
+.plus-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px 10px;
+}
+
+/* 每个功能项（图标 + 文字） (绝对原版) */
+.plus-item {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* 🌟 功能图标按钮：核心原版凹陷液态腔体效果 (100% 无修改还原) 🌟 */
+.plus-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 18px; 
+    background: rgba(245, 245, 245, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.02); /* 极度微弱的暗边勾勒物理凹槽 */
+    box-shadow: 
+        inset 4px 4px 8px rgba(0, 0, 0, 0.06), /* 内部左上的暗部投影 (凹陷) */
+        inset -4px -4px 8px rgba(255, 255, 255, 1), /* 内部右下的极致高光反光 (突出边缘) */
+        0 1px 2px rgba(255, 255, 255, 0.8); /* 凹槽外圈的一点点受光亮边 */
+    color: #555; /* SVG 图标颜色，语音按钮也会完美继承 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+/* 🌟 图标按钮的按压反馈：原版加深凹陷 (100% 无修改还原) 🌟 */
+.plus-item:active .plus-icon {
+    transform: scale(0.94); /* 按压时轻微缩小 */
+    background: rgba(235, 235, 235, 0.6);
+    box-shadow: 
+        inset 6px 6px 12px rgba(0, 0, 0, 0.1), /* 凹陷更深 */
+        inset -6px -6px 12px rgba(255, 255, 255, 1),
+        0 1px 1px rgba(255, 255, 255, 0.5);
+}
+
+.plus-icon svg { width: 24px; height: 24px; }
+
+/* 功能项下方的文字标签 (绝对原版) */
+.plus-item span { font-size: 11px; color: #666; font-weight: 500; }
+
+/* ==========================================
+   🌟 翻页指示器 (简约适配毛玻璃底)
+========================================== */
+.plus-pagination {
+    display: flex; justify-content: center; align-items: center; gap: 8px;
+    margin-top: 20px;
+}
+.plus-pagination .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(0, 0, 0, 0.1); 
+    transition: all 0.3s; cursor: pointer;
+}
+.plus-pagination .dot.active { 
+    background: rgba(0, 0, 0, 0.4); 
+}

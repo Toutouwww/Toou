@@ -518,6 +518,16 @@ function renderNcProfileMenu() {
 
 function toggleNcProfileMenu() { document.getElementById('ncProfileMenu').classList.toggle('active'); }
 
+// 🌟 新增：新建角色时的生日与星座自动联动引擎
+function handleNcBirthdayChange(dateString) {
+    if (!dateString) return;
+    document.getElementById('display-nc-birthday').value = dateString;
+    const date = new Date(dateString);
+    const zodiac = getZodiacSign(date.getDate(), date.getMonth() + 1);
+    const zodiacInput = document.getElementById('input-nc-zodiac');
+    if (zodiacInput) zodiacInput.value = zodiac;
+}
+
 function openNewContactSheet() {
     document.getElementById('msg-popover-menu').classList.remove('active');
     document.getElementById('nc-sheet-overlay').classList.add('active');

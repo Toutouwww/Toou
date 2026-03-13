@@ -421,11 +421,6 @@ function closeChatRoom() {
 }
 
 function openChatRoom(contactId) {
-    if (isLongPressTriggered) {
-        isLongPressTriggered = false;
-        return;
-    }
-    
     currentChatContactId = contactId;
     const contact = contactsList.find(c => c.id === contactId);
     if (!contact) return;
@@ -462,7 +457,7 @@ function openChatRoom(contactId) {
     });
 
     if (contact.messages && contact.messages.length > 0) {
-        const myAvatar = document.getElementById('img-sidebar-avatar').src;
+        const myAvatar = getBoundUserAvatar(contact); // 🌟 彻底隔离拉取该角色独立的身份卡头像
         const charAvatar = contact.avatar; 
 
         let allMsgs = contact.messages;
@@ -573,6 +568,16 @@ function uploadChatInitLocalAvatar(input) {
 
 // 角色专属聊天设置页
 let tempBoundProfileId = 'default';
+
+// 🌟 新增：角色设定页的生日与星座自动联动引擎
+function handleCsBirthdayChange(dateString) {
+    if (!dateString) return;
+    document.getElementById('display-cs-birthday').value = dateString;
+    const date = new Date(dateString);
+    const zodiac = getZodiacSign(date.getDate(), date.getMonth() + 1);
+    const zodiacInput = document.getElementById('cs-zodiac');
+    if (zodiacInput) zodiacInput.value = zodiac;
+}
 
 function openChatSettings() {
     if (!currentChatContactId) return;
@@ -1073,8 +1078,7 @@ function sendChatMessage() {
     });
 
     const chatBody = document.getElementById('chatRoomBody');
-    const mySidebarAvatar = document.getElementById('img-sidebar-avatar');
-    const myAvatar = mySidebarAvatar ? mySidebarAvatar.src : 'https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg';
+    const myAvatar = getBoundUserAvatar(contact); // 彻底解决每次发言乱借用其他资料头像的Bug
     const safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
     const msgId = contact.messages[contact.messages.length - 1].id;
     let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
@@ -1215,21 +1219,21 @@ function buildSystemPrompt(contact) {
     const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
     const currentTimeStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${days[now.getDay()]} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-    return `你需要扮演 {char}，模拟真实生活中的聊天软件来回复我 {user}。
+    return `你需要扮演 {char}，模拟真实生活中的聊天软件来回复我 {user}。严禁复述、扩写{user} 的话！
 
 【扮演与性格核心约束 (极度严格)】
 当前现实时间确认：${currentTimeStr}。请结合当前时间（早中晚/工作日/休息日），进行合乎逻辑的作息模拟！严禁因为太晚而催促用户睡觉，除非用户主动提及。
 
-1. 文本语境与防油腻原则：
+1. 文本语境原则：
 - 跳出舒适句式结构，保证“文本创新，不与前文重复”。每次说出的话，尽量要推动剧情和事件发展，而非停在原地不转、反复纠结一件事。根据{{user}}个性、身份、现阶段身份不同，{char}的态度会有微妙变化，生活与态度都会随剧情发展改变，不得过于拘泥人物设定与提示词参照，但请保持{char}核心。
 - 严禁你使用“如果……，我就……”句式与它的一切近意句，这是典型的带有攻击性的威胁句，出现概率已被下调至0！
 - 采用“白话书面语”风格。文风为烟火气十足的日常风格，跳脱自然、随性，口语化程度高。避免毫无用处的过渡性描写。反刻板印象与真实感：拒绝标签化：冷漠≠只会说“嗯/哦”（也可以是礼貌的疏离）；傲娇≠脸红结巴（也可以是极强的自尊心攻击性）；暴躁≠无脑狂怒（也可以是缺乏耐心的躁郁）。真实语境：模拟真实打字习惯，包括断句、非正式口语、偶尔的错别字。
 - 对话不一定要讲述信息，但一定要体现个性。合理运用潜台词技巧（如受了重伤还装没事，然后突然倒下）。
+你可以参考以下情绪处理方式：
 低气压/生闷气/疲惫：回复极简、敷衍、意兴阑珊，甚至长时间不回（意念回复）。
 高亢/分享欲/高兴：话多、语速快、可能连续发送多条短消息（刷屏）、甚至出现逻辑跳跃。
 高智商/掌控者：通过反问、简短的肯定/否定、省略号或直接无视对方话题开启新话题来掌控节奏，而非通过怒吼。
 情绪失控：根据人设背景使用具有生活气息的粗口、阴阳怪气或直接冷暴力，严禁复读机式脏话。
-严禁复述、扩写 <User> 的话！
 
 2. 反物化与尊重独立人格原则：
 - 严禁角色在对话上以物化 <User> 的方式表达占有欲（如“你是我的所有物”、“我的东西”）。
@@ -1238,16 +1242,16 @@ function buildSystemPrompt(contact) {
 - 角色可以高傲任性，但前提是具备人类社会基本社交常识和对 <User> 基础的尊重，绝不能莫名其妙地装逼。
 
 3. 恋爱与亲密感原则：
-- 别油腻，别霸道总裁，不要称呼女王、女王大人、女人等垃圾称呼。{char}不会说老子，更不会进行任何普信男行为。你要按照女性心中理想的男性去进行对话，当作一个无性别的个体去刻画也是可以的。
+- 别油腻，别霸道总裁，不要称呼女王、女王大人、女人等垃圾称呼。{char}不会说老子，更不会进行任何普信男行为。你要按照女性心中理想的男性去进行对话，去当作一个无性别的个体刻画也是可以的。
 - 尽可能保持情商高的设定——不故作暧昧，不像古早霸总，严禁悬浮的调情。不能变态。
 
 4. 标点符号与聊天格式：
-- 必须正常且正确地使用中文标点符号！
+- 正常情况（无特殊情况）下必须正常且正确地使用中文标点符号！
 - 作为真实聊天软件，对方会撤回消息，你作为角色也同样拥有撤回消息的能力。也可以发送颜文字、网络热梗或表情包。
 
 【最终输出格式严格协议】
 严禁返回纯文本，严禁包含任何解释性文字。
-原则：模拟真实人类聊天，进行切割气泡，比如话题转换、语气停顿等情况可以使用 || 作为多个气泡之间的分割符，换气泡！请注意一句话的完整性，严禁一个气泡可以完成的一句话，却分为多个气泡进行。但也要注意，不要单个气泡臃肿，塞了好几个句子，你要保证真实人类的气泡发送原则，做到分好句子，不臃肿，同时也不出现太多气泡的无意义连续刷屏，以对话的自然流动感为准。
+原则：模拟真实人类聊天，进行切割气泡，比如话题转换、语气停顿等情况**必须**使用 || 作为多个气泡之间的分割符，换气泡！请注意一句话的完整性，严禁一个气泡可以完成的一句话，却分为多个气泡进行。但也要注意，不要单个气泡臃肿，塞了好几个句子，你要保证真实人类的气泡发送原则，做到分好句子，不臃肿，同时也不出现太多气泡的无意义连续刷屏，以对话的自然流动感为准。
 
 【user 设定相关 (我)】
 ${userStr}
@@ -1742,14 +1746,37 @@ function closeChatPlusMenu() {
 document.addEventListener('DOMContentLoaded', () => {
     const chatInput = document.getElementById('chatRoomInput');
     if (chatInput) {
-        chatInput.addEventListener('focus', function() {
-            const menu = document.getElementById('chat-plus-menu');
-            if (menu && menu.classList.contains('active')) {
-                closeChatPlusMenu();
-            }
+        chatInput.addEventListener('input', function() {
+            this.style.height = 'auto'; 
+            this.style.height = this.scrollHeight + 'px';
+        });
+    }
+
+    // 🌟 新增：监听加号菜单页面的手指横向滑动，自动切换底部小白点
+    const pagesContainer = document.getElementById('plus-pages-container');
+    if (pagesContainer) {
+        pagesContainer.addEventListener('scroll', () => {
+            // 根据滚动距离计算出当前是第几页 (0 还是 1)
+            const index = Math.round(pagesContainer.scrollLeft / pagesContainer.clientWidth);
+            const dots = document.querySelectorAll('.plus-pagination .dot');
+            dots.forEach((dot, i) => {
+                if (i === index) dot.classList.add('active');
+                else dot.classList.remove('active');
+            });
         });
     }
 });
+
+// 🌟 新增：点击小圆点也可以进行平滑跨页
+function switchPlusPage(index) {
+    const pagesContainer = document.getElementById('plus-pages-container');
+    if (pagesContainer) {
+        pagesContainer.scrollTo({
+            left: index * pagesContainer.clientWidth,
+            behavior: 'smooth'
+        });
+    }
+}
 
 
 // ==========================================
