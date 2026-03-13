@@ -469,15 +469,23 @@ function openChatRoom(contactId) {
             for (let i = start; i < end; i++) {
                 let msg = allMsgs[i];
                 
-                if (contact.lastSummaryMsgIndex && i === contact.lastSummaryMsgIndex) {
+                 if (contact.lastSummaryMsgIndex && i === contact.lastSummaryMsgIndex) {
                     htmlStr += `<div style="text-align:center; margin: 15px 0; font-size:10px; color:#ccc; letter-spacing:1px; font-weight:bold;">—— 以上消息已生成记忆总结并折叠归档 ——</div>`;
                 }
                 const safeText = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
                 let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msg.id}', '${msg.sender}', '${msg.time}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msg.id}', '${msg.sender}', '${msg.time}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
 
+                // 🌟 新增：拦截撤回类型的消息，渲染成系统居中提示
+                if (msg.type === 'recall') {
+                    let nameDisplay = msg.sender === 'user' ? '你' : (contact.realName || contact.name);
+                    htmlStr += `<div style="width:100%; text-align:center; margin: 15px 0; font-size:11px; color:#aaa; font-weight:600; letter-spacing:0.5px; user-select:none;">${nameDisplay} 撤回了一条消息</div>`;
+                    continue; 
+                }
+
                 let contentHtml = '';
                 if (msg.type === 'image' && msg.imageUrl) {
                     // 原本发图片的逻辑不变
+
                     contentHtml = `
                     <div class="image-msg-wrapper">
                         ${msg.sender === 'user' ? `<span class="image-timestamp">${msg.time}</span>` : ''}
@@ -1292,11 +1300,11 @@ ${stickerRule}
 
 4. 标点符号与聊天格式：
 - 正常情况（无特殊情况）下必须正常且正确地使用中文标点符号！
-- 作为真实聊天软件，对方会撤回消息，你作为角色也同样拥有撤回消息的能力。也可以发送颜文字、网络热梗或表情包。
+- 作为真实聊天软件，对方会撤回消息，你作为角色同样拥有撤回消息的能力。也可以发送颜文字、网络热梗或表情包。如果你想撤回刚刚发出的某句话，请在一个独立气泡中发送格式 [RECALL:你想撤回的内容+原因] (例如：[RECALL:好想你｜怎么就这样说出来了…])，系统会自动将其转化为空白的撤回提示。
 
 【最终输出格式严格协议】
 严禁返回纯文本，严禁包含任何解释性文字。
-原则：模拟真实人类聊天，进行切割气泡，比如话题转换、语气停顿等情况**必须**使用 || 作为多个气泡之间的分割符，换气泡！请注意一句话的完整性，严禁一个气泡可以完成的一句话，却分为多个气泡进行。但也要注意，不要单个气泡臃肿，塞了好几个句子，你要保证真实人类的气泡发送原则，做到分好句子，不臃肿，同时也不出现太多气泡的无意义连续刷屏，以对话的自然流动感为准。
+原则：模拟真实人类聊天，进行切割气泡，比如话题转换、语气停顿、出现句号，问号等情况**必须**使用 || 作为多个气泡之间的分割符，换气泡！请注意一句话的完整性，严禁一个气泡可以完成的一句话，却分为多个气泡进行。但也要注意，不要单个气泡臃肿，塞了好几个句子，你要保证真实人类的气泡发送原则，做到分好句子，不臃肿，同时也不出现太多气泡的无意义连续刷屏，以对话的自然流动感为准。
 
 【user 设定相关 (我)】
 ${userStr}
@@ -1448,20 +1456,56 @@ function handleAiResponse(replyText, contact) {
 
     bubbles.forEach((text, idx) => {
         const msgId = 'msg_' + Date.now() + '_' + idx;
+        
+        // 🌟 新增：拦截 AI 的撤回指令，并直接转为 Tombstone
+        let isRecall = /\[RECALL.*?\]/i.test(text);
+        if (isRecall) {
+            contact.messages.push({
+                id: msgId, sender: 'char', type: 'recall', text: '撤回了一条消息', time: timeStr
+            });
+            const msgHtml = `<div style="width:100%; text-align:center; margin: 15px 0; font-size:11px; color:#aaa; font-weight:600; letter-spacing:0.5px; user-select:none;">${contact.realName || contact.name} 撤回了一条消息</div>`;
+            chatBody.insertAdjacentHTML('beforeend', msgHtml);
+            return; // 结束当前气泡，跳过正常渲染
+        }
+
         contact.messages.push({
             id: msgId, sender: 'char', text: text, time: timeStr
         });
         
-        const safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+        // 🌟 核心：为实时回复加上表情包正则拦截器
+        let safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+        let hasSticker = false;
+        safeText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
+            hasSticker = true;
+            const sName = name.trim();
+            let sticker = myStickers.find(s => s.name === sName) || myStickers.find(s => s.name.includes(sName));
+            if (sticker) return `<img src="${sticker.src}" class="chat-sent-sticker" style="margin: 2px 0;">`;
+            if (myStickers.length > 0) return `<img src="${myStickers[Math.floor(Math.random() * myStickers.length)].src}" class="chat-sent-sticker" style="margin: 2px 0;">`;
+            return `<span style="color:#aaa;font-size:12px;">[${sName}]</span>`;
+        });
+        
         let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
         
-        const msgHtml = `
-        <div class="preview-msg-row left" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
-            <img src="${charAvatar}" class="preview-avatar">
+        // 🌟 核心：如果整句话只有表情包，去掉丑陋的气泡底色
+        let contentHtml = '';
+        if (hasSticker && safeText.replace(/<img[^>]*>/g, '').trim() === '') {
+            contentHtml = `
+            <div class="image-msg-wrapper">
+                ${safeText}
+                <span class="image-timestamp" style="margin-left:6px;">${timeStr}</span>
+            </div>`;
+        } else {
+            contentHtml = `
             <div class="Toutou-TT char">
                 <div class="content">${safeText}</div>
                 <span class="bubble-time">${timeStr}</span>
-            </div>
+            </div>`;
+        }
+
+        const msgHtml = `
+        <div class="preview-msg-row left" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
+            <img src="${charAvatar}" class="preview-avatar">
+            ${contentHtml}
             <div class="msg-checkbox"></div>
         </div>`;
         chatBody.insertAdjacentHTML('beforeend', msgHtml);
@@ -1527,11 +1571,55 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                 bubbleIsWaiting = false;
                 currentBubbleEl.classList.remove('stream-waiting');
             }
-            currentBubbleEl.innerHTML = text.trimStart()
-                .replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+            
+            // 🌟 核心：流式打字机实时探测！只要打出完整的标签，瞬间变成图片
+            let safeText = text.trimStart().replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+            
+            // 🌟 侦测流式撤回指令，瞬间变身灰色系统文字
+            let isRecall = false;
+            safeText = safeText.replace(/\[RECALL.*?\]/gi, () => {
+                isRecall = true;
+                return `<div style="text-align:center; font-size:11px; color:#aaa; font-weight:600; width:100%; padding: 5px 10px;">对方撤回了一条消息</div>`;
+            });
+
+            let hasSticker = false;
+            safeText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
+
+                hasSticker = true;
+                const sName = name.trim();
+                let sticker = myStickers.find(s => s.name === sName) || myStickers.find(s => s.name.includes(sName));
+                if (sticker) return `<img src="${sticker.src}" class="chat-sent-sticker" style="margin: 2px 0;">`;
+                if (myStickers.length > 0) return `<img src="${myStickers[Math.floor(Math.random() * myStickers.length)].src}" class="chat-sent-sticker" style="margin: 2px 0;">`;
+                return `<span style="color:#aaa;font-size:12px;">[${sName}]</span>`;
+            });
+            
+            currentBubbleEl.innerHTML = safeText;
+
+            // 🌟 动态侦测：撤回与图片去底色
+            if (isRecall) {
+                currentBubbleEl.style.background = 'transparent';
+                currentBubbleEl.style.boxShadow = 'none';
+                currentBubbleEl.style.border = 'none';
+                let rowEl = currentBubbleEl.closest('.preview-msg-row');
+                if (rowEl) {
+                    let avatarEl = rowEl.querySelector('.preview-avatar');
+                    if (avatarEl) avatarEl.style.display = 'none';
+                    rowEl.style.justifyContent = 'center';
+                }
+            } else if (hasSticker && safeText.replace(/<img[^>]*>/g, '').trim() === '') {
+                currentBubbleEl.style.background = 'transparent';
+                currentBubbleEl.style.boxShadow = 'none';
+                currentBubbleEl.style.border = 'none';
+            } else {
+
+                currentBubbleEl.style.background = '';
+                currentBubbleEl.style.boxShadow = '';
+                currentBubbleEl.style.border = '';
+            }
         }
         scrollToBottom();
     }
+
 
     spawnBubble();
 
@@ -1607,9 +1695,17 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
         allFinishedBubbleTexts.forEach((text, idx) => {
             if (text) {
                 const msgId = 'msg_' + Date.now() + '_' + idx;
-                contact.messages.push({
-                    id: msgId, sender: 'char', text: text, time: timeStr
-                });
+                
+                // 🌟 数据保存时拦截撤回指令并正确归档
+                if (/\[RECALL.*?\]/i.test(text)) {
+                    contact.messages.push({
+                        id: msgId, sender: 'char', type: 'recall', text: '撤回了一条消息', time: timeStr
+                    });
+                } else {
+                    contact.messages.push({
+                        id: msgId, sender: 'char', text: text, time: timeStr
+                    });
+                }
                 
                 const row = rowList[idx];
                 if (row) {
@@ -1921,9 +2017,11 @@ function bubbleAction(action) {
         showToast('已删除');
         openChatRoom(currentChatContactId); 
     } else if (action === 'recall') {
-        contact.messages.splice(msgIndex, 1);
+        // 🌟 核心：用户手动撤回时不删除数据，而是将其打上系统痕迹标签
+        contact.messages[msgIndex].type = 'recall';
+        contact.messages[msgIndex].text = '撤回了一条消息';
         saveToDB('contacts_data', JSON.stringify(contactsList));
-        showToast('你撤回了一条消息');
+        showToast('撤回成功');
         openChatRoom(currentChatContactId); 
     } else if (action === 'multi') {
         enterMultiSelectMode(currentActionBubbleId); 
