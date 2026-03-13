@@ -501,12 +501,12 @@ function openChatRoom(contactId) {
                     // 如果整句话只有表情包，去掉原本丑陋的气泡框底色
                     if (hasSticker && safeText.replace(/<img[^>]*>/g, '').trim() === '') {
                         contentHtml = `
-                        <div style="display:flex; flex-direction:column; align-items:${msg.sender === 'user' ? 'flex-end' : 'flex-start'};">
-                            ${msg.sender === 'user' ? `<span class="bubble-time" style="margin-bottom:2px;">${msg.time}</span>` : ''}
+                        <div class="image-msg-wrapper">
+                            ${msg.sender === 'user' ? `<span class="image-timestamp" style="margin-right:6px;">${msg.time}</span>` : ''}
                             ${safeText}
-                            ${msg.sender === 'char' ? `<span class="bubble-time" style="margin-top:2px;">${msg.time}</span>` : ''}
+                            ${msg.sender === 'char' ? `<span class="image-timestamp" style="margin-left:6px;">${msg.time}</span>` : ''}
                         </div>`;
-                    } else {
+                    }else {
                         // 正常气泡包含文字或文字+表情
                         contentHtml = `
                         <div class="Toutou-TT ${msg.sender}">
@@ -1248,8 +1248,19 @@ function buildSystemPrompt(contact) {
     // 🌟 将用户的表情包库存喂给 AI
     let stickerRule = "";
     if (myStickers && myStickers.length > 0) {
-        const stickerNames = myStickers.map(s => s.name).join('、');
-        stickerRule = `\n【表情包能力】\n你现在可以使用表情包了！你的表情包库存名称如下：[${stickerNames}]。\n如果你想发表情包，请在聊天文本中插入格式：[STICKER:表情名]（例如：[STICKER:开心]）。\n注意：必须从库存中选择，严禁编造库存里没有的名字！严禁在文本里描述“发送了一个表情”。`;
+        // 🌟 核心：筛选出通用组，以及绑定了当前角色的组
+        let availableStickers = myStickers.filter(s => {
+            let grp = stickerGroups.find(g => g.name === s.group);
+            if (!grp) return false;
+            if (grp.name === '通用') return true;
+            if (grp.boundChars && grp.boundChars.includes(contact.realName || contact.name)) return true;
+            return false;
+        });
+
+        if (availableStickers.length > 0) {
+            const stickerNames = availableStickers.map(s => s.name).join('、');
+            stickerRule = `\n【表情包能力】\n你现在可以使用表情包了！你的表情包库存名称如下：[${stickerNames}]。\n如果你想发表情包，请在聊天文本中插入格式：[STICKER:表情名]（例如：[STICKER:开心]）。\n注意：必须从库存中选择，严禁编造库存里没有的名字！严禁在文本里描述“发送了一个表情”。`;
+        }
     }
 
     return `你需要扮演 {char}，模拟真实生活中的聊天软件来回复我 {user}。严禁复述、扩写{user} 的话！
@@ -1981,54 +1992,155 @@ function deleteSelectedMessages() {
 }
 
 // ==========================================
-// 8. 表情包系统：上传、渲染与管理
+// 8. 表情包系统：分组、上传、渲染与管理
 // ==========================================
 let stickerPressTimer = null;
 let isStickerEditMode = false;
+let currentStickerGroup = '通用'; 
 
 function openStickerPanel(event) {
     if (event) event.stopPropagation();
     document.getElementById('sticker-overlay').classList.add('active');
     document.getElementById('sticker-panel').classList.add('active');
-    document.getElementById('chatRoomScreen').classList.add('plus-active'); // 复用顶起输入框的类
+    document.getElementById('chatRoomScreen').classList.add('sticker-active'); 
     isStickerEditMode = false;
+    
+    // 🌟 核心：每次打开表情面板，强制选中定位为默认的 "通用" 分组
+    currentStickerGroup = '通用'; 
     renderStickerGrid();
 }
 
 function closeStickerPanel() {
     document.getElementById('sticker-overlay').classList.remove('active');
     document.getElementById('sticker-panel').classList.remove('active');
-    document.getElementById('chatRoomScreen').classList.remove('plus-active');
+    document.getElementById('chatRoomScreen').classList.remove('sticker-active');
 }
 
 function renderStickerGrid() {
+    const tabsContainer = document.getElementById('sticker-group-tabs');
+    if(tabsContainer) {
+        tabsContainer.innerHTML = '';
+        
+        // 🌟 终极硬保底机制：如果用户的历史数据里搞丢了"通用"分组，强行补回来！
+        let commonGroup = stickerGroups.find(g => g.name === '通用');
+        if (!commonGroup) {
+            commonGroup = { id: 'sg_default', name: '通用', boundChars: [] };
+            stickerGroups.unshift(commonGroup);
+            saveToDB('sticker_groups_data', JSON.stringify(stickerGroups));
+        }
+        
+        const otherGroups = stickerGroups.filter(g => g.name !== '通用');
+        
+        const renderTab = (g) => {
+            const div = document.createElement('div');
+            // 如果这个药丸等于当前选中的 currentStickerGroup，就会挂上 'active' 变成黑色
+            div.className = `sticker-group-tab ${currentStickerGroup === g.name ? 'active' : ''}`;
+            div.innerText = g.name;
+
+            if (g.name === '通用') {
+                div.onclick = () => { currentStickerGroup = g.name; renderStickerGrid(); };
+            } else {
+                let pressTimer;
+                let isLongPress = false;
+                
+                const startPress = (e) => {
+                    isLongPress = false;
+                    pressTimer = setTimeout(() => {
+                        isLongPress = true;
+                        if(navigator.vibrate) navigator.vibrate(50);
+                        openStickerGroupBindModal(g.id);
+                    }, 500);
+                };
+                const endPress = (e) => {
+                    if (pressTimer) clearTimeout(pressTimer);
+                    if (!isLongPress && e.type !== 'touchmove' && e.type !== 'mouseleave') {
+                        currentStickerGroup = g.name; 
+                        renderStickerGrid();
+                    }
+                };
+
+                div.addEventListener('touchstart', startPress, {passive: true});
+                div.addEventListener('touchend', endPress);
+                div.addEventListener('touchmove', () => { if(pressTimer) clearTimeout(pressTimer); });
+                div.addEventListener('mousedown', startPress);
+                div.addEventListener('mouseup', endPress);
+                div.addEventListener('mouseleave', () => { if(pressTimer) clearTimeout(pressTimer); });
+            }
+            tabsContainer.appendChild(div);
+        };
+
+        // 🌟 绝对保证"通用"小药丸永远排在最左侧第一个进行渲染！
+        renderTab(commonGroup);
+        otherGroups.forEach(g => renderTab(g));
+    }
+
     const container = document.getElementById('sticker-grid-container');
     container.innerHTML = '';
     
-    if (myStickers.length === 0) {
-        container.innerHTML = `<div style="grid-column:1/-1; text-align:center; margin-top:30px; color:#aaa; font-size:12px; font-weight:bold;">暂无表情包，快去添加吧</div>`;
+    let filteredStickers = myStickers.filter(s => s.group === currentStickerGroup);
+
+    if (filteredStickers.length === 0) {
+        container.innerHTML = `<div style="width:100%; text-align:center; margin-top:50px; color:#aaa; font-size:12px; font-weight:bold;">当前分类暂无表情包</div>`;
         return;
     }
 
-    myStickers.forEach(sticker => {
-        const box = document.createElement('div');
-        box.className = 'sticker-item-box';
+    // 🌟 全新3行4列(一页12个)滑动网格算法
+    const pagesContainer = document.createElement('div');
+    pagesContainer.className = 'sticker-pages-container';
+    
+    const chunkSize = 12;
+    const pageCount = Math.ceil(filteredStickers.length / chunkSize);
+    
+    for(let i = 0; i < pageCount; i++) {
+        const page = document.createElement('div');
+        page.className = 'sticker-page';
+        const grid = document.createElement('div');
+        grid.className = 'sticker-grid';
         
-        let touchEvents = `
-            ontouchstart="startStickerPress('${sticker.id}')" ontouchend="endStickerPress()" ontouchmove="endStickerPress()"
-            onmousedown="startStickerPress('${sticker.id}')" onmouseup="endStickerPress()" onmouseleave="endStickerPress()"
-            onclick="handleStickerClick('${sticker.id}')"
-        `;
+        const chunk = filteredStickers.slice(i * chunkSize, (i+1) * chunkSize);
+        chunk.forEach(sticker => {
+            const box = document.createElement('div');
+            box.className = 'sticker-item-box';
+            let touchEvents = `
+                ontouchstart="startStickerPress('${sticker.id}')" ontouchend="endStickerPress()" ontouchmove="endStickerPress()"
+                onmousedown="startStickerPress('${sticker.id}')" onmouseup="endStickerPress()" onmouseleave="endStickerPress()"
+                onclick="handleStickerClick('${sticker.id}')"
+            `;
+            box.innerHTML = `
+                <div class="sticker-img-wrapper" ${touchEvents}>
+                    <img src="${sticker.src}">
+                    <div class="sticker-delete-badge" onclick="event.stopPropagation(); deleteSticker('${sticker.id}')">×</div>
+                </div>
+                <span class="sticker-name">${sticker.name}</span>
+            `;
+            grid.appendChild(box);
+        });
+        page.appendChild(grid);
+        pagesContainer.appendChild(page);
+    }
+    
+    container.appendChild(pagesContainer);
 
-        box.innerHTML = `
-            <div class="sticker-img-wrapper" ${touchEvents}>
-                <img src="${sticker.src}">
-                <div class="sticker-delete-badge" onclick="event.stopPropagation(); deleteSticker('${sticker.id}')">×</div>
-            </div>
-            <span class="sticker-name">${sticker.name}</span>
-        `;
-        container.appendChild(box);
-    });
+    // 🌟 渲染滑动底部小圆点
+    if (pageCount > 1) {
+        const pagination = document.createElement('div');
+        pagination.className = 'sticker-pagination';
+        for(let i=0; i<pageCount; i++) {
+            const dot = document.createElement('div');
+            dot.className = `dot ${i===0 ? 'active' : ''}`;
+            dot.onclick = () => pagesContainer.scrollTo({ left: i * pagesContainer.clientWidth, behavior: 'smooth' });
+            pagination.appendChild(dot);
+        }
+        container.appendChild(pagination);
+
+        // 监听滚动更新点
+        pagesContainer.addEventListener('scroll', () => {
+            const index = Math.round(pagesContainer.scrollLeft / pagesContainer.clientWidth);
+            pagination.querySelectorAll('.dot').forEach((d, i) => {
+                d.classList.toggle('active', i === index);
+            });
+        });
+    }
 }
 
 function startStickerPress(id) {
@@ -2047,10 +2159,7 @@ function handleStickerClick(id) {
         return;
     }
     const sticker = myStickers.find(s => s.id === id);
-    if (sticker) {
-        sendStickerMessage(sticker);
-        closeStickerPanel();
-    }
+    if (sticker) { sendStickerMessage(sticker); closeStickerPanel(); }
 }
 
 function deleteSticker(id) {
@@ -2061,19 +2170,189 @@ function deleteSticker(id) {
     }
 }
 
-// 本地上传单张表情包
+// ---------------- 🌟 升级版：动态挂载下拉框核心引擎 ----------------
+function renderStickerDropdown(type) {
+    const dropdown = document.getElementById(`${type}-group-dropdown`);
+    const display = document.getElementById(`${type}-group-display`);
+    if (!dropdown || !display) return;
+    
+    dropdown.innerHTML = '';
+    
+    const commonGroup = stickerGroups.find(g => g.name === '通用');
+    const otherGroups = stickerGroups.filter(g => g.name !== '通用');
+    
+    const renderItem = (g) => {
+        const div = document.createElement('div');
+        div.className = 'url-option';
+        div.innerText = g.name;
+        div.style.textAlign = 'center';
+        div.style.fontSize = '13px';
+        div.style.fontWeight = '600';
+        div.onclick = (e) => {
+            e.stopPropagation();
+            display.innerText = g.name;
+            dropdown.classList.remove('active');
+        };
+        dropdown.appendChild(div);
+    };
+    
+    if(commonGroup) renderItem(commonGroup);
+    otherGroups.forEach(g => renderItem(g));
+    
+    // 🌟 不管你曾经选择了什么，只要打开就强制复位成通用！
+    display.innerText = '通用';
+}
+
+// 🌟 全局监听，点击别处时自动收起自定义下拉菜单
+document.addEventListener('click', function(e) {
+    const localMenu = document.getElementById('local-group-dropdown');
+    const localInput = document.getElementById('local-group-display')?.parentElement;
+    if (localMenu && localMenu.classList.contains('active') && e.target !== localInput && !localInput.contains(e.target)) {
+        localMenu.classList.remove('active');
+    }
+
+    const batchMenu = document.getElementById('batch-group-dropdown');
+    const batchInput = document.getElementById('batch-group-display')?.parentElement;
+    if (batchMenu && batchMenu.classList.contains('active') && e.target !== batchInput && !batchInput.contains(e.target)) {
+        batchMenu.classList.remove('active');
+    }
+});
+
+// ---------------- 分组管理 ----------------
+let returnToStickerUploadMode = null; 
+function openStickerGroupManager(mode = null) {
+    returnToStickerUploadMode = mode;
+    renderStickerGroupList();
+    document.getElementById('stickerGroupManager').classList.add('active');
+}
+
+function closeStickerGroupManager() {
+    document.getElementById('stickerGroupManager').classList.remove('active');
+    // 🌟 返回时，重新挂载高级下拉框
+    if (returnToStickerUploadMode === 'local') {
+        renderStickerDropdown('local');
+        document.getElementById('stickerUploadPrompt').classList.add('active');
+    } else if (returnToStickerUploadMode === 'batch') {
+        renderStickerDropdown('batch');
+        document.getElementById('batchStickerPromptOverlay').classList.add('active');
+    }
+    returnToStickerUploadMode = null;
+}
+
+
+function renderStickerGroupList() {
+    const list = document.getElementById('sticker-group-list');
+    list.innerHTML = '';
+    stickerGroups.forEach(g => {
+        const div = document.createElement('div');
+        div.className = 'model-item-btn';
+        div.style.display = 'flex'; div.style.flexDirection = 'column'; div.style.gap = '8px';
+        
+        // 🌟 强化版的删除按钮，并明确标出通用不可删除
+        let deleteBtnHtml = g.name !== '通用' 
+            ? `<div style="background:#ffe5e5; color:#ff3b30; font-size:11px; padding:4px 10px; border-radius:6px; cursor:pointer; font-weight:800;" onclick="deleteStickerGroup('${g.id}')">删除分组</div>` 
+            : `<div style="font-size:10px; color:#bbb; font-weight:800; padding:4px 0;">系统默认(不可删)</div>`;
+
+        let header = `<div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:800; color:#111;">${g.name}</span>
+            ${deleteBtnHtml}
+        </div>`;
+        
+        let boundStr = g.name === '通用' ? '自动给所有 AI 角色开放读取该分组' : `绑定特定角色: ${g.boundChars && g.boundChars.length > 0 ? g.boundChars.join(', ') : '暂未绑定 (仅用作自己的分类)'}`;
+        let action = g.name !== '通用' ? `<div style="font-size:11px; color:#555; background:#ebebeb; padding:8px; border-radius:8px; cursor:pointer; text-align:center; font-weight:800;" onclick="openStickerGroupBindModal('${g.id}')">选择绑定角色</div>` : '';
+
+        div.innerHTML = `${header}<div style="font-size:10px; color:#888; font-weight:600; line-height:1.4;">${boundStr}</div>${action}`;
+        list.appendChild(div);
+    });
+}
+
+function createStickerGroup() {
+    const name = document.getElementById('new-sticker-group-input').value.trim();
+    if (!name) return;
+    if (stickerGroups.find(g => g.name === name)) { showToast('分组名已存在'); return; }
+    stickerGroups.push({ id: 'sg_' + Date.now(), name: name, boundChars: [] });
+    saveToDB('sticker_groups_data', JSON.stringify(stickerGroups));
+    document.getElementById('new-sticker-group-input').value = '';
+    renderStickerGroupList();
+    renderStickerGrid(); 
+}
+
+function deleteStickerGroup(id) {
+    if(confirm('删除分组将同时删除该分组下的所有表情包，确定继续吗？')) {
+        const grp = stickerGroups.find(g => g.id === id);
+        if(!grp) return;
+        myStickers = myStickers.filter(s => s.group !== grp.name);
+        stickerGroups = stickerGroups.filter(g => g.id !== id);
+        if(currentStickerGroup === grp.name) currentStickerGroup = '通用';
+        saveToDB('my_stickers_data', JSON.stringify(myStickers));
+        saveToDB('sticker_groups_data', JSON.stringify(stickerGroups));
+        renderStickerGroupList();
+        renderStickerGrid();
+    }
+}
+
+let tempBindingGroupId = null;
+function openStickerGroupBindModal(id) {
+    tempBindingGroupId = id;
+    const list = document.getElementById('charSelectList'); 
+    list.innerHTML = '';
+    document.querySelector('#charSelectOverlay .custom-prompt-title').innerText = '选择要绑定的角色(多选)';
+    
+    const availableChars = [...new Set(contactsList.map(c => c.realName || c.name))].filter(n => n);
+    const grp = stickerGroups.find(g => g.id === id);
+    const currentBounds = grp.boundChars || [];
+
+    if (availableChars.length === 0) {
+        list.innerHTML = `<div style="text-align:center; padding: 20px 10px; color:#999; font-size:13px;">暂无角色，请去通讯录创建</div>`;
+    } else {
+        availableChars.forEach(char => {
+            const item = document.createElement('div');
+            item.className = 'model-item-btn'; 
+            item.style.display = 'flex'; item.style.justifyContent = 'space-between';
+            const isSelected = currentBounds.includes(char);
+            item.innerHTML = `<span>${char}</span> <span style="color:${isSelected?'#111':'#ccc'}; font-weight:bold;">${isSelected?'已选':'未选'}</span>`;
+            item.onclick = () => {
+                if(currentBounds.includes(char)) { grp.boundChars = grp.boundChars.filter(c => c !== char); } 
+                else { grp.boundChars.push(char); }
+                saveToDB('sticker_groups_data', JSON.stringify(stickerGroups));
+                openStickerGroupBindModal(id); 
+                renderStickerGroupList();
+            };
+            list.appendChild(item);
+        });
+    }
+    document.getElementById('charSelectOverlay').classList.add('active');
+}
+
+// ---------------- 上传与发送 ----------------
 let tempUploadStickerBase64 = null;
 function triggerLocalStickerUpload() { document.getElementById('localStickerInput').click(); }
 
 async function handleLocalStickerUpload(input) {
     const file = input.files[0]; if (!file) return;
-    tempUploadStickerBase64 = await compressImage(file, 400, 0.8); // 压缩表情包体积
+    tempUploadStickerBase64 = await compressImage(file, 400, 0.8);
     input.value = ''; 
-    openCustomPrompt('设定表情含义', 'action_save_local_sticker', '如：开心/震惊/哭泣...', 'input');
+    document.getElementById('sticker-upload-preview').src = tempUploadStickerBase64;
+    document.getElementById('sticker-name-input').value = '';
+    renderStickerDropdown('local'); // 🌟 初始化高级下拉框，并强锁定为“通用”
+    document.getElementById('stickerUploadPrompt').classList.add('active');
 }
 
-// 批量网络导入
+function confirmStickerUpload() {
+    const name = document.getElementById('sticker-name-input').value.trim() || '未命名';
+    // 🌟 获取自定义下拉框中的文字作为数据源
+    const groupName = document.getElementById('local-group-display').innerText || '通用';
+    myStickers.push({ id: 'stk_' + Date.now(), src: tempUploadStickerBase64, name: name, group: groupName });
+    saveToDB('my_stickers_data', JSON.stringify(myStickers));
+    currentStickerGroup = groupName;
+    renderStickerGrid();
+    showToast(`表情已添加到 ${groupName}`);
+    document.getElementById('stickerUploadPrompt').classList.remove('active');
+    tempUploadStickerBase64 = null;
+}
+
 function openBatchStickerPrompt() {
+    renderStickerDropdown('batch'); // 🌟 初始化高级下拉框，并强锁定为“通用”
     document.getElementById('batchStickerInput').value = '';
     document.getElementById('batchStickerPromptOverlay').classList.add('active');
 }
@@ -2081,51 +2360,31 @@ function openBatchStickerPrompt() {
 function processBatchStickerImport() {
     const text = document.getElementById('batchStickerInput').value.trim();
     if (!text) return;
-    
-    const lines = text.split('\n');
-    let count = 0;
+    // 🌟 获取自定义下拉框中的文字作为数据源
+    const groupName = document.getElementById('batch-group-display').innerText || '通用';
+    const lines = text.split('\n'); let count = 0;
     
     lines.forEach(line => {
         let urlMatch = line.match(/(https?:\/\/[^\s]+)/);
         if (urlMatch) {
             let url = urlMatch[1];
-            // 清理名字里的链接和分隔符 (+, -, |, 空格)
-            let name = line.replace(url, '').replace(/[\+\-\|]/g, ' ').trim();
-            if (!name) name = '未命名';
-            
-            myStickers.push({ id: 'stk_' + Date.now() + Math.random(), src: url, name: name });
+            let name = line.replace(url, '').replace(/[\+\-\|]/g, ' ').trim() || '未命名';
+            myStickers.push({ id: 'stk_' + Date.now() + Math.random(), src: url, name: name, group: groupName });
             count++;
         }
     });
     
     if (count > 0) {
         saveToDB('my_stickers_data', JSON.stringify(myStickers));
+        currentStickerGroup = groupName;
         renderStickerGrid();
-        showToast(`成功导入 ${count} 个表情包`);
+        showToast(`成功导入 ${count} 个表情到 ${groupName}`);
         document.getElementById('batchStickerPromptOverlay').classList.remove('active');
     } else {
         showToast("未识别到有效的图片链接格式");
     }
 }
 
-// 拦截小白弹窗的保存逻辑，支持表情包命名
-const originalConfirmCustomPrompt = confirmCustomPrompt; // 保留原有逻辑
-confirmCustomPrompt = function() {
-    if (currentPromptAction === 'input' && currentTargetId === 'action_save_local_sticker') {
-        const val = document.getElementById('promptInput').value.trim();
-        const name = val || '未命名';
-        myStickers.push({ id: 'stk_' + Date.now(), src: tempUploadStickerBase64, name: name });
-        saveToDB('my_stickers_data', JSON.stringify(myStickers));
-        renderStickerGrid();
-        showToast(`表情 [${name}] 已添加`);
-        closeCustomPrompt();
-        tempUploadStickerBase64 = null;
-        return;
-    }
-    originalConfirmCustomPrompt(); 
-};
-
-// 实际发送表情包到聊天室的函数
 function sendStickerMessage(sticker) {
     if (!currentChatContactId) return;
     const contact = contactsList.find(c => c.id === currentChatContactId);
@@ -2133,9 +2392,7 @@ function sendStickerMessage(sticker) {
 
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    
     const msgId = 'msg_' + Date.now();
-    // 注入特殊标记，渲染引擎会把它变成图片
     const stickerTag = `[STICKER:${sticker.name}]`; 
 
     if (!contact.messages) contact.messages = [];
@@ -2145,16 +2402,16 @@ function sendStickerMessage(sticker) {
     contact.time = timeStr;
     saveToDB('contacts_data', JSON.stringify(contactsList));
     
-    // 局部渲染到屏幕
     const chatBody = document.getElementById('chatRoomBody');
     const myAvatar = getBoundUserAvatar(contact);
     let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)"`;
 
+    // 🌟 修正我方发出的表情包：时间在表情包左侧
     const msgHtml = `
     <div class="preview-msg-row right" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
         <div class="msg-checkbox"></div>
-        <div style="display:flex; flex-direction:column; align-items:flex-end;">
-            <span class="bubble-time" style="margin-bottom:2px;">${timeStr}</span>
+        <div class="image-msg-wrapper">
+            <span class="image-timestamp" style="margin-right:6px;">${timeStr}</span>
             <img src="${sticker.src}" class="chat-sent-sticker">
         </div>
         <img src="${myAvatar}" class="preview-avatar">
@@ -2163,4 +2420,3 @@ function sendStickerMessage(sticker) {
     setTimeout(() => chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' }), 10);
     renderMsgList();
 }
-

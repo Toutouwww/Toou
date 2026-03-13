@@ -12,7 +12,6 @@
     <title>Toutou小手机</title>
     
     <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
-    <!-- 🌟 如果没有 css 文件夹，请用这段代码替换头部引入 -->
     <link rel="stylesheet" href="01-base-desktop.css">
     <link rel="stylesheet" href="02-chat-app.css">
     <link rel="stylesheet" href="03-worldbook.css">
@@ -21,7 +20,9 @@
 
 <body>
 
-    <!-- 主桌面容器 -->
+    <!-- ============================================== -->
+    <!-- ⬇️ 1. 主桌面容器 ⬇️ -->
+    <!-- ============================================== -->
     <div class="mobile-container">
         
         <div class="white-card" id="display-white-card">
@@ -166,13 +167,18 @@
 
 
     <!-- ============================================== -->
-    <!-- ⬇️ 内部软件1：通讯应用界面 (白主黑灰辅助风) ⬇️ -->
+    <!-- ⬇️ 2. 内部软件1：通讯应用界面 (白主黑灰辅助风) ⬇️ -->
     <!-- ============================================== -->
     <div class="app-overlay" id="appChatOverlay">
+        
         <div class="app-close-btn" onclick="closeAppChat()">
             <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </div>
+        
+        <!-- 【架构修复】：左边栏 + 主内容区 -->
         <div class="app-container">
+            
+            <!-- 左侧边栏 -->
             <div class="app-sidebar">
                 <div class="sidebar-top">
                     <div class="sidebar-avatar-wrapper" onclick="switchTab('tab-profile', this)">
@@ -206,7 +212,10 @@
                 </div>
             </div>
 
+            <!-- 右侧页面主容器 -->
             <div class="app-main-content">
+                
+                <!-- 【主页 1：个人身份资料页 (全屏无外壳)】 -->
                 <div class="screen-tab" id="tab-profile">
                     <div class="profile-plan-manager">
                         <div class="plan-capsule" onclick="togglePlanMenu()">
@@ -236,7 +245,6 @@
                                 <div class="profile-name-row" onclick="openCustomPrompt('编辑昵称', 'text-profile-name', '在这里输入你的新昵称', 'input')">
                                     Hello, <span id="text-profile-name">某某</span>
                                 </div>
-                                <!-- 🌟 唯一关键词：【修复编辑备注文案】 -->
                                  <div class="profile-sign-row" onclick="openCustomPrompt('编辑备注', 'text-profile-sign', '编辑角色对你的专属备注', 'input')">
                                     <span id="text-profile-sign">编辑角色对你的专属备注</span>
                                 </div>
@@ -276,13 +284,11 @@
                                 </div>
                             </div>
 
-                            <!-- 改造后的独立个人邮箱白卡 (完美收缩版) -->
                             <div class="detail-row-group" style="margin-top: 4px; margin-bottom: 8px;">
                                 <div class="detail-col-item full-width" style="flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 14px; gap: 15px;">
                                     <div style="display:flex; align-items:center; flex: 1; overflow: hidden;">
                                         <span class="tag-label-prefix" style="margin:0; font-size:10px; color:#777; margin-right:6px; flex-shrink:0;">个人邮箱：</span>
                                         <div class="tag-capsule" style="padding: 4px 10px; display:flex; align-items:center; background:#111; border-radius: 20px; max-width: 100%;">
-                                            <!-- 🌟 终极手机兼容自适应方案：绝对定位覆盖层 -->
                                             <div style="position: relative; display: inline-flex; align-items: center;">
                                                 <span id="measure-tag1" style="visibility: hidden; white-space: pre; font-size: 10px; font-weight: 500; min-width: 24px; padding: 0;">前缀</span>
                                                 <input type="text" id="input-tag-1" placeholder="前缀" onblur="saveInlineInput('text-tag-1', this.value)" onkeypress="handleEnterSave(event, this)" oninput="document.getElementById('measure-tag1').innerText = this.value || '前缀'" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: transparent; border: none; color: #fff; font-size: 10px; font-weight: 500; outline: none; padding: 0; margin: 0;">
@@ -290,14 +296,10 @@
                                             <span style="color:#fff; font-size:10px; font-weight:500; margin-left: 2px; flex-shrink:0;">@Toutou.com</span>
                                         </div>
                                     </div>
-                                    <!-- 🌟 强制不缩水，并保持安全距离 -->
                                     <div class="secret-switch" id="secretToggleSwitch" onclick="toggleSecretFile()" style="flex-shrink:0;"><div class="switch-knob"></div></div>
                                 </div>
                             </div>
 
-
-
-                            <!-- 下面的绝密档案卡片 (增加了独有头像列表ID) -->
                             <div class="secret-file-card closed" id="secretFileCard">
                                 <div class="secret-watermark">TOP SECRET</div>
                                 <div class="secret-content-wrapper">
@@ -309,7 +311,6 @@
                                     </div>
                                 </div>
                             </div>
-
                         </div>
 
                         <div style="display:none;">
@@ -324,44 +325,33 @@
                         <div class="modal-title">我的个人资料方案</div>
                         <div class="modal-content" id="profilePlansList"></div>
                     </div>
-                </div>
+                </div> <!-- 结束 tab-profile -->
 
+                <!-- 【主页 2：通讯应用手机壳包裹容器 (消息列表等)】 -->
                 <div class="app-phone-frame" id="phone-frame-wrapper">
                     <div class="phone-notch"></div>
+                    
                     <div class="screen-tab active" id="tab-msg">
-                        <!-- 白底头部，包含 MESSAGES 和 凹陷的圆+ -->
                         <div class="screen-header msg-custom-header">
                             <div class="msg-header-title">MESSAGES</div>
                             <div class="msg-add-btn" onclick="toggleMsgAddMenu(event)">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                             </div>
-                            <!-- + 按钮触发的小白窗 -->
                             <div class="msg-popover-menu" id="msg-popover-menu">
-                                                                <div class="msg-popover-item" onclick="openNewContactSheet()">新建单人</div>
+                                <div class="msg-popover-item" onclick="openNewContactSheet()">新建单人</div>
                                 <div class="msg-popover-item" onclick="showToast('拉取群聊')">拉取群聊</div>
                                 <div class="msg-popover-item danger" onclick="showToast('删除聊天')">删除聊天</div>
                             </div>
                         </div>
 
-                        <!-- 聊天列表主滚动区 -->
                         <div class="screen-body msg-list-container" id="msg-list-body">
-                            
-                            <!-- 1. 极简潮牌排版搜索入口 -->
                             <div class="msg-new-search-bar">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                                <div class="msg-search-label">
-                                    搜索
-                                    <div class="msg-search-line"></div>
-                                </div>
+                                <div class="msg-search-label">搜索<div class="msg-search-line"></div></div>
                             </div>
 
-                             <!-- 2. 动态置顶聊天区 (使用了自定义分组的角色会变成独立卡片出现在这里) -->
                             <div id="msg-pinned-list" style="display: flex; flex-direction: column;"></div>
 
-
-
-
-                            <!-- 3. 四个分类标签 (夹在中间) -->
                             <div class="msg-sub-tabs">
                                 <div class="msg-sub-tab active" onclick="switchMsgSubTab(this, 'ALL')">ALL</div>
                                 <div class="msg-sub-tab" onclick="switchMsgSubTab(this, 'FRIENDS')">FRIENDS</div>
@@ -369,39 +359,28 @@
                                 <div class="msg-sub-tab" onclick="switchMsgSubTab(this, 'OTHERS')">OTHERS</div>
                             </div>
 
-                            <!-- 下方动态文字占位 (仅当非ALL时展示) -->
                             <div id="msg-placeholder-text" style="display:none; text-align:center; color:#bbb; font-size:11px; margin-top:10px; font-weight:bold;"></div>
 
-                            <!-- 4. 动态渲染区 (包裹在同一个大白卡片中，无分割线) -->
-                            <div class="msg-group-card" id="msg-unpinned-list" style="display: none;">
-                            </div>
-                            
+                            <div class="msg-group-card" id="msg-unpinned-list" style="display: none;"></div>
                         </div>
                     </div>
 
-
-                    <div class="screen-tab" id="tab-contacts"><div class="screen-header">联系人</div><div class="screen-body">这里是联系人列表 (待开发)</div></div>
-                    <div class="screen-tab" id="tab-moments"><div class="screen-header">朋友圈</div><div class="screen-body">这里是朋友圈动态 (待开发)</div></div>
-                    <div class="screen-tab" id="tab-mailbox"><div class="screen-header">匿名邮箱</div><div class="screen-body">这里是匿名邮箱功能 (待开发)</div></div>
-                    <div class="screen-tab" id="tab-tbd2"><div class="screen-header">页面 5</div><div class="screen-body">待定功能 2</div></div>
-                    <div class="screen-tab" id="tab-settings"><div class="screen-header">设置</div><div class="screen-body">这里是设置选项 (待开发)</div></div>
+                    <div class="screen-tab" id="tab-contacts"><div class="screen-header">联系人</div><div class="screen-body">待开发</div></div>
+                    <div class="screen-tab" id="tab-moments"><div class="screen-header">朋友圈</div><div class="screen-body">待开发</div></div>
+                    <div class="screen-tab" id="tab-mailbox"><div class="screen-header">匿名邮箱</div><div class="screen-body">待开发</div></div>
+                    <div class="screen-tab" id="tab-tbd2"><div class="screen-header">页面 5</div><div class="screen-body">待开发</div></div>
+                    <div class="screen-tab" id="tab-settings"><div class="screen-header">设置</div><div class="screen-body">待开发</div></div>
                     
-                     <!-- 🚀 新建单人专属系统（被封印在手机壳内部，100%独立运行） -->
+                    <!-- 🚀 新建单人专属系统弹窗 (被约束在手机壳内) -->
                     <div class="wb-sheet-overlay" id="nc-sheet-overlay" onclick="closeNewContactSheet()" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); z-index: 200;"></div>
-                    
-                    <!-- 🌟 修复遮挡：引入 Flex 强分布局 -->
                     <div class="wb-bottom-sheet" id="nc-bottom-sheet" style="position: absolute; background-color: #F5F5F5; z-index: 210; display: flex; flex-direction: column;">
                         <div class="sheet-handle-bar"></div>
                         <div class="sheet-title">新建单人聊天</div>
                         
-                        <!-- 🌟 独立滚动区 -->
                         <div class="sheet-body" style="padding: 0 15px 20px 15px; flex: 1; overflow-y: auto;">
-                            
-                            <!-- 独立的头像与昵称区 -->
                             <div class="profile-header-card mini-card" style="margin-top: 5px;">
                                 <div class="profile-avatar-container">
                                     <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" class="profile-avatar-img" id="img-nc-avatar" onclick="toggleNcAvatarMenu()">
-                                    <!-- 新建单人专属的头像菜单 -->
                                     <div class="avatar-action-menu" id="ncAvatarActionMenu" style="top: 45px; left: 0;">
                                         <div class="avatar-action-btn" onclick="changeNcAvatarLink()">链接</div>
                                         <div class="avatar-action-btn" onclick="triggerNcLocalAvatar()">本地</div>
@@ -418,7 +397,6 @@
                                 </div>
                             </div>
 
-                            <!-- 详细设定区 -->
                             <div class="profile-detail-section" style="width: 100%; margin-top: 15px;">
                                 <div class="detail-row-group">
                                     <div class="detail-col-item"><div class="detail-label-stack"><span class="eng">Gender</span><span class="chn">/ 性别</span></div><input type="text" class="inline-detail-input" id="input-nc-gender" placeholder="-"></div>
@@ -434,7 +412,6 @@
                                     <div class="detail-col-item full-width"><div class="detail-label-stack"><span class="eng">Location</span><span class="chn">/ 地区</span></div><input type="text" class="inline-detail-input" id="input-nc-location" placeholder="Unknown Location"></div>
                                 </div>
 
-                                <!-- 独立的邮箱白卡 (完美收缩版) -->
                                 <div class="detail-row-group" style="margin-top: 4px; margin-bottom: 8px;">
                                     <div class="detail-col-item full-width" style="flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 14px; gap: 15px;">
                                         <div style="display:flex; align-items:center; flex: 1; overflow: hidden;">
@@ -451,9 +428,6 @@
                                     </div>
                                 </div>
 
-
-
-                                <!-- 专属档案卡片 -->
                                 <div class="secret-file-card closed" id="nc-secretFileCard" style="min-height: 120px; margin-bottom: 8px;">
                                     <div class="secret-watermark">TOP SECRET</div>
                                     <div class="secret-content-wrapper">
@@ -464,7 +438,6 @@
                                     </div>
                                 </div>
 
-                                <!-- 绑定身份卡模块 (增加底部缓冲空间与独立滚轮，防遮挡) -->
                                 <div class="detail-row-group">
                                     <div class="detail-col-item full-width" style="padding: 12px 14px; display:flex; flex-direction:column; gap:6px; margin-bottom: 40px;">
                                         <div style="font-size: 11px; font-weight: 800; color: #a0a0a0;">绑定我的身份卡</div>
@@ -472,7 +445,6 @@
                                             <span id="nc-bound-profile-name">系统默认身份</span>
                                             <svg viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                         </div>
-                                        <!-- 🌟 修复Bug：去除了内联的 display:none 防止盖死弹窗不出 -->
                                         <div class="cs-profile-menu" id="ncProfileMenu" style="width: 100%; box-sizing: border-box; max-height: 150px; overflow-y: auto;"></div>
                                     </div>
                                 </div>
@@ -480,452 +452,284 @@
                             </div>
                         </div>
                         
-                        <!-- 🌟 按钮区提取到容器最底部：永远贴边，绝不被遮挡 -->
-                        <!-- 🌟 修复Bug：增加 position 和 z-index 提权，防止被隐形层遮挡导致点不动取消 -->
                         <div class="sheet-action-row" style="position: relative; z-index: 10; padding: 10px 15px 25px 15px; margin-top: 0; background: #F5F5F5; border-top: 1px solid #eaeaea; flex-shrink: 0;">
                             <div class="sheet-btn cancel" onclick="closeNewContactSheet()">取消</div>
                             <div class="sheet-btn confirm" onclick="saveNewContact()">创建角色</div>
                         </div>
-                    </div> <!-- 🌟 核心修复：补回遗漏的闭合标签，拯救全盘 DOM 塌方！！！ -->
+                    </div>
+                </div> <!-- 结束 phone-frame-wrapper -->
 
-                </div> <!-- 🌟 补回：结束 phone-frame-wrapper -->
-            </div> <!-- 🌟 补回：结束 app-main-content -->
-        </div> <!-- 结束 app-container -->
-
-        <!-- 🌟 唯一关键词：【嵌套圆角顶栏聊天室】彻底修复并提权到最外层 -->
-        <div class="chat-room-screen" id="chatRoomScreen">
-            
-            <!-- 第一层：最顶端纯白顶栏背景 -->
-            <div class="chat-room-header">
-                <div class="chat-back-btn" onclick="closeChatRoom()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                </div>
-                <div class="chat-room-title" id="chatRoomTitle">加载中...</div>
-                <div class="chat-more-btn" onclick="openChatSettings()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
-                </div>
-            </div>
-
-            <!-- 🌟 新增：多选模式专属顶部导航栏 (默认隐藏) -->
-            <div id="multiSelectNavbar" class="multi-select-navbar">
-                <div class="ms-nav-btn ms-nav-cancel" onclick="exitMultiSelectMode()">取消</div>
-                <div class="ms-nav-title" id="msTitle">已选择 0 条</div>
-                <div class="ms-nav-btn ms-nav-delete disabled" id="msDeleteBtn" onclick="deleteSelectedMessages()">删除</div>
-            </div>
+            </div> <!-- 结束 app-main-content -->
 
 
-            <!-- 第二层：世界书弹窗般的弧度浅灰垫底层 -->
-            <div class="chat-room-gray-layer">
+            <!-- ============================================== -->
+            <!-- 🌟 【主页 3：独立全屏聊天室】 (已移出手机壳，基于应用全屏) 🌟 -->
+            <!-- ============================================== -->
+            <div class="chat-room-screen" id="chatRoomScreen">
                 
-                <!-- 第三层：世界书弹窗般的弧度纯白主体层 -->
-                <div class="chat-room-white-layer">
-                    
-                    <!-- 🌟 全新的初始打招呼占位区 (已移出滚动区，永久固定在顶部) -->
-                    <div class="chat-init-state" id="chatInitState">
-                        <!-- 动态可更换的大头像 -->
-                        <div class="chat-init-avatar-container">
-                            <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" class="chat-init-avatar" id="img-chat-init-avatar" onclick="toggleChatInitAvatarMenu(event)">
-                            <div class="avatar-action-menu" id="chatInitAvatarMenu" style="top: 95px; left: 50%; transform: translateX(-50%);">
-                                <div class="avatar-action-btn" onclick="changeChatInitAvatarLink()">链接</div>
-                                <div class="avatar-action-btn" onclick="triggerChatInitLocalAvatar()">本地</div>
+                <div class="chat-room-header">
+                    <div class="chat-back-btn" onclick="closeChatRoom()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </div>
+                    <div class="chat-room-title" id="chatRoomTitle">加载中...</div>
+                    <div class="chat-more-btn" onclick="openChatSettings()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+                    </div>
+                </div>
+
+                <div id="multiSelectNavbar" class="multi-select-navbar">
+                    <div class="ms-nav-btn ms-nav-cancel" onclick="exitMultiSelectMode()">取消</div>
+                    <div class="ms-nav-title" id="msTitle">已选择 0 条</div>
+                    <div class="ms-nav-btn ms-nav-delete disabled" id="msDeleteBtn" onclick="deleteSelectedMessages()">删除</div>
+                </div>
+
+                <div class="chat-room-gray-layer">
+                    <div class="chat-room-white-layer">
+                        <div class="chat-init-state" id="chatInitState">
+                            <div class="chat-init-avatar-container">
+                                <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" class="chat-init-avatar" id="img-chat-init-avatar" onclick="toggleChatInitAvatarMenu(event)">
+                                <div class="avatar-action-menu" id="chatInitAvatarMenu" style="top: 95px; left: 50%; transform: translateX(-50%);">
+                                    <div class="avatar-action-btn" onclick="changeChatInitAvatarLink()">链接</div>
+                                    <div class="avatar-action-btn" onclick="triggerChatInitLocalAvatar()">本地</div>
+                                </div>
+                                <input type="file" id="chatInitLocalAvatarInput" style="display:none" accept="image/*" onchange="uploadChatInitLocalAvatar(this)">
                             </div>
-                            <input type="file" id="chatInitLocalAvatarInput" style="display:none" accept="image/*" onchange="uploadChatInitLocalAvatar(this)">
+                            <div class="chat-init-pill" onclick="openInnerVoice()">
+                                <span id="chat-init-text" style="transition: opacity 0.3s;">你与 <strong id="chat-init-name-display">某某</strong> 已添加好友，快来聊天吧！</span>
+                            </div>
                         </div>
-                        <!-- 磨砂好友提示药丸 (加入点击事件与内部Span) -->
-                        <div class="chat-init-pill" onclick="openInnerVoice()">
-                            <span id="chat-init-text" style="transition: opacity 0.3s;">你与 <strong id="chat-init-name-display">某某</strong> 已添加好友，快来聊天吧！</span>
+                        <div class="chat-room-body" id="chatRoomBody">
+                            <!-- JS 动态渲染气泡 -->
                         </div>
                     </div>
 
-                    <!-- 纯粹的历史消息滚动区 -->
-                    <div class="chat-room-body" id="chatRoomBody">
-                        <!-- 这里的子元素已被 JS 接管，专门用于渲染气泡 -->
-                    </div>
-                    
-                </div> <!-- 结束 chat-room-white-layer -->
-
-            </div> <!-- 结束 chat-room-gray-layer -->
-
-             <!-- 🌟 极简主义高级底栏 -->
-            <div class="chat-room-input-bar">
-                
-                <!-- 左侧：极简 + 号按钮 -->
-                <div class="chat-add-btn" onclick="toggleChatPlusMenu(event)">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                </div>
-
-                <!-- 中间：正在输入框 + 专属悬浮底线 -->
-                <div class="chat-input-wrapper" style="padding-right: 8px;">
-                    <!-- 🌟 替换占位符为 Aaa -->
-                    <textarea rows="1" class="chat-room-input" id="chatRoomInput" placeholder="Aaa"></textarea>
-                    <div class="toutou-line-container">
-                        <div class="t-line-left"></div>
-                        <div class="t-line-text">Toutou</div>
-                        <div class="t-line-right"></div>
-                    </div>
-                </div>
-
-                <!-- 🌟 新增：左缩后的微笑表情包按钮 -->
-<div class="chat-emoji-btn" onclick="openStickerPanel(event)">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-                        <line x1="9" y1="9" x2="9.01" y2="9"></line>
-                        <line x1="15" y1="9" x2="15.01" y2="9"></line>
-                    </svg>
-                </div>
-
-                <!-- 右侧：无背景纯净小飞机 -->
-                <div class="chat-send-btn" onclick="handlePlaneClick()">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                    </svg>
-                </div>
-
-            </div>
-
-        </div> <!-- 结束 chatRoomScreen -->
-
-        <!-- ========== (⚠️注意：这里保留原本的 chatSettingsScreen 代码，不要删掉设置页) ========== -->
-        
-        <!-- ========== (⚠️注意：请将最底部的 chat-plus-overlay 替换为以下滑动双页版本) ========== -->
-
-    <!-- 🌟 聊天 + 号底部半屏菜单 (支持手指真实滑动) -->
-    <div class="chat-plus-overlay" id="chat-plus-overlay" onclick="closeChatPlusMenu()"></div>
-    <div class="chat-plus-menu" id="chat-plus-menu">
-        
-        <!-- 左右手指横向滑动容器 -->
-        <div class="plus-pages-container" id="plus-pages-container">
-            
-            <!-- 第一页：主功能 -->
-            <div class="plus-page">
-                <div class="plus-grid">
-                    <!-- 1. 新增：发送语音 (话筒图标) -->
-                    <div class="plus-item" onclick="showToast('发送语音')">
-                        <div class="plus-icon">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                                <line x1="12" y1="19" x2="12" y2="23"></line>
-                                <line x1="8" y1="23" x2="16" y2="23"></line>
+                    <!-- 🌟 补回刚才丢失的包裹容器 🌟 -->
+                    <div class="chat-room-input-bar">
+                        <!-- 1. 最左侧：极简无圆圈加号 (细线条、浅色) -->
+                        <div class="chat-add-btn" onclick="toggleChatPlusMenu(event)">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
                         </div>
-                        <span>Voice</span>
-                    </div>
 
-                    <!-- 2. 原本的：图片上传 (顺延至此) -->
-                    <div class="plus-item" onclick="triggerChatPhotoUpload()">
-                        <div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>
-                        <span>Photos</span>
-                    </div>
-                    <!-- 隐藏的本地多图上传接口 -->
-                    <input type="file" id="chatPhotoUploadInput" multiple accept="image/*" style="display:none" onchange="handleChatPhotoUpload(this)">
-                    
-                    <!-- 3. 相机 -->
-                    <div class="plus-item" onclick="showToast('Coming soon')">
-                        <div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></div>
-                        <span>Camera</span>
-                    </div>
-
-                    <!-- 4. 找回的打电话按钮！ (原来误删的电话图标) -->
-                    <div class="plus-item" onclick="showToast('打个电话')">
-                        <div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg></div>
-                        <span>Call</span>
-                    </div>
-                    
-                    <!-- 5. 视频 -->
-                    <div class="plus-item" onclick="showToast('Coming soon')">
-                        <div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg></div>
-                        <span>Video</span>
-                    </div>
-                    
-                    <!-- 6. 定位 -->
-                    <div class="plus-item" onclick="showToast('Coming soon')">
-                        <div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
-                        <span>Location</span>
-                    </div>
-                    
-                    <!-- 7. 传输 -->
-                    <div class="plus-item" onclick="showToast('Coming soon')">
-                        <div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 4 20 8 16 12"></polyline><line x1="4" y1="8" x2="20" y2="8"></line><polyline points="8 12 4 16 8 20"></polyline><line x1="20" y1="16" x2="4" y2="16"></line></svg></div>
-                        <span>Transfer</span>
-                    </div>
-                    
-                    <!-- 8. 屏幕 -->
-                    <div class="plus-item" onclick="showToast('Coming soon')">
-                        <div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></div>
-                        <span>Screen</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 第二页：其他功能 -->
-            <div class="plus-page">
-                <div class="plus-grid">
-                    <!-- 9. 音乐放到了第二页 -->
-                    <div class="plus-item" onclick="showToast('Coming soon')">
-                        <div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg></div>
-                        <span>Music</span>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- 双圆点翻页指示器 (带拟态效果) -->
-        <div class="plus-pagination">
-            <div class="dot active" onclick="switchPlusPage(0)"></div>
-            <div class="dot" onclick="switchPlusPage(1)"></div>
-        </div>
-
-    </div>
-
-
-        </div> <!-- 结束 chatRoomScreen -->
-
-        <!-- 🌟 唯一关键词：【角色专属聊天设置页】 -->
-        <div class="chat-settings-screen" id="chatSettingsScreen">
-            <!-- 🌟 补回遗漏的设置页纯白顶栏 -->
-            <div class="chat-room-header">
-                <div class="chat-back-btn" onclick="closeChatSettings()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                </div>
-                <div class="chat-room-title" style="flex: 1; text-align: center;">角色设定</div>
-                <div class="chat-save-btn" onclick="saveChatSettings()">保存</div>
-            </div>
-
-            <div class="chat-settings-body">
-                
-                <!-- 卡片1：基础信息 (修改列表头像与名字) -->
-                <div class="settings-white-card">
-                    <div class="settings-avatar-row">
-                        <!-- 支持弹出菜单的独立头像容器 -->
-                        <div class="settings-avatar-container" style="position: relative;">
-                            <img src="" class="settings-avatar" id="cs-avatar" onclick="toggleCsAvatarMenu(event)">
-                            <div class="avatar-action-menu" id="csAvatarActionMenu" style="top: 70px; left: 50%; transform: translateX(-50%);">
-                                <div class="avatar-action-btn" onclick="changeCsAvatarLink()">链接</div>
-                                <div class="avatar-action-btn" onclick="triggerCsLocalAvatar()">本地</div>
+                        <!-- 2. 中间：输入框 + 底部装饰线 (Aaa) -->
+                        <div class="chat-input-wrapper">
+                            <textarea class="chat-room-input" id="chatRoomInput" placeholder="Aaa" rows="1"></textarea>
+                            <div class="toutou-line-container">
+                                <div class="t-line-left"></div>
+                                <span class="t-line-text">Toutou</span>
+                                <div class="t-line-right"></div>
                             </div>
-                            <input type="file" id="csLocalAvatarInput" style="display:none" accept="image/*" onchange="uploadCsLocalAvatar(this)">
                         </div>
-                    </div>
-                    <!-- 姓名与备注并排显示 -->
-                    <div class="settings-row-group">
-                        <div class="settings-input-group" style="flex:1;">
-                            <label>真实姓名</label>
-                            <input type="text" class="settings-input" id="cs-realname" placeholder="真名...">
-                        </div>
-                        <div class="settings-input-group" style="flex:1;">
-                            <label>专属备注</label>
-                            <input type="text" class="settings-input" id="cs-remark" placeholder="优先显示...">
-                        </div>
-                    </div>
-                </div>
 
-                <!-- 卡片2：详细人设 (提前到身份卡上方，加入生日星座) -->
-                <div class="settings-white-card">
-                    <div class="detail-row-group">
-                        <div class="detail-col-item"><div class="detail-label-stack"><span class="eng">Gender</span><span class="chn">/ 性别</span></div><input type="text" class="inline-detail-input" id="cs-gender" placeholder="-"></div>
-                        <div class="detail-col-item"><div class="detail-label-stack"><span class="eng">Age</span><span class="chn">/ 年龄</span></div><input type="text" class="inline-detail-input" id="cs-age" placeholder="-"></div>
-                    </div>
-                    <div class="detail-row-group" style="margin-top: 8px;">
-                        <div class="detail-col-item date-picker-container"><div class="detail-label-stack"><span class="eng">Birthday</span><span class="chn">/ 生日</span></div>
-                            <div class="bday-input-wrapper"><input type="text" class="inline-detail-input" id="display-cs-birthday" placeholder="-" readonly><input type="date" class="real-date-picker" id="input-cs-birthday" onchange="handleCsBirthdayChange(this.value)"></div>
+                        <!-- 3. 右侧偏左：笑脸表情包入口 (细线条、浅色) -->
+                        <div class="chat-emoji-btn" onclick="openStickerPanel(event)">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                                <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                                <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                            </svg>
                         </div>
-                        <div class="detail-col-item"><div class="detail-label-stack"><span class="eng">Zodiac</span><span class="chn">/ 星座</span></div><input type="text" class="inline-detail-input" id="cs-zodiac" placeholder="-"></div>
-                    </div>
-                    <div class="detail-row-group" style="margin-top: 8px;">
-                        <div class="detail-col-item full-width"><div class="detail-label-stack"><span class="eng">Location</span><span class="chn">/ 地区</span></div><input type="text" class="inline-detail-input" id="cs-location" placeholder="Unknown Location"></div>
-                    </div>
-                </div>
 
-                  <!-- 卡片3：个人邮箱与档案开关 (完美收缩版) -->
-                <div class="settings-white-card" style="padding: 12px 15px; flex-direction: row; align-items: center; justify-content: space-between; gap: 15px;">
-                    <div style="display:flex; align-items:center; flex: 1; overflow: hidden;">
-                        <span class="tag-label-prefix" style="margin:0; font-size:10px; color:#777; margin-right:6px; flex-shrink:0;">个人邮箱：</span>
-                        <div class="tag-capsule" style="padding: 4px 10px; display:flex; align-items:center; background:#111; border-radius: 20px; max-width: 100%;">
-                            <div style="position: relative; display: inline-flex; align-items: center;">
-                                <span id="measure-cs-tag1" style="visibility: hidden; white-space: pre; font-size: 10px; font-weight: 500; min-width: 24px; padding: 0;">前缀</span>
-                                <input type="text" id="cs-tag1" placeholder="前缀" oninput="document.getElementById('measure-cs-tag1').innerText = this.value || '前缀'" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: transparent; border: none; color: #fff; font-size: 10px; font-weight: 500; outline: none; padding: 0; margin: 0;">
-                            </div>
-                            <span style="color:#fff; font-size:10px; font-weight:500; margin-left: 2px; flex-shrink:0;">@Toutou.com</span>
+                        <!-- 4. 最右侧：无横线极简飞机 (细线条、浅色) -->
+                        <div class="chat-send-btn" onclick="handlePlaneClick()">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
                         </div>
-                    </div>
-                    <div class="secret-switch" id="cs-secretToggleSwitch" onclick="toggleCsSecretFile()" style="flex-shrink:0;"><div class="switch-knob"></div></div>
-                </div>
+                    </div> <!-- 结束 chat-room-input-bar -->
 
+                </div> <!-- 结束 chat-room-gray-layer -->
+            </div> <!-- 结束 chatRoomScreen -->
 
-
-                <!-- 卡片3.5：专属档案 (单独白卡，去掉了大外壳线) -->
-                <div class="settings-white-card" style="padding: 0; background: transparent; box-shadow: none;">
-                    <div class="secret-file-card closed" id="cs-secretFileCard" style="min-height: 120px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border-radius: 12px;">
-                        <div class="secret-watermark">TOP SECRET</div>
-                        <div class="secret-content-wrapper">
-                            <textarea class="secret-textarea" id="cs-secret-file" placeholder="请输入详尽的专属档案..."></textarea>
-                        </div>
-                        <div class="avatar-notch-overlay" style="padding: 0 10px;">
-                            <span class="msg-dog-tag" id="cs-group-dogtag" onclick="openNcGroupInitMenu('cs')" style="cursor:pointer; position:relative; top:0; margin:0; box-shadow: inset 2px 2px 4px rgba(0,0,0,0.08), inset -2px -2px 4px rgba(255,255,255,1);">未分组</span>
-                        </div>
-                    </div>
-                </div>
-
-
-                <!-- 卡片4：我的身份绑定 (降至底部) -->
-                <div class="settings-white-card">
-                    <div class="settings-input-group" style="margin-bottom: 0;">
-                        <label>绑定我的身份卡</label>
-                        <div class="settings-select-capsule" onclick="toggleCsProfileMenu()">
-                            <span id="cs-bound-profile-name">系统默认身份</span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                        <div class="cs-profile-menu" id="csProfileMenu"></div>
-                    </div>
-                </div>
+            <!-- ============================================== -->
+            <!-- 🌟 【主页 4：独立全屏设定页】 (已移出手机壳，基于应用全屏) 🌟 -->
+            <!-- ============================================== -->
+            <div class="chat-settings-screen" id="chatSettingsScreen">
                 
-                <!-- 🌟 改版卡片5：并排布局 (左侧预设 / 右侧自定义长条按钮) -->
-                <div class="settings-row-group" style="align-items: stretch;">
-                    <!-- 左侧：被缩小的预设气泡白卡 -->
-                    <div class="settings-white-card" style="flex: 1; padding-right: 10px;">
+                <div class="chat-room-header">
+                    <div class="chat-back-btn" onclick="closeChatSettings()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </div>
+                    <div class="chat-room-title" style="flex: 1; text-align: center;">角色设定</div>
+                    <div class="chat-save-btn" onclick="saveChatSettings()">保存</div>
+                </div>
+
+                <div class="chat-settings-body">
+                    <div class="settings-white-card">
+                        <div class="settings-avatar-row">
+                            <div class="settings-avatar-container" style="position: relative;">
+                                <img src="" class="settings-avatar" id="cs-avatar" onclick="toggleCsAvatarMenu(event)">
+                                <div class="avatar-action-menu" id="csAvatarActionMenu" style="top: 70px; left: 50%; transform: translateX(-50%);">
+                                    <div class="avatar-action-btn" onclick="changeCsAvatarLink()">链接</div>
+                                    <div class="avatar-action-btn" onclick="triggerCsLocalAvatar()">本地</div>
+                                </div>
+                                <input type="file" id="csLocalAvatarInput" style="display:none" accept="image/*" onchange="uploadCsLocalAvatar(this)">
+                            </div>
+                        </div>
+                        <div class="settings-row-group">
+                            <div class="settings-input-group" style="flex:1;">
+                                <label>真实姓名</label>
+                                <input type="text" class="settings-input" id="cs-realname" placeholder="真名...">
+                            </div>
+                            <div class="settings-input-group" style="flex:1;">
+                                <label>专属备注</label>
+                                <input type="text" class="settings-input" id="cs-remark" placeholder="优先显示...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-white-card">
+                        <div class="detail-row-group">
+                            <div class="detail-col-item"><div class="detail-label-stack"><span class="eng">Gender</span><span class="chn">/ 性别</span></div><input type="text" class="inline-detail-input" id="cs-gender" placeholder="-"></div>
+                            <div class="detail-col-item"><div class="detail-label-stack"><span class="eng">Age</span><span class="chn">/ 年龄</span></div><input type="text" class="inline-detail-input" id="cs-age" placeholder="-"></div>
+                        </div>
+                        <div class="detail-row-group" style="margin-top: 8px;">
+                            <div class="detail-col-item date-picker-container"><div class="detail-label-stack"><span class="eng">Birthday</span><span class="chn">/ 生日</span></div>
+                                <div class="bday-input-wrapper"><input type="text" class="inline-detail-input" id="display-cs-birthday" placeholder="-" readonly><input type="date" class="real-date-picker" id="input-cs-birthday" onchange="handleCsBirthdayChange(this.value)"></div>
+                            </div>
+                            <div class="detail-col-item"><div class="detail-label-stack"><span class="eng">Zodiac</span><span class="chn">/ 星座</span></div><input type="text" class="inline-detail-input" id="cs-zodiac" placeholder="-"></div>
+                        </div>
+                        <div class="detail-row-group" style="margin-top: 8px;">
+                            <div class="detail-col-item full-width"><div class="detail-label-stack"><span class="eng">Location</span><span class="chn">/ 地区</span></div><input type="text" class="inline-detail-input" id="cs-location" placeholder="Unknown Location"></div>
+                        </div>
+                    </div>
+
+                    <div class="settings-white-card" style="padding: 12px 15px; flex-direction: row; align-items: center; justify-content: space-between; gap: 15px;">
+                        <div style="display:flex; align-items:center; flex: 1; overflow: hidden;">
+                            <span class="tag-label-prefix" style="margin:0; font-size:10px; color:#777; margin-right:6px; flex-shrink:0;">个人邮箱：</span>
+                            <div class="tag-capsule" style="padding: 4px 10px; display:flex; align-items:center; background:#111; border-radius: 20px; max-width: 100%;">
+                                <div style="position: relative; display: inline-flex; align-items: center;">
+                                    <span id="measure-cs-tag1" style="visibility: hidden; white-space: pre; font-size: 10px; font-weight: 500; min-width: 24px; padding: 0;">前缀</span>
+                                    <input type="text" id="cs-tag1" placeholder="前缀" oninput="document.getElementById('measure-cs-tag1').innerText = this.value || '前缀'" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: transparent; border: none; color: #fff; font-size: 10px; font-weight: 500; outline: none; padding: 0; margin: 0;">
+                                </div>
+                                <span style="color:#fff; font-size:10px; font-weight:500; margin-left: 2px; flex-shrink:0;">@Toutou.com</span>
+                            </div>
+                        </div>
+                        <div class="secret-switch" id="cs-secretToggleSwitch" onclick="toggleCsSecretFile()" style="flex-shrink:0;"><div class="switch-knob"></div></div>
+                    </div>
+
+                    <div class="settings-white-card" style="padding: 0; background: transparent; box-shadow: none;">
+                        <div class="secret-file-card closed" id="cs-secretFileCard" style="min-height: 120px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border-radius: 12px;">
+                            <div class="secret-watermark">TOP SECRET</div>
+                            <div class="secret-content-wrapper">
+                                <textarea class="secret-textarea" id="cs-secret-file" placeholder="请输入详尽的专属档案..."></textarea>
+                            </div>
+                            <div class="avatar-notch-overlay" style="padding: 0 10px;">
+                                <span class="msg-dog-tag" id="cs-group-dogtag" onclick="openNcGroupInitMenu('cs')" style="cursor:pointer; position:relative; top:0; margin:0; box-shadow: inset 2px 2px 4px rgba(0,0,0,0.08), inset -2px -2px 4px rgba(255,255,255,1);">未分组</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-white-card">
                         <div class="settings-input-group" style="margin-bottom: 0;">
-                            <label>选择聊天气泡</label>
-                            <div class="bubble-theme-grid">
-                                <div class="bubble-theme-item active" onclick="selectBubbleTheme('黑灰', this)">
-                                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #000 50%, #f0f0f0 50%);"></div>
-                                    <span>黑灰</span>
-                                </div>
-                                <div class="bubble-theme-item" onclick="selectBubbleTheme('薄巧', this)">
-                                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #78c2c4 50%, #5d3f3a 50%);"></div>
-                                    <span>薄巧</span>
-                                </div>
-                                <div class="bubble-theme-item" onclick="selectBubbleTheme('黄绿', this)">
-                                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #f0e68c 50%, #90ee90 50%);"></div>
-                                    <span>黄绿</span>
-                                </div>
-                                <div class="bubble-theme-item" onclick="selectBubbleTheme('紫紫', this)">
-                                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #9370db 50%, #d8bfd8 50%);"></div>
-                                    <span>紫紫</span>
-                                </div>
-                                <div class="bubble-theme-item" onclick="selectBubbleTheme('黑粉', this)">
-                                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #000 50%, #ffb6c1 50%);"></div>
-                                    <span>黑粉</span>
-                                </div>
-                                <div class="bubble-theme-item" onclick="selectBubbleTheme('蓝粉', this)">
-                                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #add8e6 50%, #ffb6c1 50%);"></div>
-                                    <span>蓝粉</span>
-                                </div>
+                            <label>绑定我的身份卡</label>
+                            <div class="settings-select-capsule" onclick="toggleCsProfileMenu()">
+                                <span id="cs-bound-profile-name">系统默认身份</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
                             </div>
+                            <div class="cs-profile-menu" id="csProfileMenu"></div>
                         </div>
                     </div>
                     
-                    <!-- 右侧：长条形黑色无阴影胶囊按钮 -->
-                    <div class="custom-bubble-btn" onclick="openCustomBubbleMenu()">
-                        <span>C</span><span>U</span><span>S</span><span>T</span><span>O</span><span>M</span>
-                    </div>
-                </div>
-
-                <!-- 🌟 新增：夹在中间的动态大白卡片面板 (默认隐藏) -->
-                <div class="settings-white-card custom-bubble-panel" id="custom-bubble-panel" style="display: none; margin-top: -5px; margin-bottom: -5px;">
-                    <!-- JS 动态注入新建/列表内容 -->
-                </div>
-
-                <!-- 新增卡片6：气泡预览展示区 (修复了高度塌陷) -->
-                <div class="settings-white-card" style="padding: 12px; height: auto;">
-                    <div class="settings-input-group" style="margin-bottom: 0;">
-                        <label style="margin-left: 5px;">效果预览</label>
-                        <!-- 增加了 overflow: hidden 和 box-sizing 防止内容暴走撑破卡片 -->
-                        <div class="bubble-preview-container" id="bubble-preview-container" style="overflow: hidden; box-sizing: border-box; width: 100%;">
-                            <!-- 角色发出的消息 (左侧) -->
-                            <div class="preview-msg-row left">
-                                <img src="" class="preview-avatar" id="preview-avatar-char">
-                                <div class="Toutou-TT char">
-                                    <div class="content">师妹就是嗯啊，14号那天你有空吗？其实我也不是想的你了，只是那天我剑送去山下养护了。哎多说无益，你觉得如何？</div>
-                                    <span class="bubble-time">14:18</span>
+                    <div class="settings-row-group" style="align-items: stretch;">
+                        <div class="settings-white-card" style="flex: 1; padding-right: 10px;">
+                            <div class="settings-input-group" style="margin-bottom: 0;">
+                                <label>选择聊天气泡</label>
+                                <div class="bubble-theme-grid">
+                                    <div class="bubble-theme-item active" onclick="selectBubbleTheme('黑灰', this)"><div class="theme-color-preview" style="background: linear-gradient(135deg, #000 50%, #f0f0f0 50%);"></div><span>黑灰</span></div>
+                                    <div class="bubble-theme-item" onclick="selectBubbleTheme('薄巧', this)"><div class="theme-color-preview" style="background: linear-gradient(135deg, #78c2c4 50%, #5d3f3a 50%);"></div><span>薄巧</span></div>
+                                    <div class="bubble-theme-item" onclick="selectBubbleTheme('黄绿', this)"><div class="theme-color-preview" style="background: linear-gradient(135deg, #f0e68c 50%, #90ee90 50%);"></div><span>黄绿</span></div>
+                                    <div class="bubble-theme-item" onclick="selectBubbleTheme('紫紫', this)"><div class="theme-color-preview" style="background: linear-gradient(135deg, #9370db 50%, #d8bfd8 50%);"></div><span>紫紫</span></div>
+                                    <div class="bubble-theme-item" onclick="selectBubbleTheme('黑粉', this)"><div class="theme-color-preview" style="background: linear-gradient(135deg, #000 50%, #ffb6c1 50%);"></div><span>黑粉</span></div>
+                                    <div class="bubble-theme-item" onclick="selectBubbleTheme('蓝粉', this)"><div class="theme-color-preview" style="background: linear-gradient(135deg, #add8e6 50%, #ffb6c1 50%);"></div><span>蓝粉</span></div>
                                 </div>
                             </div>
-                            <!-- 用户发出的消息 (右侧) -->
-                            <div class="preview-msg-row right">
-                                <div class="Toutou-TT user">
-                                    <span class="bubble-time">14:20</span>
-                                    <div class="content">14号没空，休要坏我道心！</div>
+                        </div>
+                        <div class="custom-bubble-btn" onclick="openCustomBubbleMenu()">
+                            <span>C</span><span>U</span><span>S</span><span>T</span><span>O</span><span>M</span>
+                        </div>
+                    </div>
+
+                    <div class="settings-white-card custom-bubble-panel" id="custom-bubble-panel" style="display: none; margin-top: -5px; margin-bottom: -5px;"></div>
+
+                    <div class="settings-white-card" style="padding: 12px; height: auto;">
+                        <div class="settings-input-group" style="margin-bottom: 0;">
+                            <label style="margin-left: 5px;">效果预览</label>
+                            <div class="bubble-preview-container" id="bubble-preview-container" style="overflow: hidden; box-sizing: border-box; width: 100%;">
+                                <div class="preview-msg-row left">
+                                    <img src="" class="preview-avatar" id="preview-avatar-char">
+                                    <div class="Toutou-TT char">
+                                        <div class="content">师妹就是嗯啊，14号那天你有空吗？其实我也不是想的你了，只是那天我剑送去山下养护了。哎多说无益，你觉得如何？</div>
+                                        <span class="bubble-time">14:18</span>
+                                    </div>
                                 </div>
-                                <img src="" class="preview-avatar" id="preview-avatar-user">
+                                <div class="preview-msg-row right">
+                                    <div class="Toutou-TT user">
+                                        <span class="bubble-time">14:20</span>
+                                        <div class="content">14号没空，休要坏我道心！</div>
+                                    </div>
+                                    <img src="" class="preview-avatar" id="preview-avatar-user">
+                                </div> 
                             </div> 
-                        </div> 
-                    </div>
-                </div>
-
-<!-- 🌟 新增：功能性设定药丸标签 -->
-<div class="inset-pill-label">F E A T U R E S</div>
-
-
-                <!-- 🌟 新增：Token 估算与记忆总结卡片 -->
-                <div class="settings-white-card">
-                    <div class="settings-input-group" style="margin-bottom: 0;">
-                        <label>上下文记忆与 Token 估算</label>
-                         <div class="token-stat-container">
-                            <div class="token-stat-row"><span>角色基础设定</span><span id="token-count-base">0</span></div>
-                            <div class="token-stat-row"><span>世界书设定</span><span id="token-count-wb">0</span></div>
-                            <div class="token-stat-row"><span>历史聊天记录</span><span id="token-count-chat">0</span></div>
-                            <div class="token-stat-row"><span>其他</span><span id="token-count-other">0</span></div>
-                            <div class="token-stat-row total"><span>预计总消耗 (单次)</span><span id="token-count-total">0</span></div>
                         </div>
-
-                        
-                        <div style="height: 1px; background: #eee; margin: 15px 0;"></div>
-                        
-                        <!-- 🌟 修复：彻底移除了下方残留的废弃框，只留一个有效的自动总结频率框 -->
-                        <label>长期记忆总结</label>
-                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px;">
-                            <span style="font-size:12px; color:#555; font-weight:600;">自动总结触发频率 (轮)</span>
-                            <input type="number" id="cs-auto-summary-rounds" value="30" style="width:50px; background:#f0f0f0; border:none; border-radius:6px; padding:4px; text-align:center; font-size:12px; font-weight:700; outline:none;">
-                        </div>
-                        <div style="font-size:10px; color:#999; line-height:1.4; margin-bottom:12px;">聊天达到指定频率后，将在后台自动提取剧情细节并保存到记忆库。</div>
-
-                        <div class="inset-btn" style="color:#000; padding:10px 0; font-size:12px;" onclick="openMemorySummaryPrompt()">编辑/查看历史总结</div>
                     </div>
-                </div>
 
-                <!-- 🌟 替换为清空聊天记录按钮 -->
-                <div class="settings-delete-btn" onclick="promptClearChatHistory()">清空所有聊天记录</div>
-            </div> <!-- 结束 chat-settings-body -->
+                    <div class="inset-pill-label">F E A T U R E S</div>
 
-        </div> <!-- 结束 chatSettingsScreen -->
+                    <div class="settings-white-card">
+                        <div class="settings-input-group" style="margin-bottom: 0;">
+                            <label>上下文记忆与 Token 估算</label>
+                             <div class="token-stat-container">
+                                <div class="token-stat-row"><span>角色基础设定</span><span id="token-count-base">0</span></div>
+                                <div class="token-stat-row"><span>世界书设定</span><span id="token-count-wb">0</span></div>
+                                <div class="token-stat-row"><span>历史聊天记录</span><span id="token-count-chat">0</span></div>
+                                <div class="token-stat-row"><span>其他</span><span id="token-count-other">0</span></div>
+                                <div class="token-stat-row total"><span>预计总消耗 (单次)</span><span id="token-count-total">0</span></div>
+                            </div>
+                            <div style="height: 1px; background: #eee; margin: 15px 0;"></div>
+                            
+                            <label>长期记忆总结</label>
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px;">
+                                <span style="font-size:12px; color:#555; font-weight:600;">自动总结触发频率 (轮)</span>
+                                <input type="number" id="cs-auto-summary-rounds" value="30" style="width:50px; background:#f0f0f0; border:none; border-radius:6px; padding:4px; text-align:center; font-size:12px; font-weight:700; outline:none;">
+                            </div>
+                            <div style="font-size:10px; color:#999; line-height:1.4; margin-bottom:12px;">聊天达到指定频率后，将在后台自动提取剧情细节并保存到记忆库。</div>
 
+                            <div class="inset-btn" style="color:#000; padding:10px 0; font-size:12px;" onclick="openMemorySummaryPrompt()">编辑/查看历史总结</div>
+                        </div>
+                    </div>
+
+                    <div class="settings-delete-btn" onclick="promptClearChatHistory()">清空所有聊天记录</div>
+                </div> 
+            </div> <!-- 结束 chatSettingsScreen -->
+
+        </div> <!-- 结束 app-container -->
     </div> <!-- 结束 appChatOverlay -->
 
 
     <!-- ============================================== -->
-    <!-- ⬇️ 内部软件2：千岛 API 配置 (白黑灰极简风) ⬇️ -->
+    <!-- ⬇️ 3. 内部软件2：千岛 API 配置 (白黑灰极简风) ⬇️ -->
     <!-- ============================================== -->
     <div class="app-overlay api-app-overlay" id="apiAppOverlay">
-        
         <div class="app-close-btn" onclick="closeApiApp()">
             <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </div>
-
         <div class="api-main-container">
             <div class="api-header-title">API Settings</div>
             <div class="api-header-subtitle">OpenAI 自定义连接协议设置</div>
 
-            <!-- 卡片1：核心连接配置 -->
             <div class="api-card" style="padding-top: 5px;">
-                
-                <!-- Base URL -->
                 <div class="api-input-group" style="position:relative; z-index: 20;">
                     <label>BASE URL</label>
                     <input type="text" class="api-input locked" id="api-base-url-input" value="https://api2.qiandao.mom/v1" readonly onclick="toggleUrlMenu()" style="cursor: pointer;">
-                    
-                    <!-- 纯白简约下拉层 -->
                     <div class="url-dropdown-menu" id="urlDropdownMenu">
                         <div class="url-option" onclick="selectUrl('https://api2.qiandao.mom/v1')">https://api2.qiandao.mom/v1</div>
                         <div class="url-option" onclick="selectUrl('https://api.qiandao.mom/v1')">https://api.qiandao.mom/v1</div>
                     </div>
                 </div>
-
-                <!-- API Key & Buy Btn -->
                 <div class="api-input-group">
                     <label>API KEY</label>
                     <div style="display: flex; align-items: center; justify-content: space-between;">
@@ -933,100 +737,65 @@
                         <div class="api-buy-btn-mini" onclick="window.open('https://api2.qiandao.mom', '_blank')">购买额度</div>
                     </div>
                 </div>
-
-                <!-- Model & Fetch Btn -->
                 <div class="api-input-group" style="padding-bottom: 20px;">
-                    <label style="display:flex; align-items:center;">
-                        MODEL
-                        <div class="api-model-fetch-btn-mini" onclick="fetchModelList()">↓</div>
-                    </label>
+                    <label style="display:flex; align-items:center;">MODEL<div class="api-model-fetch-btn-mini" onclick="fetchModelList()">↓</div></label>
                     <input type="text" class="api-input" id="api-model-input" value="[千岛-C Cli]gemini-3.1-pro-preview" placeholder="输入你想使用的模型">
                 </div>
-
             </div>
 
-            <!-- 流式传输开关 -->
             <div class="api-stream-toggle-container">
                 <div class="api-stream-btn" id="stream-toggle-btn" onclick="toggleStream()">流式传输</div>
                 <div class="api-stream-desc">开启后，AI 回复将像打字机一样逐字显示，减少等待时间。</div>
             </div>
 
-            <!-- 卡片2：参数滑动配置 -->
             <div class="api-card" style="padding-top: 5px;">
-                <!-- 顺序调整：Temp -> Freq -> Pres -> TopP -->
                 <div class="api-slider-group">
-                    <div class="slider-header">
-                        <span class="slider-label">Temperature</span>
-                        <span class="slider-val" id="val-temp">1.0</span>
-                    </div>
+                    <div class="slider-header"><span class="slider-label">Temperature</span><span class="slider-val" id="val-temp">1.0</span></div>
                     <input type="range" class="api-range" id="slider-temp" min="0.0" max="2.0" step="0.1" value="1.0" oninput="updateSliderVal(this, 'val-temp')">
                 </div>
-
                 <div class="api-slider-group">
-                    <div class="slider-header">
-                        <span class="slider-label">Frequency Penalty</span>
-                        <span class="slider-val" id="val-freq">0.0</span>
-                    </div>
+                    <div class="slider-header"><span class="slider-label">Frequency Penalty</span><span class="slider-val" id="val-freq">0.0</span></div>
                     <input type="range" class="api-range" id="slider-freq" min="-2.0" max="2.0" step="0.1" value="0.0" oninput="updateSliderVal(this, 'val-freq')">
                 </div>
-
                 <div class="api-slider-group">
-                    <div class="slider-header">
-                        <span class="slider-label">Presence Penalty</span>
-                        <span class="slider-val" id="val-pres">0.0</span>
-                    </div>
+                    <div class="slider-header"><span class="slider-label">Presence Penalty</span><span class="slider-val" id="val-pres">0.0</span></div>
                     <input type="range" class="api-range" id="slider-pres" min="-2.0" max="2.0" step="0.1" value="0.0" oninput="updateSliderVal(this, 'val-pres')">
                 </div>
-
                 <div class="api-slider-group">
-                    <div class="slider-header">
-                        <span class="slider-label">Top P</span>
-                        <span class="slider-val" id="val-topp">0.9</span>
-                    </div>
+                    <div class="slider-header"><span class="slider-label">Top P</span><span class="slider-val" id="val-topp">0.9</span></div>
                     <input type="range" class="api-range" id="slider-topp" min="0.0" max="1.0" step="0.05" value="0.9" oninput="updateSliderVal(this, 'val-topp')">
                 </div>
             </div>
 
-            <!-- 卡片3：方案保存与选择 -->
             <div class="api-card" style="padding-top: 15px; padding-bottom: 5px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
                     <span style="font-size: 11px; font-weight: 800; color: #a0a0a0; letter-spacing: 1.5px; text-transform: uppercase;">PLAN</span>
                     <div class="api-buy-btn-mini" onclick="saveApiPlanPrompt()">保存当前设置方案</div>
                 </div>
-                
                 <div class="api-input-group" style="padding-top: 5px; padding-bottom: 10px; position:relative;">
                     <input type="text" class="api-input locked" id="api-plan-input" value="请先保存一个方案" readonly onclick="toggleApiPlanMenu()" style="cursor: pointer; font-size: 13px;">
-                    <!-- 纯白简约下拉层 -->
-                    <div class="url-dropdown-menu" id="apiPlanDropdownMenu">
-                        <!-- 动态生成 -->
-                    </div>
+                    <div class="url-dropdown-menu" id="apiPlanDropdownMenu"></div>
                 </div>
             </div>
 
-            <!-- 底部操作按钮 -->
             <div class="api-bottom-actions">
                 <div class="api-action-btn-3d danger" onclick="deleteApiPlan()">删除方案</div>
                 <div class="api-action-btn-3d primary" onclick="applyApiPlan()">应用方案</div>
             </div>
-
         </div>
     </div>
 
 
-     <!-- ============================================== -->
-    <!-- ⬇️ 内部软件3：世界书 (真实数据联动版) ⬇️ -->
+    <!-- ============================================== -->
+    <!-- ⬇️ 4. 内部软件3：世界书 (真实数据联动版) ⬇️ -->
     <!-- ============================================== -->
     <div class="app-overlay wb-app-overlay" id="worldbookAppOverlay">
-        
         <div class="wb-blur-overlay" id="wb-blur-overlay" onclick="closeCharSelector()"></div>
-
         <div class="app-close-btn" onclick="closeWorldbookApp()">
             <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </div>
         
-        <!-- 🌟 唯一关键词：【星球结构纠正】 -->
         <div class="wb-main-container" id="wb-main-container">
-            <!-- 顶部的星球按钮轨道 -->
             <div class="wb-header">
                 <div class="wb-planet-track" id="wb-planet-track">
                     <div class="wb-planet left" onclick="handlePlanetClick(this)">通用</div>
@@ -1035,53 +804,35 @@
                 </div>
             </div>
 
-
-            <!-- 下方U型弧形滚动盘 -->
             <div class="wb-char-selector-area" id="wb-char-selector-area">
                 <div class="char-scroll-track" id="char-scroll-track"></div>
             </div>
             
-            <!-- 下方白卡内容呈现区 -->
             <div class="wb-content-area" id="wb-content-area">
                 <div class="wb-content-header" style="position: relative;">
                     <span class="wb-view-title"><span id="wb-current-view">全部</span> 世界书</span>
-                    
                     <div class="wb-add-btn" id="wb-add-btn" onclick="toggleAddMenu(event)">+</div>
-                    
-                    <!-- 极简双语气泡菜单 (去除缝隙、Emoji) -->
                     <div class="wb-popover-menu" id="wb-popover-menu">
-                        <div class="wb-popover-item" onclick="openWorldbookSheet()">
-                            <span class="eng">NEW</span><span class="chn">新建</span>
-                        </div>
-                        <div class="wb-popover-item" onclick="importWorldbook()">
-                            <span class="eng">IMPORT</span><span class="chn">导入</span>
-                        </div>
-                        <div class="wb-popover-item danger" onclick="toggleWbDeleteMode()">
-                            <span class="eng">DELETE</span><span class="chn">删除</span>
-                        </div>
-
+                        <div class="wb-popover-item" onclick="openWorldbookSheet()"><span class="eng">NEW</span><span class="chn">新建</span></div>
+                        <div class="wb-popover-item" onclick="importWorldbook()"><span class="eng">IMPORT</span><span class="chn">导入</span></div>
+                        <div class="wb-popover-item danger" onclick="toggleWbDeleteMode()"><span class="eng">DELETE</span><span class="chn">删除</span></div>
                     </div>
                 </div>
-                
                 <div class="wb-list-container" id="wb-list-container">
-                    <!-- JS 动态渲染保存的真实数据 -->
                     <div class="wb-empty-state">当前暂无世界书</div>
                 </div>
             </div>
         </div>
 
-        <!-- 🚀 底部滑动弹窗 (添加/编辑世界书) -->
         <div class="wb-sheet-overlay" id="wb-sheet-overlay" onclick="closeWorldbookSheet()"></div>
         <div class="wb-bottom-sheet" id="wb-bottom-sheet">
             <div class="sheet-handle-bar"></div>
             <div class="sheet-title">构建世界书</div>
-            
             <div class="sheet-body">
                 <div class="sheet-input-group">
                     <div class="sheet-label-stack"><span class="eng">BOOK NAME</span><span class="chn">/ 设定名称</span></div>
                     <input type="text" class="sheet-input" id="sheet-input-name" placeholder="请输入这本世界书的名称...">
                 </div>
-
                 <div class="sheet-input-group">
                     <div class="sheet-label-stack"><span class="eng">CATEGORY</span><span class="chn">/ 归属分类</span></div>
                     <div class="sheet-capsule-group" id="sheet-group-toggles">
@@ -1089,40 +840,21 @@
                         <div class="sheet-capsule" onclick="toggleSheetGroup('专属')">专属</div>
                         <div class="sheet-capsule" onclick="toggleSheetGroup('通用')">通用</div>
                     </div>
-
-                    
-                    <!-- 替代手动输入的：角色选择+号按钮 -->
-                    <div class="sheet-char-add-btn" id="sheet-char-add-btn" onclick="openCharSelectModal()" style="display: none;">
-                        + 选择要绑定的角色
-                    </div>
-                    
-                    <!-- 【新增】通用分组交互区 -->
+                    <div class="sheet-char-add-btn" id="sheet-char-add-btn" onclick="openCharSelectModal()" style="display: none;">+ 选择要绑定的角色</div>
                     <div class="sheet-common-group-btns" id="sheet-common-group-btns" style="display: none;">
                         <div class="common-group-btn" onclick="openNewGroupPrompt()">新建分组</div>
                         <div class="common-group-btn" onclick="openManageGroupModal()">管理分组</div>
                     </div>
                     <div id="sheet-current-group-display" style="display:none; flex-direction:column; margin-top:10px; margin-bottom: 25px;">
-                        <div style="font-size:12px; color:#666; font-weight:500;">
-                            当前选定: <span id="current-group-name" style="color:#000;font-weight:700;">未选择</span>
-                        </div>
-                        <!-- 🌟 通用专属的附加绑定角色按钮 -->
-                        <div class="sheet-char-add-btn" id="sheet-common-char-btn" onclick="openCharSelectModal(true)" style="margin-top: 10px; border-color: #111; color: #111;">
-                            + 必须附加绑定特定角色
-                        </div>
+                        <div style="font-size:12px; color:#666; font-weight:500;">当前选定: <span id="current-group-name" style="color:#000;font-weight:700;">未选择</span></div>
+                        <div class="sheet-char-add-btn" id="sheet-common-char-btn" onclick="openCharSelectModal(true)" style="margin-top: 10px; border-color: #111; color: #111;">+ 必须附加绑定特定角色</div>
                     </div>
                 </div>
-
-                <!-- 动态内容条目区 -->
                 <div class="sheet-input-group" style="margin-top: 10px;">
-                    <div class="sheet-label-stack" style="margin-bottom: 12px;">
-                        <span class="eng">ENTRIES</span><span class="chn">/ 内容条目</span>
-                    </div>
+                    <div class="sheet-label-stack" style="margin-bottom: 12px;"><span class="eng">ENTRIES</span><span class="chn">/ 内容条目</span></div>
                     <div id="sheet-entries-container"></div>
-                    <div class="sheet-add-entry-btn" onclick="addSheetEntry()">
-                        <span>+ 添加一条新设定</span>
-                    </div>
+                    <div class="sheet-add-entry-btn" onclick="addSheetEntry()"><span>+ 添加一条新设定</span></div>
                 </div>
-
                 <div class="sheet-action-row">
                     <div class="sheet-btn cancel" onclick="closeWorldbookSheet()">取消</div>
                     <div class="sheet-btn confirm" onclick="saveWorldbook()">保存世界书</div>
@@ -1131,18 +863,21 @@
         </div>
     </div>
 
-    <!-- 🌟 选择绑定角色的小白弹窗 (世界书专属) -->
+
+    <!-- ============================================== -->
+    <!-- ⬇️ 5. 全局通用弹窗与层级模块 (放在最外层最高级) ⬇️ -->
+    <!-- ============================================== -->
+
+    <!-- 选择绑定角色的小白弹窗 (世界书专属) -->
     <div class="custom-prompt-overlay" id="charSelectOverlay">
         <div class="custom-prompt-box">
             <div class="custom-prompt-title">选择要绑定的角色</div>
             <div class="model-list-modal" id="charSelectList"></div>
-            <div class="custom-prompt-actions">
-                <div class="prompt-btn cancel" onclick="closeCharSelectModal()">取消</div>
-            </div>
+            <div class="custom-prompt-actions"><div class="prompt-btn confirm" onclick="closeCharSelectModal()">确定</div></div>
         </div>
     </div>
 
-    <!-- 🌟 极简小白通用确认弹窗 (个人资料、全局删除专属，绝对不干扰新建联系人) -->
+    <!-- 极简小白通用确认弹窗 -->
     <div class="custom-prompt-overlay" id="customPromptOverlay">
         <div class="custom-prompt-box">
             <div class="custom-prompt-title" id="promptTitle">编辑内容</div>
@@ -1155,18 +890,16 @@
         </div>
     </div>
 
-    <!-- 🌟 专属模型列表小白弹窗 (API专属) -->
+    <!-- 模型列表小白弹窗 (API专属) -->
     <div class="custom-prompt-overlay" id="modelListOverlay">
         <div class="custom-prompt-box">
             <div class="custom-prompt-title">选择可用模型</div>
             <div class="model-list-modal" id="modelListContent"></div>
-            <div class="custom-prompt-actions">
-                <div class="prompt-btn cancel" onclick="closeModelList()">取消</div>
-            </div>
+            <div class="custom-prompt-actions"><div class="prompt-btn cancel" onclick="closeModelList()">取消</div></div>
         </div>
     </div>
 
-    <!-- 🌟 修复层级Bug：将角色分组弹窗移动到全局绝对最外层 -->
+    <!-- 角色分组管理弹窗 -->
     <div class="custom-prompt-overlay" id="ncGroupInitMenuOverlay">
         <div class="custom-prompt-box">
             <div class="custom-prompt-title">选择或管理分组</div>
@@ -1177,7 +910,7 @@
         </div>
     </div>
 
-    <!-- 🌟 修复层级Bug：将角色新建资料弹窗移动到全局绝对最外层 -->
+    <!-- 角色新建资料专用弹窗 -->
     <div class="custom-prompt-overlay" id="ncCustomPromptOverlay">
         <div class="custom-prompt-box">
             <div class="custom-prompt-title" id="ncPromptTitle">编辑内容</div>
@@ -1190,19 +923,7 @@
         </div>
     </div>
 
-    <!-- 底部全局透明小弹窗 -->
-    <div class="toast-msg" id="globalToast">操作成功</div>
-
-
-    <!-- 🌟 模块化拆分引擎载入 (注意加载顺序) -->
-    <script src="00-utils.js"></script>
-    <script src="01-data-store.js"></script>
-    <script src="02-ui-components.js"></script>
-    <script src="04-profile-worldbook.js"></script>
-    <script src="05-mind-voice.js"></script>
-    <script src="03-api-chat.js"></script>
-
-    <!-- 🌟 自定义气泡专属小白弹窗 -->
+    <!-- 自定义气泡专属小白弹窗 -->
     <div class="custom-prompt-overlay" id="bubbleMenuOverlay">
         <div class="custom-prompt-box">
             <div class="custom-prompt-title">自定义气泡</div>
@@ -1216,31 +937,25 @@
         </div>
     </div>
 
-    <!-- 🌟 历史记忆总结库 (大半屏底部弹窗) -->
+    <!-- 历史记忆总结库 -->
     <div class="wb-sheet-overlay" id="summary-sheet-overlay" onclick="closeSummarySheet()" style="z-index: 2500;"></div>
     <div class="wb-bottom-sheet" id="summary-bottom-sheet" style="z-index: 2510; display: flex; flex-direction: column;">
         <div class="sheet-handle-bar"></div>
         <div class="sheet-title">历史记忆总结库</div>
-        
-        <div class="sheet-body" style="padding: 0 15px 20px 15px; flex: 1; overflow-y: auto;" id="summary-list-container">
-            <!-- 列表动态渲染区 -->
-        </div>
-        
+        <div class="sheet-body" style="padding: 0 15px 20px 15px; flex: 1; overflow-y: auto;" id="summary-list-container"></div>
         <div style="padding: 15px; background: #fff; border-top: 1px solid #f0f0f0; flex-shrink: 0;">
             <div class="sheet-char-add-btn" onclick="openSummaryEditor()" style="margin-top:0; background: #111; color: #fff; border: none; font-size: 14px; padding: 14px;">+ 手动添加新一轮总结</div>
         </div>
     </div>
 
-    <!-- 🌟 总结内容编辑器 (覆盖在列表之上的白窗) -->
+    <!-- 总结内容编辑器 -->
     <div class="custom-prompt-overlay" id="summary-editor-overlay" style="z-index: 2600;">
         <div class="custom-prompt-box" style="width: 90%; max-width: 380px; padding: 25px 20px;">
             <div class="custom-prompt-title">编辑总结内容</div>
             <div style="width: 100%; text-align: left; font-size: 11px; font-weight: 800; color: #888; margin-bottom: 6px;">总结时间段</div>
             <input type="text" id="summary-time-input" class="sheet-input" style="margin-bottom: 15px; font-size: 13px; padding: 12px; background: #f0f0f0;" placeholder="例: 2025年11月4日 - 2025年11月5日">
-            
             <div style="width: 100%; text-align: left; font-size: 11px; font-weight: 800; color: #888; margin-bottom: 6px;">AI与你的对话提要</div>
             <textarea id="summary-content-input" style="width:100%; height:180px; background:#f0f0f0; border:none; border-radius:12px; padding:15px; font-size:13px; color:#333; outline:none; resize:none; line-height:1.6; margin-bottom: 20px;"></textarea>
-            
             <div style="display:flex; gap:10px; width:100%;">
                 <div class="inset-btn" style="background:#f0f0f0; box-shadow:none; color:#666;" onclick="closeSummaryEditor()">取消</div>
                 <div class="inset-btn" style="background:#111; color:#fff; box-shadow:none;" onclick="saveSummaryData()">保存总结</div>
@@ -1248,44 +963,21 @@
         </div>
     </div>
 
-    <!-- 🌟 心声系统 (极简工业风打印机 + 登录保险箱) -->
+    <!-- 心声系统密码箱 -->
     <div class="custom-prompt-overlay" id="inner-voice-overlay" style="z-index: 3000; background: rgba(245,245,245,0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);" onclick="closeInnerVoice(event)">
         <div class="voice-layout-wrapper" onclick="event.stopPropagation()">
-            
-            <!-- 打印机本体 -->
             <div class="printer-machine">
                 <div class="printer-top-bar">Mind Spool.</div>
                 <div class="printer-slot"></div>
             </div>
-            
-            <!-- 下方的密码箱 / 心声展示盒 -->
             <div class="mind-box" id="mind-box">
-                
-                <!-- 状态 1：登录界面 -->
                 <div id="mind-login-view">
                     <div class="mind-box-title">SYSTEM LOGIN.</div>
-                    
-                    <div class="mind-input-group">
-                        <label>ID.</label>
-                        <!-- ID 现已改为只读，由系统自动填入邮箱 -->
-                        <input type="text" id="mind-id-input" readonly style="color:#888;">
-                    </div>
-                    <div class="mind-input-group" style="margin-top: 15px;">
-                        <label>PWD.</label>
-                        <input type="password" id="mind-pwd-input" placeholder="PASSWORD" autocomplete="off">
-                    </div>
-
-                     <!-- 显示/隐藏密码开关 -->
-                    <div class="mind-remember-row" onclick="toggleMindRemember()">
-                        <div class="mind-checkbox" id="mind-remember-chk"></div>
-                        <span>SHOW PWD.</span>
-                    </div>
-
-                    
+                    <div class="mind-input-group"><label>ID.</label><input type="text" id="mind-id-input" readonly style="color:#888;"></div>
+                    <div class="mind-input-group" style="margin-top: 15px;"><label>PWD.</label><input type="password" id="mind-pwd-input" placeholder="PASSWORD" autocomplete="off"></div>
+                    <div class="mind-remember-row" onclick="toggleMindRemember()"><div class="mind-checkbox" id="mind-remember-chk"></div><span>SHOW PWD.</span></div>
                     <div class="mind-btn" onclick="verifyVoiceLogin()">ACCESS</div>
                 </div>
-
-                <!-- 状态 1.5：专属回忆选择题界面 -->
                 <div id="mind-quiz-view" style="display: none;">
                     <div class="mind-box-title">SECURITY QUIZ.</div>
                     <div class="mind-quiz-q" id="voice-quiz-q">加载题目中...</div>
@@ -1295,29 +987,15 @@
                         <div class="mind-quiz-opt" onclick="checkVoiceQuiz(3)" id="voice-quiz-opt3">C. ...</div>
                     </div>
                 </div>
-
-                <!-- 状态 2：心声展示界面 -->
                 <div id="mind-content-view" style="display: none;">
                     <div class="mind-box-title">INNER VOICE.</div>
-                    <div class="mind-row">
-                        <span class="m-label">LOC.</span>
-                        <span class="m-val" id="voice-location">未知</span>
-                    </div>
-                    <div class="mind-row">
-                        <span class="m-label">ACT.</span>
-                        <span class="m-val" id="voice-action">发呆</span>
-                    </div>
-                    <div class="mind-row" style="margin-top: 12px;">
-                        <span class="m-label">THOUGHT.</span>
-                        <span class="m-val handwritten" id="voice-thought">...</span>
-                    </div>
+                    <div class="mind-row"><span class="m-label">LOC.</span><span class="m-val" id="voice-location">未知</span></div>
+                    <div class="mind-row"><span class="m-label">ACT.</span><span class="m-val" id="voice-action">发呆</span></div>
+                    <div class="mind-row" style="margin-top: 12px;"><span class="m-label">THOUGHT.</span><span class="m-val handwritten" id="voice-thought">...</span></div>
                 </div>
-            </div> <!-- 🌟 核心：在此处提前闭合 mind-box，让后面的卡片独立出来 -->
-
-            <!-- 🌟 新增：拓展的十年后评论区域 (放置在心声密码箱外侧正下方) -->
+            </div>
+            
             <div id="future-comment-section" class="future-section-wrapper" style="display: none;">
-                
-                <!-- 🌟 绝美恢复：简约日历长方形白卡片 -->
                 <div class="future-calendar-card" style="margin-bottom: 8px;">
                     <div class="cal-item"><span class="cal-eng">SEVEN</span><div class="cal-line"></div><span class="cal-num">7</span></div>
                     <div class="cal-item"><span class="cal-eng">EIGHT</span><div class="cal-line"></div><span class="cal-num">8</span></div>
@@ -1326,124 +1004,53 @@
                     <div class="cal-item"><span class="cal-eng">ELEVEN</span><div class="cal-line"></div><span class="cal-num">11</span></div>
                     <div class="cal-item"><span class="cal-eng">TWELVE</span><div class="cal-line"></div><span class="cal-num">12</span></div>
                 </div>
-
-                <!-- 独立十年后朋友圈帖子卡片区 -->
                 <div class="future-post-card">
-
-                    
-                    <!-- 顶部的头像与AI独立身份名 -->
                     <div class="post-header">
                         <img src="" id="future-post-avatar" class="post-avatar">
-                        <div class="post-info">
-                            <span class="post-name" id="future-post-name">十年后的???</span>
-                            <span class="post-time">10 Years Later</span>
-                        </div>
+                        <div class="post-info"><span class="post-name" id="future-post-name">十年后的???</span><span class="post-time">10 Years Later</span></div>
                     </div>
-                    
-                    <!-- 拟态风音频播放器容器 (内层保持不动) -->
                     <div class="audio-record-container" id="audio-record-container">
-
-                        <!-- 中层：毛玻璃与模糊文字展示层 -->
-                        <div class="glass-text-layer" id="future-glass-layer">
-                            <div class="blur-text-mask" id="future-text-mask">
-                                <span id="future-comment-text"></span>
-                            </div>
-                        </div>
-
-                        <!-- 顶层：播放/解封按钮 -->
-                        <div class="play-btn-wrapper" id="future-play-btn" onclick="playFutureVoice()">
-                            <!-- 极简播放三角图标 -->
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M8 5v14l11-7z"/>
-                            </svg>
-                        </div>
+                        <div class="glass-text-layer" id="future-glass-layer"><div class="blur-text-mask" id="future-text-mask"><span id="future-comment-text"></span></div></div>
+                        <div class="play-btn-wrapper" id="future-play-btn" onclick="playFutureVoice()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
                     </div>
-                </div> <!-- 结束 future-post-card -->
-                
-            </div> <!-- 结束 future-comment-section -->
-
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- 🌟 黑色报错小弹窗 (全局绝对居中) -->
+    <!-- 黑色报错小弹窗 -->
     <div id="mind-black-toast" class="mind-black-toast"></div>
 
-    <!-- 🌟 聊天 + 号底部半屏菜单 -->
-     <!-- 🌟 聊天 + 号底部半屏菜单 -->
+    <!-- 聊天室底栏 + 号多页抽屉菜单 -->
     <div class="chat-plus-overlay" id="chat-plus-overlay" onclick="closeChatPlusMenu()"></div>
     <div class="chat-plus-menu" id="chat-plus-menu">
-        
-        <!-- 左右滑动页面容器 -->
         <div class="plus-pages-container" id="plus-pages-container">
-            
-            <!-- 第一页：主功能 -->
             <div class="plus-page">
                 <div class="plus-grid">
-                    <!-- 1. 发送语音 (全新设计的话筒图标) -->
-                    <div class="plus-item" onclick="showToast('发送语音')">
-                        <div class="plus-icon">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                                <line x1="12" y1="19" x2="12" y2="23"></line>
-                                <line x1="8" y1="23" x2="16" y2="23"></line>
-                            </svg>
-                        </div>
-                        <span>Voice</span>
-                    </div>
-                    
-                    <!-- 2. 照片上传 -->
-                    <div class="plus-item" onclick="triggerChatPhotoUpload()">
-                        <div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>
-                        <span>Photos</span>
-                    </div>
+                    <div class="plus-item" onclick="showToast('发送语音')"><div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg></div><span>Voice</span></div>
+                    <div class="plus-item" onclick="triggerChatPhotoUpload()"><div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div><span>Photos</span></div>
                     <input type="file" id="chatPhotoUploadInput" multiple accept="image/*" style="display:none" onchange="handleChatPhotoUpload(this)">
-                    
-                    <!-- 其他功能顺延 -->
-                    <div class="plus-item" onclick="showToast('Coming soon')">
-                        <div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></div>
-                        <span>Camera</span>
-                    </div>
-                    <div class="plus-item" onclick="showToast('Coming soon')">
-                        <div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg></div>
-                        <span>Video</span>
-                    </div>
-                    <div class="plus-item" onclick="showToast('Coming soon')">
-                        <div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
-                        <span>Location</span>
-                    </div>
-                    <div class="plus-item" onclick="showToast('Coming soon')">
-                        <div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 4 20 8 16 12"></polyline><line x1="4" y1="8" x2="20" y2="8"></line><polyline points="8 12 4 16 8 20"></polyline><line x1="20" y1="16" x2="4" y2="16"></line></svg></div>
-                        <span>Transfer</span>
-                    </div>
-                    <div class="plus-item" onclick="showToast('Coming soon')">
-                        <div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></div>
-                        <span>Screen</span>
-                    </div>
+                    <div class="plus-item" onclick="showToast('Coming soon')"><div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></div><span>Camera</span></div>
+                    <div class="plus-item" onclick="showToast('打个电话')"><div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg></div><span>Call</span></div>
+                    <div class="plus-item" onclick="showToast('Coming soon')"><div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg></div><span>Video</span></div>
+                    <div class="plus-item" onclick="showToast('Coming soon')"><div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div><span>Location</span></div>
+                    <div class="plus-item" onclick="showToast('Coming soon')"><div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 4 20 8 16 12"></polyline><line x1="4" y1="8" x2="20" y2="8"></line><polyline points="8 12 4 16 8 20"></polyline><line x1="20" y1="16" x2="4" y2="16"></line></svg></div><span>Transfer</span></div>
+                    <div class="plus-item" onclick="showToast('Coming soon')"><div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></div><span>Screen</span></div>
                 </div>
             </div>
-
-            <!-- 第二页：次要功能 -->
             <div class="plus-page">
                 <div class="plus-grid">
-                    <!-- 将音乐移动到第二页 -->
-                    <div class="plus-item" onclick="showToast('Coming soon')">
-                        <div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg></div>
-                        <span>Music</span>
-                    </div>
+                    <div class="plus-item" onclick="showToast('Coming soon')"><div class="plus-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg></div><span>Music</span></div>
                 </div>
             </div>
-
         </div>
-
-        <!-- 双圆点指示器 -->
         <div class="plus-pagination">
             <div class="dot active" onclick="switchPlusPage(0)"></div>
             <div class="dot" onclick="switchPlusPage(1)"></div>
         </div>
     </div>
 
-    <!-- 🌟 气泡长按菜单弹窗 -->
+    <!-- 气泡长按菜单弹窗 -->
     <div class="bubble-action-overlay" id="bubble-action-overlay" onclick="closeBubbleMenu()">
         <div class="bubble-action-menu" id="bubble-action-menu" onclick="event.stopPropagation()">
             <div class="b-action-item" onclick="bubbleAction('copy')">复制</div>
@@ -1455,29 +1062,84 @@
         </div>
     </div>
 
-    <!-- 🌟 表情包底部抽屉菜单 -->
+    <!-- 表情包底部抽屉菜单 -->
     <div class="chat-plus-overlay" id="sticker-overlay" onclick="closeStickerPanel()"></div>
     <div class="chat-plus-menu" id="sticker-panel" style="padding-top: 15px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; padding: 0 20px 15px 20px; border-bottom: 1px solid rgba(0,0,0,0.05);">
-            <span style="font-size: 14px; font-weight: 800; color: #111;">我的表情</span>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding: 0 20px 10px 20px;">
+            <span style="font-size: 14px; font-weight: 800; color: #111;">表情库</span>
             <div style="display:flex; gap: 15px;">
                 <span style="font-size: 12px; font-weight: 700; color: #666; cursor: pointer;" onclick="triggerLocalStickerUpload()">+ 本地</span>
-                <span style="font-size: 12px; font-weight: 700; color: #666; cursor: pointer;" onclick="openBatchStickerPrompt()">+ 网络批量</span>
+                <span style="font-size: 12px; font-weight: 700; color: #666; cursor: pointer;" onclick="openBatchStickerPrompt()">+ 网络链接</span>
             </div>
         </div>
+        <div class="sticker-group-tabs" id="sticker-group-tabs"></div>
         <input type="file" id="localStickerInput" accept="image/*" style="display:none" onchange="handleLocalStickerUpload(this)">
-        
-        <div class="sticker-grid-container" id="sticker-grid-container">
-            <!-- 动态渲染表情包 -->
+        <div class="sticker-grid-container" id="sticker-grid-container"></div>
+    </div>
+
+    <!-- 表情包单张上传确认弹窗 -->
+    <div class="custom-prompt-overlay" id="stickerUploadPrompt" style="z-index:3000;">
+        <div class="custom-prompt-box">
+            <div class="custom-prompt-title">添加表情</div>
+            <img id="sticker-upload-preview" style="max-height:80px; margin-bottom:15px; border-radius:8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            <div style="width:100%; text-align:left; font-size:11px; font-weight:800; color:#888; margin-bottom:6px;">设定含义名称</div>
+            <input type="text" class="custom-prompt-input" id="sticker-name-input" placeholder="输入表情含义(如：开心)" style="margin-bottom:15px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom:6px;">
+                <span style="font-size:11px; font-weight:800; color:#888;">归属分类</span>
+                <span style="font-size:10px; font-weight:bold; color:#555; background:#eaeaea; padding:4px 8px; border-radius:6px; cursor:pointer;" onclick="document.getElementById('stickerUploadPrompt').classList.remove('active'); openStickerGroupManager('local');">管理分组</span>
+            </div>
+            
+            <!-- 🌟 升级版自定义极简下拉列表 (替换原生 select) -->
+            <div style="position: relative; width: 100%; margin-bottom: 20px;">
+                <div class="custom-prompt-input" onclick="document.getElementById('local-group-dropdown').classList.toggle('active')" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin:0; padding: 10px 15px; font-weight: 700; font-size: 13px; background: #f0f0f0; border-radius: 12px; transition: background 0.2s;">
+                    <span id="local-group-display" style="flex:1; text-align:center; padding-left:14px;">通用</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+                <div class="url-dropdown-menu" id="local-group-dropdown" style="top: 100%; max-height: 150px; background: #fff; border: 1px solid #eee; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.08); padding: 4px 0;"></div>
+            </div>
+
+            <div class="custom-prompt-actions">
+                <div class="prompt-btn cancel" onclick="document.getElementById('stickerUploadPrompt').classList.remove('active')">取消</div>
+                <div class="prompt-btn confirm" onclick="confirmStickerUpload()">保存</div>
+            </div>
         </div>
     </div>
 
-    <!-- 🌟 网络表情包批量导入弹窗 -->
-    <div class="custom-prompt-overlay" id="batchStickerPromptOverlay">
+    <!-- 表情包分类管理大屏 -->
+    <div class="custom-prompt-overlay" id="stickerGroupManager" style="z-index:3000;">
+        <div class="custom-prompt-box" style="width: 320px;">
+            <div class="custom-prompt-title">管理表情分组</div>
+            <div style="display:flex; gap: 10px; width: 100%; margin-bottom: 10px;">
+                <input type="text" class="custom-prompt-input" id="new-sticker-group-input" placeholder="输入你想创建的新分组名..." style="margin:0; flex:1; text-align:left;">
+                <div class="prompt-btn confirm" style="flex:none; padding: 0 15px; display:flex; align-items:center;" onclick="createStickerGroup()">新建</div>
+            </div>
+            <div id="sticker-group-list" style="max-height: 250px; overflow-y:auto; width:100%; display:flex; flex-direction:column; gap:8px;"></div>
+            <div class="custom-prompt-actions" style="margin-top:10px;">
+                <div class="prompt-btn cancel" onclick="closeStickerGroupManager()">返回</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 网络表情包批量导入弹窗 -->
+    <div class="custom-prompt-overlay" id="batchStickerPromptOverlay" style="z-index:3000;">
         <div class="custom-prompt-box" style="width: 300px;">
             <div class="custom-prompt-title">批量导入网络表情</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom:6px;">
+                <span style="font-size:11px; font-weight:800; color:#888;">归属分类</span>
+                <span style="font-size:10px; font-weight:bold; color:#555; background:#eaeaea; padding:4px 8px; border-radius:6px; cursor:pointer;" onclick="document.getElementById('batchStickerPromptOverlay').classList.remove('active'); openStickerGroupManager('batch');">管理分组</span>
+            </div>
+
+            <!-- 🌟 升级版自定义极简下拉列表 (替换原生 select) -->
+            <div style="position: relative; width: 100%; margin-bottom: 15px;">
+                <div class="custom-prompt-input" onclick="document.getElementById('batch-group-dropdown').classList.toggle('active')" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin:0; padding: 10px 15px; font-weight: 700; font-size: 13px; background: #f0f0f0; border-radius: 12px; transition: background 0.2s;">
+                    <span id="batch-group-display" style="flex:1; text-align:center; padding-left:14px;">通用</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+                <div class="url-dropdown-menu" id="batch-group-dropdown" style="top: 100%; max-height: 150px; background: #fff; border: 1px solid #eee; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.08); padding: 4px 0;"></div>
+            </div>
+
             <div style="font-size: 10px; color: #888; margin-bottom: 10px; line-height: 1.5; text-align:left; width:100%;">
-                格式：名字与链接同行，可用空格、+、-、| 隔开。<br>如：<br>开心 https://img.com/1.jpg<br>大哭 | https://img.com/2.jpg
+                格式：名字与链接同行，可用空格、+、-、| 隔开。<br>如：开心 https://img.com/1.jpg
             </div>
             <textarea id="batchStickerInput" style="width:100%; height:120px; background:#f5f5f5; border:none; border-radius:12px; padding:10px; font-size:12px; outline:none; resize:none; margin-bottom:15px;"></textarea>
             <div class="custom-prompt-actions">
@@ -1487,6 +1149,16 @@
         </div>
     </div>
 
+    <!-- 底部全局透明小弹窗 -->
+    <div class="toast-msg" id="globalToast">操作成功</div>
+
+    <!-- 🌟 模块化拆分引擎载入 (必须在所有 DOM 元素声明之后) -->
+    <script src="00-utils.js"></script>
+    <script src="01-data-store.js"></script>
+    <script src="02-ui-components.js"></script>
+    <script src="04-profile-worldbook.js"></script>
+    <script src="05-mind-voice.js"></script>
+    <script src="03-api-chat.js"></script>
 
 </body>
 </html>

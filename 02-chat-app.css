@@ -937,7 +937,7 @@
 
 .voice-layout-wrapper {
     display: flex; flex-direction: column; align-items: center; width: 100%;
-    margin-top: calc(2vh - 100px); /* 🌟 修复：精准上移，回调到 -110px，防止顶破屏幕 */
+    margin-top: calc(2vh - 110px); /* 🌟 修复：精准上移，回调到 -110px，防止顶破屏幕 */
     opacity: 0; transform: translateY(10px);
     transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -1259,13 +1259,25 @@
 }
 .chat-emoji-btn:active { transform: scale(0.9); }
 
-/* 聊天室内顶起高度适应加号菜单：缩小顶起高度，精准保留约 20px 间距 */
 .chat-room-screen.plus-active .chat-room-input-bar { 
-    transform: translateY(calc(-210px - env(safe-area-inset-bottom, 0px))); 
+    transform: translateY(calc(-260px - env(safe-area-inset-bottom, 0px))); 
 }
 .chat-room-screen.plus-active .chat-room-body { 
-    transform: translateY(calc(-210px - env(safe-area-inset-bottom, 0px))); 
+    transform: translateY(calc(-260px - env(safe-area-inset-bottom, 0px))); 
 }
+
+/* 🌟 新增：表情包面板专属的 360px 高度联动上推 */
+.chat-room-screen.sticker-active .chat-room-input-bar { 
+    transform: translateY(calc(-360px - env(safe-area-inset-bottom, 0px))); 
+}
+.chat-room-screen.sticker-active .chat-room-body { 
+    transform: translateY(calc(-360px - env(safe-area-inset-bottom, 0px))); 
+}
+
+#sticker-panel.active {
+    height: calc(360px + env(safe-area-inset-bottom, 0px));
+}
+
 
 
 /* ==========================================
@@ -1281,19 +1293,18 @@
 .chat-plus-overlay.active { display: block; } /* 激活时显示 */
 
 .chat-plus-menu {
-    position: fixed; /* 固定在屏幕底部 */
+    position: fixed; 
     bottom: 0; left: 0; width: 100%; 
-    /* 兼容滑动双页的自适应高度，同时保留底部安全距离 */
+    height: calc(250px + env(safe-area-inset-bottom, 0px)); /* 🌟 强制统一弹窗高度 */
     padding: 20px 0 calc(10px + env(safe-area-inset-bottom, 0px)) 0; 
-    /* 🌟 80% 透明纯白 + 高强度毛玻璃效果 (绝对原版) */
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border-top: 1px solid rgba(255, 255, 255, 0.5); 
-    border-radius: 24px 24px 0 0; /* 增加顶部圆角更贴合屏幕 */
+    border-radius: 24px 24px 0 0; 
     z-index: 2020;
-    transform: translateY(100%); /* 默认隐藏在屏幕下方 */
-    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); /* 平滑弹出动画 */
+    transform: translateY(100%); 
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); 
     display: flex; flex-direction: column; box-sizing: border-box;
 }
 .chat-plus-menu.active { transform: translateY(0); } /* 激活时滑入屏幕 */
@@ -1379,12 +1390,39 @@
    🌟 表情包系统专属样式
 ========================================== */
 .sticker-grid-container {
-    width: 100%; flex: 1; overflow-y: auto; overflow-x: hidden;
-    padding: 15px 20px; display: grid;
-    grid-template-columns: repeat(4, 1fr); gap: 15px;
-    align-content: start;
+    width: 100%; flex: 1; padding: 10px 0; overflow: hidden;
+    display: flex; flex-direction: column;
 }
-.sticker-grid-container::-webkit-scrollbar { display: none; }
+.sticker-pages-container {
+    display: flex; width: 100%; overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory; scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch; flex: 1;
+}
+.sticker-pages-container::-webkit-scrollbar { display: none; }
+.sticker-page {
+    flex: 0 0 100%; width: 100%;
+    scroll-snap-align: center;
+    padding: 0 20px; box-sizing: border-box;
+    overflow-y: auto;
+}
+.sticker-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); gap: 15px;
+    align-content: start; padding-bottom: 10px;
+}
+.sticker-pagination {
+    display: flex; justify-content: center; align-items: center; gap: 8px;
+    margin-top: 5px; flex-shrink: 0; padding-bottom: env(safe-area-inset-bottom, 5px);
+}
+.sticker-pagination .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(0, 0, 0, 0.1); 
+    transition: all 0.3s; cursor: pointer;
+}
+.sticker-pagination .dot.active { 
+    background: rgba(0, 0, 0, 0.4); 
+}
+
 
 /* 表情包容器 (继承极简凹陷质感) */
 .sticker-item-box {
@@ -1423,3 +1461,34 @@
 
 /* 聊天室内展示的表情包图片 (去掉气泡背景，纯净展示) */
 .chat-sent-sticker { max-width: 120px; max-height: 120px; object-fit: contain; display: block; margin: 4px; border-radius: 8px; }
+
+
+/* 📌 直接追加到 02-chat-app.css 的最底部 */
+.sticker-group-tabs { 
+    display: flex; overflow-x: auto; gap: 8px; 
+    padding: 0 20px 10px 20px; border-bottom: 1px solid rgba(0,0,0,0.05); 
+    flex-shrink: 0;
+}
+.sticker-group-tabs::-webkit-scrollbar { display: none; }
+.sticker-group-tab { 
+    padding: 6px 14px; font-size: 11px; font-weight: 700; color: #666; 
+    background: rgba(0,0,0,0.04); border-radius: 14px; cursor: pointer; white-space: nowrap; 
+    transition: all 0.2s;
+}
+.sticker-group-tab.active { background: #111; color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+.sticker-group-tab:active { transform: scale(0.95); }
+
+
+.sticker-group-tabs { 
+    display: flex; overflow-x: auto; gap: 8px; 
+    padding: 0 20px 10px 20px; border-bottom: 1px solid rgba(0,0,0,0.05); 
+    flex-shrink: 0;
+}
+.sticker-group-tabs::-webkit-scrollbar { display: none; }
+.sticker-group-tab { 
+    padding: 6px 14px; font-size: 11px; font-weight: 700; color: #666; 
+    background: rgba(0,0,0,0.04); border-radius: 14px; cursor: pointer; white-space: nowrap; 
+    transition: all 0.2s;
+}
+.sticker-group-tab.active { background: #111; color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+.sticker-group-tab:active { transform: scale(0.95); }

@@ -38,6 +38,24 @@ let tempPreviewBubbleData = null;
 
 // --- 表情包相关 ---
 let myStickers = [];
+let stickerGroups = []; // 全局表情分组
+
+async function loadStickersData() {
+    try {
+        const dbData = await db.settings.get('my_stickers_data');
+        if (dbData && dbData.value) { 
+            myStickers = JSON.parse(dbData.value); 
+            // 旧版本数据兼容：强制归类到“通用”
+            myStickers.forEach(s => { if(!s.group) s.group = '通用'; });
+        }
+        
+        const grpData = await db.settings.get('sticker_groups_data');
+        if (grpData && grpData.value) { stickerGroups = JSON.parse(grpData.value); }
+        if (stickerGroups.length === 0) {
+            stickerGroups = [{ id: 'sg_default', name: '通用', boundChars: [] }];
+        }
+    } catch (e) { console.error("表情包读取失败", e); }
+}
 
 
 
