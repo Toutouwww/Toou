@@ -1492,3 +1492,21 @@
 }
 .sticker-group-tab.active { background: #111; color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
 .sticker-group-tab:active { transform: scale(0.95); }
+
+/* ==========================================
+   🌟 撤回消息系统专属样式 (吸收微信规范)
+========================================== */
+.recall-notice-row { 
+    width: 100%; margin: 15px 0; text-align: center; 
+    display: flex; justify-content: center; align-items: center;
+}
+.recall-pill { 
+    background-color: rgba(0,0,0,0.04); border-radius: 12px; 
+    padding: 4px 14px; font-size: 11px; color: #888; 
+    font-weight: 600; user-select: none;
+}
+.recall-link { 
+    color: #576b95; /* 经典微信蓝 */
+    cursor: pointer; margin-left: 6px; font-weight: 700;
+}
+.recall-link:active { opacity: 0.6; }

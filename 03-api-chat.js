@@ -475,15 +475,22 @@ function openChatRoom(contactId) {
                 const safeText = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
                 let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msg.id}', '${msg.sender}', '${msg.time}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msg.id}', '${msg.sender}', '${msg.time}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
 
-                // 🌟 新增：拦截撤回类型的消息，渲染成系统居中提示
+                // 🌟 新增：拦截撤回类型的消息，并渲染成居中的灰色系统提示词（附带蓝字操作链接）
                 if (msg.type === 'recall') {
                     let nameDisplay = msg.sender === 'user' ? '你' : (contact.realName || contact.name);
-                    htmlStr += `<div style="width:100%; text-align:center; margin: 15px 0; font-size:11px; color:#aaa; font-weight:600; letter-spacing:0.5px; user-select:none;">${nameDisplay} 撤回了一条消息</div>`;
+                    let actionLink = '';
+                    if (msg.sender === 'user' && msg.recalledText) {
+                        actionLink = `<span class="recall-link" onclick="restoreEdit('${msg.id}')">重新编辑</span>`;
+                    } else if (msg.sender === 'char' && msg.recalledText) {
+                        actionLink = `<span class="recall-link" onclick="viewRecalled('${msg.id}')">查看</span>`;
+                    }
+                    htmlStr += `<div class="recall-notice-row"><div class="recall-pill">${nameDisplay} 撤回了一条消息 ${actionLink}</div></div>`;
                     continue; 
                 }
 
                 let contentHtml = '';
                 if (msg.type === 'image' && msg.imageUrl) {
+
                     // 原本发图片的逻辑不变
 
                     contentHtml = `
@@ -1300,11 +1307,11 @@ ${stickerRule}
 
 4. 标点符号与聊天格式：
 - 正常情况（无特殊情况）下必须正常且正确地使用中文标点符号！
-- 作为真实聊天软件，对方会撤回消息，你作为角色同样拥有撤回消息的能力。也可以发送颜文字、网络热梗或表情包。如果你想撤回刚刚发出的某句话，请在一个独立气泡中发送格式 [RECALL:你想撤回的内容+原因] (例如：[RECALL:好想你｜怎么就这样说出来了…])，系统会自动将其转化为空白的撤回提示。
+- 作为真实聊天软件，对方会撤回消息，你作为角色也同样拥有撤回消息的能力。也可以发送颜文字、网络热梗或表情包。如果你觉得刚才说的话不合适想要反悔，请在一个独立气泡中发送格式 [RECALL:你想撤回的具体内容] (例如：[RECALL:发错了])，系统会自动将其转换成撤回状态。
 
 【最终输出格式严格协议】
 严禁返回纯文本，严禁包含任何解释性文字。
-原则：模拟真实人类聊天，进行切割气泡，比如话题转换、语气停顿、出现句号，问号等情况**必须**使用 || 作为多个气泡之间的分割符，换气泡！请注意一句话的完整性，严禁一个气泡可以完成的一句话，却分为多个气泡进行。但也要注意，不要单个气泡臃肿，塞了好几个句子，你要保证真实人类的气泡发送原则，做到分好句子，不臃肿，同时也不出现太多气泡的无意义连续刷屏，以对话的自然流动感为准。
+原则：模拟真实人类聊天，进行切割气泡，“比如话题转换、语气停顿、出现句号，问号等情况**必须**使用 || 作为多个气泡之间的分割符，换气泡！”请注意一句话的完整性，严禁一个气泡可以完成的一句话，却分为多个气泡进行。但也要注意，不要单个气泡臃肿，塞了好几个句子，你要保证真实人类的气泡发送原则，做到分好句子，不臃肿，同时也不出现太多气泡的无意义连续刷屏，以对话的自然流动感为准。
 
 【user 设定相关 (我)】
 ${userStr}
@@ -1457,15 +1464,15 @@ function handleAiResponse(replyText, contact) {
     bubbles.forEach((text, idx) => {
         const msgId = 'msg_' + Date.now() + '_' + idx;
         
-        // 🌟 新增：拦截 AI 的撤回指令，并直接转为 Tombstone
-        let isRecall = /\[RECALL.*?\]/i.test(text);
+        // 🌟 核心：精准拦截 AI 发出的撤回指令，将其转化为撤回痕迹
+        let isRecall = /\[\s*(?:RECALL|撤回)\s*[:：]\s*(.*?)\s*\]/i.exec(text);
         if (isRecall) {
             contact.messages.push({
-                id: msgId, sender: 'char', type: 'recall', text: '撤回了一条消息', time: timeStr
+                id: msgId, sender: 'char', type: 'recall', recalledText: isRecall[1], text: '撤回了一条消息', time: timeStr
             });
-            const msgHtml = `<div style="width:100%; text-align:center; margin: 15px 0; font-size:11px; color:#aaa; font-weight:600; letter-spacing:0.5px; user-select:none;">${contact.realName || contact.name} 撤回了一条消息</div>`;
+            const msgHtml = `<div class="recall-notice-row"><div class="recall-pill">${contact.realName || contact.name} 撤回了一条消息 <span class="recall-link" onclick="viewRecalled('${msgId}')">查看</span></div></div>`;
             chatBody.insertAdjacentHTML('beforeend', msgHtml);
-            return; // 结束当前气泡，跳过正常渲染
+            return; // 拦截成功，结束本次渲染，不画聊天气泡了
         }
 
         contact.messages.push({
@@ -1575,11 +1582,11 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
             // 🌟 核心：流式打字机实时探测！只要打出完整的标签，瞬间变成图片
             let safeText = text.trimStart().replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
             
-            // 🌟 侦测流式撤回指令，瞬间变身灰色系统文字
+            // 🌟 侦测流式撤回指令，瞬间变身灰色系统文字，并附带蓝色查看按钮
             let isRecall = false;
-            safeText = safeText.replace(/\[RECALL.*?\]/gi, () => {
+            safeText = safeText.replace(/\[\s*(?:RECALL|撤回)\s*[:：]\s*(.*?)\]/gi, () => {
                 isRecall = true;
-                return `<div style="text-align:center; font-size:11px; color:#aaa; font-weight:600; width:100%; padding: 5px 10px;">对方撤回了一条消息</div>`;
+                return `<div class="recall-notice-row" style="margin:0;"><div class="recall-pill">对方撤回了一条消息 <span class="recall-link" style="pointer-events:none;">查看</span></div></div>`;
             });
 
             let hasSticker = false;
@@ -1696,29 +1703,39 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
             if (text) {
                 const msgId = 'msg_' + Date.now() + '_' + idx;
                 
-                // 🌟 数据保存时拦截撤回指令并正确归档
-                if (/\[RECALL.*?\]/i.test(text)) {
+                // 🌟 数据保存时拦截撤回指令并正确写入数据库 (带上 recalledText)
+                let recallMatch = text.match(/\[\s*(?:RECALL|撤回)\s*[:：]\s*(.*?)\]/i);
+                if (recallMatch) {
                     contact.messages.push({
-                        id: msgId, sender: 'char', type: 'recall', text: '撤回了一条消息', time: timeStr
+                        id: msgId, sender: 'char', type: 'recall', recalledText: recallMatch[1], text: '撤回了一条消息', time: timeStr
                     });
+                    // 彻底替换当前所在的 DOM 行，变为真实的撤回条，并激活蓝字点击事件
+                    const row = rowList[idx];
+                    if (row) {
+                        row.className = 'recall-notice-row';
+                        row.innerHTML = `<div class="recall-pill">${contact.realName || contact.name} 撤回了一条消息 <span class="recall-link" onclick="viewRecalled('${msgId}')">查看</span></div>`;
+                        row.removeAttribute('onclick');
+                        row.removeAttribute('ontouchstart');
+                        row.removeAttribute('onmousedown');
+                    }
                 } else {
                     contact.messages.push({
                         id: msgId, sender: 'char', text: text, time: timeStr
                     });
-                }
-                
-                const row = rowList[idx];
-                if (row) {
-                    row.id = `row-${msgId}`;
-                    row.setAttribute('onclick', `handleMsgClickInMultiMode('${msgId}', this)`);
-                    row.setAttribute('ontouchstart', `bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')`);
-                    row.setAttribute('ontouchend', `bubbleTouchEnd(event)`);
-                    row.setAttribute('ontouchmove', `bubbleTouchEnd(event)`);
-                    row.setAttribute('onmousedown', `bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')`);
-                    row.setAttribute('onmouseup', `bubbleTouchEnd(event)`);
-                    row.setAttribute('onmouseleave', `bubbleTouchEnd(event)`);
-                }
-            }
+                    const row = rowList[idx];
+
+                    if (row) {
+                        row.id = `row-${msgId}`;
+                        row.setAttribute('onclick', `handleMsgClickInMultiMode('${msgId}', this)`);
+                        row.setAttribute('ontouchstart', `bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')`);
+                        row.setAttribute('ontouchend', `bubbleTouchEnd(event)`);
+                        row.setAttribute('ontouchmove', `bubbleTouchEnd(event)`);
+                        row.setAttribute('onmousedown', `bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')`);
+                        row.setAttribute('onmouseup', `bubbleTouchEnd(event)`);
+                        row.setAttribute('onmouseleave', `bubbleTouchEnd(event)`);
+                    }
+                } // 🌟 补上了闭合括号
+            } // 🌟 补上了闭合括号
         });
 
         if (allFinishedBubbleTexts.length > 0) {
@@ -2017,12 +2034,23 @@ function bubbleAction(action) {
         showToast('已删除');
         openChatRoom(currentChatContactId); 
     } else if (action === 'recall') {
-        // 🌟 核心：用户手动撤回时不删除数据，而是将其打上系统痕迹标签
-        contact.messages[msgIndex].type = 'recall';
-        contact.messages[msgIndex].text = '撤回了一条消息';
-        saveToDB('contacts_data', JSON.stringify(contactsList));
-        showToast('撤回成功');
-        openChatRoom(currentChatContactId); 
+        // 🌟 核心：引入参考代码中的 2分钟超时限制与原文本备份机制
+        const timestamp = parseInt(msg.id.split('_')[1]);
+        const now = Date.now();
+        
+        if (timestamp && (now - timestamp > 2 * 60 * 1000)) {
+            showToast("超过 2 分钟的消息不能撤回了 (｡•́︿•̀｡)");
+            return;
+        }
+        if (confirm('确定撤回这条消息吗？')) {
+            msg.type = 'recall';
+            msg.recalledText = msg.text; 
+            msg.text = '撤回了一条消息';
+            contact.sign = '你撤回了一条消息';
+            saveToDB('contacts_data', JSON.stringify(contactsList));
+            showToast('撤回成功');
+            openChatRoom(currentChatContactId); 
+        }
     } else if (action === 'multi') {
         enterMultiSelectMode(currentActionBubbleId); 
     } else if (action === 'reply') {
@@ -2517,4 +2545,33 @@ function sendStickerMessage(sticker) {
     chatBody.insertAdjacentHTML('beforeend', msgHtml);
     setTimeout(() => chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' }), 10);
     renderMsgList();
+}
+
+// ==========================================
+// 🌟 撤回系统：重新编辑与查看功能全局入口
+// ==========================================
+function viewRecalled(msgId) {
+    if (!currentChatContactId) return;
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    if (!contact) return;
+    const msg = contact.messages.find(m => m.id === msgId);
+    if (msg && msg.recalledText) {
+        alert(`对方撤回的内容是：\n\n${msg.recalledText}`);
+    }
+}
+
+function restoreEdit(msgId) {
+    if (!currentChatContactId) return;
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    if (!contact) return;
+    const msg = contact.messages.find(m => m.id === msgId);
+    if (msg && msg.recalledText) {
+        const input = document.getElementById('chatRoomInput');
+        if (input) {
+            input.value = msg.recalledText;
+            input.focus();
+            input.style.height = 'auto'; 
+            input.style.height = input.scrollHeight + 'px';
+        }
+    }
 }
