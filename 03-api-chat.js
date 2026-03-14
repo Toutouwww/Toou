@@ -2,7 +2,8 @@
 // 03-api-chat.js: API核心配置与聊天发送渲染引擎
 // ==========================================
 
-let activeReplyContext = null; // 🌟 存储全局引用上下文
+let activeReplyContext = null; 
+const TRANS_SPLIT = "@@@TRANS@@@"; // 🌟 【翻译核心引擎】全局翻译分隔符
 
 // ==========================================
 // 1. 千岛 API 配置界面逻辑
@@ -51,7 +52,6 @@ function toggleStream() {
     const btn = document.getElementById('stream-toggle-btn');
     btn.classList.toggle('active');
     
-    // 小白防呆设计：点一下立刻静默保存到当前运行方案
     if (activeApiPlanId) {
         const planIndex = apiPlans.findIndex(p => p.id === activeApiPlanId);
         if (planIndex > -1) {
@@ -89,14 +89,10 @@ function syncUIWithApiPlanData(data) {
     else btn.classList.remove('active');
 }
 
-function toggleUrlMenu() {
-    const menu = document.getElementById('urlDropdownMenu');
-    menu.classList.toggle('active');
-}
+function toggleUrlMenu() { document.getElementById('urlDropdownMenu').classList.toggle('active'); }
 
 function selectUrl(url) {
-    const input = document.getElementById('api-base-url-input');
-    input.value = url;
+    document.getElementById('api-base-url-input').value = url;
     document.getElementById('urlDropdownMenu').classList.remove('active');
 }
 
@@ -420,7 +416,7 @@ function closeChatRoom() {
     if (document.activeElement) document.activeElement.blur(); 
     document.getElementById('chatRoomScreen').classList.remove('active');
     currentChatContactId = null;
-    cancelReply(); // 🌟 关闭聊天室时清空引用状态
+    cancelReply(); 
 }
 
 function cancelReply() {
@@ -435,7 +431,7 @@ function openChatRoom(contactId) {
     if (!contact) return;
     
     document.getElementById('chatRoomTitle').innerText = contact.name; 
-    cancelReply(); // 🌟 初始化时清空上一个人的引用残留
+    cancelReply(); 
     
     const textEl = document.getElementById('chat-init-text');
     if (contact.innerVoice && contact.innerVoice.thought) {
@@ -482,7 +478,10 @@ function openChatRoom(contactId) {
                  if (contact.lastSummaryMsgIndex && i === contact.lastSummaryMsgIndex) {
                     htmlStr += `<div style="text-align:center; margin: 15px 0; font-size:10px; color:#ccc; letter-spacing:1px; font-weight:bold;">—— 以上消息已生成记忆总结并折叠归档 ——</div>`;
                 }
-                const safeText = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+                const safeText = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>')
+                                          // 🌟 【翻译核心引擎】容错渲染已有消息中的分隔符
+                                          .replace(/@@@TRANS@@@/g, '</div><div class="msg-trans-line"></div><div class="msg-trans-text">');
+                
                 let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msg.id}', '${msg.sender}', '${msg.time}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msg.id}', '${msg.sender}', '${msg.time}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
 
                 if (msg.type === 'recall') {
@@ -497,7 +496,6 @@ function openChatRoom(contactId) {
                     continue; 
                 }
 
-                // 🌟 【内置引用气泡】构建 DOM
                 let replyBubbleHtml = '';
                 let replyInBubbleHtml = '';
                 if (msg.replyCtx) {
@@ -529,7 +527,6 @@ function openChatRoom(contactId) {
                         return `<span style="color:#aaa;font-size:12px;">[${sName}]</span>`;
                     });
 
-                    // 纯表情去底色
                     if (hasSticker && parsedText.replace(/<img[^>]*>/g, '').trim() === '') {
                         contentHtml = `
                         <div class="msg-stack">
@@ -541,11 +538,12 @@ function openChatRoom(contactId) {
                             </div>
                         </div>`;
                     }else {
+                        // 🌟 若是被包过一次 </div> 还需要确保前方有一个开启标签（浏览器通常会自动包容修补）
                         contentHtml = `
                         <div class="msg-stack">
                             <div class="Toutou-TT ${msg.sender}">
                                 ${msg.sender === 'user' ? `<span class="bubble-time">${msg.time}</span>` : ''}
-                                <div class="content">${replyInBubbleHtml}${parsedText}</div>
+                                <div class="content">${replyInBubbleHtml}<div>${parsedText}</div></div>
                                 ${msg.sender === 'char' ? `<span class="bubble-time">${msg.time}</span>` : ''}
                             </div>
                         </div>`;
@@ -588,7 +586,6 @@ function openChatRoom(contactId) {
     document.getElementById('chatRoomScreen').classList.add('active');
 }
 
-// 聊天室顶端大头像菜单控制
 function toggleChatInitAvatarMenu(event) { event.stopPropagation(); document.getElementById('chatInitAvatarMenu').classList.toggle('active'); }
 
 document.addEventListener('click', function(e) {
@@ -626,7 +623,6 @@ function uploadChatInitLocalAvatar(input) {
     reader.readAsDataURL(file);
 }
 
-// 角色专属聊天设置页
 let tempBoundProfileId = 'default';
 
 function handleCsBirthdayChange(dateString) {
@@ -667,6 +663,13 @@ function openChatSettings() {
         document.getElementById('cs-secretFileCard').classList.remove('open');
     }
 
+    // 🌟 翻译开关回显
+    if(contact.autoTranslate) {
+        document.getElementById('cs-translateToggleSwitch').classList.add('active');
+    } else {
+        document.getElementById('cs-translateToggleSwitch').classList.remove('active');
+    }
+
     csSelectedGroup = contact.group || '未分组';
     document.getElementById('cs-group-dogtag').innerText = csSelectedGroup;
 
@@ -691,6 +694,11 @@ function closeChatSettings() {
     document.getElementById('chatSettingsScreen').classList.remove('active');
 }
 
+// 🌟 翻译开关控制
+function toggleCsTranslate() {
+    document.getElementById('cs-translateToggleSwitch').classList.toggle('active');
+}
+
 function renderCsProfileMenu() {
     const menu = document.getElementById('csProfileMenu');
     menu.innerHTML = '';
@@ -711,10 +719,7 @@ function renderCsProfileMenu() {
     document.getElementById('cs-bound-profile-name').innerText = currentName;
 }
 
-function toggleCsProfileMenu() {
-    document.getElementById('csProfileMenu').classList.toggle('active');
-}
-
+function toggleCsProfileMenu() { document.getElementById('csProfileMenu').classList.toggle('active'); }
 function triggerCsLocalAvatar() { document.getElementById('csLocalAvatarInput').click(); }
 function uploadCsLocalAvatar(input) {
     const file = input.files[0]; if (!file) return;
@@ -763,6 +768,9 @@ function saveChatSettings() {
     contactsList[contactIndex].name = finalDisplayName; 
     contactsList[contactIndex].boundProfileId = tempBoundProfileId; 
     contactsList[contactIndex].group = csSelectedGroup; 
+
+    // 🌟 保存翻译开关状态
+    contactsList[contactIndex].autoTranslate = document.getElementById('cs-translateToggleSwitch').classList.contains('active');
 
     contactsList[contactIndex].details = {
         gender: document.getElementById('cs-gender').value.trim(),
@@ -1135,10 +1143,9 @@ function sendChatMessage() {
         time: timeStr
     };
     
-    // 🌟 将全局引用上下文吸入当前发出的消息
     if (activeReplyContext) {
         newMsg.replyCtx = { ...activeReplyContext };
-        cancelReply(); // 吃掉后立刻关闭预览条
+        cancelReply(); 
     }
 
     if (!contact.messages) contact.messages = [];
@@ -1150,7 +1157,6 @@ function sendChatMessage() {
     const msgId = newMsg.id;
     let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
     
-    // 🌟 【内置引用气泡】动态渲染
     let replyBubbleHtml = '';
     let replyInBubbleHtml = '';
     if (newMsg.replyCtx) {
@@ -1160,14 +1166,13 @@ function sendChatMessage() {
         replyInBubbleHtml = `<div class="reply-in-bubble"><div class="reply-name">回复 ${newMsg.replyCtx.name}</div><div class="reply-text">${shortContent}</div></div>`;
     }
 
-    // 🌟 文本消息采用内部引用，图片等使用外部堆叠引用
     const msgHtml = `
     <div class="preview-msg-row right" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
         <div class="msg-checkbox"></div>
         <div class="msg-stack">
             <div class="Toutou-TT user">
                 <span class="bubble-time">${timeStr}</span>
-                <div class="content">${replyInBubbleHtml}${safeText}</div>
+                <div class="content">${replyInBubbleHtml}<div>${safeText}</div></div>
             </div>
         </div>
         <img src="${myAvatar}" class="preview-avatar" onclick="handleAvatarDoubleTap('${msgId}')" style="cursor: pointer;">
@@ -1221,7 +1226,6 @@ async function handleChatPhotoUpload(input) {
             time: timeStr
         };
         
-        // 🌟 将引用挂载到上传的第一张图片上
         if (i === 0 && activeReplyContext) {
             newMsg.replyCtx = { ...activeReplyContext };
             cancelReply();
@@ -1282,7 +1286,7 @@ function handlePlaneClick() {
     }
 }
 
-// 组装系统提示词
+// 🌟 【翻译核心引擎】组装系统提示词并注入双语协议
 function buildSystemPrompt(contact) {
     let boundId = contact.boundProfileId || 'default';
     let appliedProfile = profilePlans.find(p => p.id === boundId) || profilePlans[0];
@@ -1332,6 +1336,12 @@ function buildSystemPrompt(contact) {
         }
     }
 
+    // 🌟 翻译协议判断
+    let translateProtocol = "";
+    if (contact.autoTranslate) {
+        translateProtocol = `\n\n【⚠️系统最高优先级指令：双语翻译协议】\n用户已强制开启实时翻译模式。你的每一次正常说话聊天内容，必须且只能遵循以下格式进行拼装：\n原文内容${TRANS_SPLIT}中文翻译\n\n❌ 严禁将原文和翻译拆分成两个气泡！\n❌ 严禁只发原文不带翻译，或只发翻译不带原文。\n✅ 标准输出样例：I miss you so much.${TRANS_SPLIT}我好想你。`;
+    }
+
     return `你需要扮演 {char}，模拟真实生活中的聊天软件来回复我 {user}。严禁复述、扩写{user} 的话！
 ${stickerRule}
 
@@ -1345,7 +1355,7 @@ ${stickerRule}
 
 1. 文本语境原则：
 - 跳出舒适句式结构，保证“文本创新，不与前文重复”。每次说出的话，尽量要推动剧情和事件发展，而非停在原地不转、反复纠结一件事。根据{{user}}个性、身份、现阶段身份不同，{char}的态度会有微妙变化，生活与态度都会随剧情发展改变，不得过于拘泥人物设定与提示词参照，但请保持{char}核心。
-- 严禁你使用“如果……，我就……”句式与它的一切近意句，这是典型的带有攻击性的威胁句，出现概率已被下调至0！
+- 严禁你使用“如果……，我就……”句式与它的一切近意句，这是典型的带有攻击性的威胁句，出现概率已被下调至0！禁止生成“别……”起手句式及类似冷漠威胁性语句。“我可…”、“…我不想…”等句式也全部禁止生成！
 - 采用“白话书面语”风格。文风为烟火气十足的日常风格，跳脱自然、随性，口语化程度高。避免毫无用处的过渡性描写。每次回复消息时，不要过多，除非特殊情况！尽量控制在1到5句话左右。更多话需要根据情况来定，比如太开心、太难过在质问的情况下等。一定完全去模仿真人聊天。
 - 反刻板印象与真实感：拒绝标签化：冷漠≠只会说“嗯/哦”（也可以是礼貌的疏离）；傲娇≠脸红结巴（也可以是极强的自尊心攻击性）；暴躁≠无脑狂怒（也可以是缺乏耐心的躁郁）。真实语境：模拟真实打字习惯，包括断句、非正式口语、偶尔的错别字。
 - 对话不一定要讲述信息，但一定要体现个性。合理运用潜台词技巧（如受了重伤还装没事，然后突然倒下）。
@@ -1373,7 +1383,7 @@ ${stickerRule}
 【最终输出格式严格协议】
 严禁返回纯文本，严禁包含任何解释性文字。
 原则：模拟真实人类聊天，进行切割气泡，“当你输出的句子中出现话题转换、语气停顿、出现句号。，问号？等情况**必须**使用 || 作为多个气泡之间的分割符，换气泡！”请注意一句话的完整性，严禁一个气泡可以完成的一句话，却分为多个气泡进行。但也要注意，不要单个气泡臃肿，塞了好几个句子，你要保证真实人类的气泡发送原则，做到分好句子，不臃肿，同时也不出现太多气泡的无意义连续刷屏，以对话的自然流动感为准。
-记住，|| 是分割多条消息的唯一识别符，严禁使用普通的换行符充当气泡分割！
+记住，|| 是分割多条消息的唯一识别符，严禁使用普通的换行符充当气泡分割！${translateProtocol}
 
 【user 设定相关 (我)】
 ${userStr}
@@ -1543,11 +1553,25 @@ function handleAiResponse(replyText, contact) {
             text = text.replace(replyMatch[0], '').trim();
         }
 
+        // 🌟 核心提取翻译并保存
+        let transText = null;
+        if (text.includes(TRANS_SPLIT)) {
+            const tParts = text.split(TRANS_SPLIT);
+            text = tParts[0].trim();
+            transText = tParts[1] ? tParts[1].trim() : null;
+        }
+
         let msgObj = { id: msgId, sender: 'char', text: text, time: timeStr };
+        if (transText) msgObj.text = msgObj.text + `<div class="msg-trans-line"></div><div class="msg-trans-text">${transText}</div>`;
         if (aiReplyCtx) msgObj.replyCtx = aiReplyCtx;
         contact.messages.push(msgObj);
         
         let safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+        
+        if (transText) {
+            safeText += `<div class="msg-trans-line"></div><div class="msg-trans-text">${transText.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>')}</div>`;
+        }
+
         let hasSticker = false;
         safeText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
             hasSticker = true;
@@ -1560,7 +1584,6 @@ function handleAiResponse(replyText, contact) {
         
         let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
         
-        // 🌟 【内置引用气泡】动态渲染
         let replyBubbleHtml = '';
         let replyInBubbleHtml = '';
         if (aiReplyCtx) {
@@ -1584,7 +1607,7 @@ function handleAiResponse(replyText, contact) {
             contentHtml = `
             <div class="msg-stack">
                 <div class="Toutou-TT char">
-                    <div class="content">${replyInBubbleHtml}${safeText}</div>
+                    <div class="content">${replyInBubbleHtml}<div>${safeText}</div></div>
                     <span class="bubble-time">${timeStr}</span>
                 </div>
             </div>`;
@@ -1638,7 +1661,6 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
         bubbleIsWaiting = true;
         const row = document.createElement('div');
         row.className = 'preview-msg-row left';
-        // 🌟 流式生成结构统一移除外部渲染容器
         row.innerHTML = `
             <img src="${charAvatar}" class="preview-avatar">
             <div class="msg-stack">
@@ -1665,13 +1687,15 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
             
             let safeText = text.trimStart().replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
             
+            // 🌟 流式文本替换翻译标记
+            safeText = safeText.split(TRANS_SPLIT).join('</div><div class="msg-trans-line"></div><div class="msg-trans-text">');
+
             let isRecall = false;
             safeText = safeText.replace(/\[\s*(?:RECALL|撤回)\s*[:：]\s*([\s\S]*?)\]/gi, () => {
                 isRecall = true;
                 return `<div class="recall-notice-row" style="margin:0;"><div class="recall-pill">对方撤回了一条消息 <span class="recall-link" style="pointer-events:none;">查看</span></div></div>`;
             });
 
-            // 🌟 实时在流式生成的文本最前端插入内置引用气泡
             let aiReplyHtml = '';
             let aiReplyCtx = null; 
             safeText = safeText.replace(/\[\s*(?:REPLY|回复|引用)\s*[:：]\s*([\s\S]+?)\]/gi, (match, q) => {
@@ -1699,7 +1723,8 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                 return `<span style="color:#aaa;font-size:12px;">[${sName}]</span>`;
             });
             
-            currentBubbleEl.innerHTML = aiReplyHtml + safeText;
+            // 在包裹内部包一个 div 保证容错性
+            currentBubbleEl.innerHTML = aiReplyHtml + '<div>' + safeText + '</div>';
 
             if (isRecall) {
                 currentBubbleEl.style.background = 'transparent';
@@ -1814,6 +1839,14 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                     }
                 }
 
+                // 🌟 收尾时合并拆分翻译字符存储
+                let transText = null;
+                if (text.includes(TRANS_SPLIT)) {
+                    const tParts = text.split(TRANS_SPLIT);
+                    text = tParts[0].trim();
+                    transText = tParts[1] ? tParts[1].trim() : null;
+                }
+
                 let recallMatch = text.match(/\[\s*(?:RECALL|撤回)\s*[:：]\s*([\s\S]*?)\]/i);
                 if (recallMatch) {
                     contact.messages.push({
@@ -1828,6 +1861,7 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                     }
                 } else {
                     let msgObj = { id: msgId, sender: 'char', text: text, time: timeStr };
+                    if (transText) msgObj.text = msgObj.text + `<div class="msg-trans-line"></div><div class="msg-trans-text">${transText}</div>`;
                     if (aiReplyCtx) msgObj.replyCtx = aiReplyCtx;
                     contact.messages.push(msgObj);
 
@@ -2124,6 +2158,62 @@ function closeBubbleMenu() {
     document.getElementById('bubble-action-overlay').classList.remove('active');
 }
 
+// 🌟 【翻译核心引擎】手动静默翻译单个气泡
+async function executeTranslate(msgId) {
+    if (!currentChatContactId) return;
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    if (!contact || !contact.messages) return;
+
+    const msg = contact.messages.find(m => m.id === msgId);
+    if (!msg || msg.type === 'image' || msg.type === 'recall') {
+        showToast("该类型消息无法翻译");
+        return;
+    }
+
+    // 剔除可能存在的已有翻译层
+    let pureText = msg.text.split(TRANS_SPLIT)[0].split('<div class="msg-trans-line">')[0].replace(/<[^>]+>/g, '').trim();
+    if(!pureText) return;
+
+    if (!activeApiPlanId || apiPlans.length === 0) { showToast("未配置 API"); return; }
+    const apiConfig = apiPlans.find(p => p.id === activeApiPlanId)?.data;
+    
+    showToast("正在请求 AI 翻译...");
+    
+    try {
+        const response = await fetch(`${apiConfig.baseUrl}/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiConfig.apiKey}` },
+            body: JSON.stringify({
+                model: apiConfig.model,
+                messages: [
+                    {role: "system", content: "你是一个翻译官。如果用户输入外语，请翻译成纯正流畅的中文；如果用户输入中文，请判断是否需要翻译，如果是大白话也可以不翻译直接复述。必须且只能输出最终的翻译结果，禁止出现任何解释。"}, 
+                    {role: "user", content: pureText}
+                ],
+                temperature: 0.3
+            })
+        });
+
+        if (!response.ok) throw new Error("API 请求失败");
+        const data = await response.json();
+        const transText = data.choices[0].message.content.trim();
+        
+        if (msg.text.includes('<div class="msg-trans-line">')) {
+             msg.text = msg.text.split('<div class="msg-trans-line">')[0] + '<div class="msg-trans-line"></div><div class="msg-trans-text">' + transText + '</div>';
+        } else if (msg.text.includes(TRANS_SPLIT)) {
+             msg.text = msg.text.split(TRANS_SPLIT)[0] + '<div class="msg-trans-line"></div><div class="msg-trans-text">' + transText + '</div>';
+        } else {
+             msg.text += '<div class="msg-trans-line"></div><div class="msg-trans-text">' + transText + '</div>';
+        }
+
+        saveToDB('contacts_data', JSON.stringify(contactsList));
+        openChatRoom(currentChatContactId); 
+        showToast("翻译已附在下方");
+
+    } catch (e) {
+        showToast("翻译失败: " + e.message);
+    }
+}
+
 function bubbleAction(action) {
     closeBubbleMenu();
     if (!currentChatContactId || !currentActionBubbleId) return;
@@ -2135,7 +2225,7 @@ function bubbleAction(action) {
     const msg = contact.messages[msgIndex];
 
     if (action === 'copy') {
-        navigator.clipboard.writeText(msg.text).then(() => showToast('已复制')).catch(() => showToast('复制失败'));
+        navigator.clipboard.writeText(msg.text.replace(/<[^>]+>/g, '')).then(() => showToast('已复制')).catch(() => showToast('复制失败'));
     } else if (action === 'delete') {
         contact.messages.splice(msgIndex, 1);
         saveToDB('contacts_data', JSON.stringify(contactsList));
@@ -2168,7 +2258,7 @@ function bubbleAction(action) {
 
         if (msg.type === 'image') previewText = '[图片]';
         else if (msg.type === 'recall') previewText = '[撤回的消息]';
-        else previewText = msg.text.replace(/<[^>]+>/g, '').replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
+        else previewText = msg.text.replace(/<div class="msg-trans-line">[\s\S]*/, '').replace(/<[^>]+>/g, '').replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
 
         activeReplyContext = {
             name: replyName,
@@ -2186,11 +2276,10 @@ function bubbleAction(action) {
         if (input) input.focus();
 
     } else if (action === 'translate') {
-        showToast('正在接入AI翻译引擎...');
+        executeTranslate(currentActionBubbleId);
     }
 }
 
-// 🌟 核心：重新生成回复引擎
 function executeRegenerate(msgId) {
     if (!currentChatContactId) return;
     const contact = contactsList.find(c => c.id === currentChatContactId);
@@ -2727,7 +2816,6 @@ function sendStickerMessage(sticker) {
     const myAvatar = getBoundUserAvatar(contact);
     let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)"`;
 
-    // 🌟 纯表情包等无底色消息使用外部引用的 replyBubbleHtml
     let replyBubbleHtml = '';
     if (newMsg.replyCtx) {
         let shortContent = newMsg.replyCtx.content || '';

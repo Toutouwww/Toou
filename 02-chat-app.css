@@ -1575,3 +1575,28 @@
 .recall-label { font-size: 10px; font-weight: 800; color: #777; letter-spacing: 1.5px; margin-bottom: 6px; text-transform: uppercase; }
 .recall-text { font-size: 13px; color: #eee; line-height: 1.6; text-align: justify; font-weight: 500; }
 .recall-mood { font-size: 26px; color: #fff; text-align: center; margin-top: 5px; font-weight: bold; }
+
+/* 具体修改到哪里：直接复制追加到 02-chat-app.css 文件的最底部即可 */
+
+/* ==========================================
+   🌟 翻译消息系统专属样式 【翻译气泡样式】
+========================================== */
+.msg-trans-line {
+    width: 100%;
+    height: 1px;
+    background-color: rgba(0, 0, 0, 0.1); /* 角色气泡默认暗边 */
+    margin: 6px 0;
+    display: block;
+}
+
+.Toutou-TT.user .content .msg-trans-line {
+    background-color: rgba(255, 255, 255, 0.25); /* 用户气泡默认亮边 */
+}
+
+.msg-trans-text {
+    font-size: 11.5px; 
+    line-height: 1.4;
+    opacity: 0.85;   
+    font-weight: 500;
+}
+
