@@ -500,9 +500,10 @@ function openChatRoom(contactId) {
                     let actionLink = '';
                     if (msg.sender === 'user' && msg.recalledText) actionLink = `<span class="recall-link" onclick="restoreEdit('${msg.id}')">重新编辑</span>`;
                     else if (msg.sender === 'char' && msg.recalledText) actionLink = `<span class="recall-link" onclick="viewRecalled('${msg.id}')">查看</span>`;
-                    htmlStr += `<div class="recall-notice-row"><div class="recall-pill">${nameDisplay} 撤回了一条消息 ${actionLink}</div></div>`;
+                    htmlStr += `<div class="recall-notice-row" id="row-${msg.id}"><div class="recall-pill">${nameDisplay} 撤回了一条消息 ${actionLink}</div></div>`;
                     continue; 
                 }
+
 
                 let replyBubbleHtml = ''; let replyInBubbleHtml = '';
                 if (msg.replyCtx) {
@@ -512,7 +513,7 @@ function openChatRoom(contactId) {
                     replyInBubbleHtml = `<div class="reply-in-bubble"><div class="reply-name">回复 ${msg.replyCtx.name}</div><div class="reply-text">${shortContent}</div></div>`;
                 }
 
-                // 🌟 新增：独立构建翻译的 HTML 显示块
+                // 🌟 独立构建翻译的 HTML 显示块
                 let transHtml = '';
                 if (msg.transText) {
                     let safeTrans = msg.transText.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
@@ -532,6 +533,18 @@ function openChatRoom(contactId) {
                         </div>
                     </div>`;
                 } else {
+                    // 🌟 核心拦截语音格式
+                    safeText = safeText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
+                        let vDuration = Math.min(60, Math.max(1, Math.ceil(content.length / 3)));
+                        return `<div class="voice-inner-container" onclick="toggleVoiceText(this, event)">
+                                    <div class="voice-main-row">
+                                        <div class="voice-animate-icon"><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div></div>
+                                        <span class="voice-duration">${vDuration}"</span>
+                                    </div>
+                                    <div class="voice-trans-result">${content}</div>
+                                </div>`;
+                    });
+
                     let hasSticker = false;
                     let parsedText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
                         hasSticker = true; const sName = name.trim();
@@ -541,10 +554,12 @@ function openChatRoom(contactId) {
                         return `<span style="color:#aaa;font-size:12px;">[${sName}]</span>`;
                     });
                     
-                    // 🌟 核心组装：把原文与独立的翻译层结合
+                    let isPureWidget = (hasSticker && parsedText.replace(/<img[^>]*>/g, '').trim() === '') || 
+                                       (parsedText.includes('voice-inner-container') && parsedText.replace(/<div class="voice-inner-container"[\s\S]*?<\/div>\s*<\/div>/g, '').trim() === '');
+                    
                     let finalContentText = `<div class="msg-main-text" ${msg.transText ? `onclick="toggleTransDisplay('${msg.id}')"` : ''}>${parsedText}</div>${transHtml}`;
 
-                    if (hasSticker && parsedText.replace(/<img[^>]*>/g, '').trim() === '') {
+                    if (isPureWidget) {
                         contentHtml = `
                         <div class="msg-stack">
                             ${replyBubbleHtml}
@@ -1208,15 +1223,54 @@ function sendChatMessage() {
         replyInBubbleHtml = `<div class="reply-in-bubble"><div class="reply-name">回复 ${newMsg.replyCtx.name}</div><div class="reply-text">${shortContent}</div></div>`;
     }
 
-    const msgHtml = `
-    <div class="preview-msg-row right" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
-        <div class="msg-checkbox"></div>
+    // 🌟 同步发送时的渲染逻辑：解析手动输入的表情包与语音协议
+    let parsedText = safeText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
+        let vDuration = Math.min(60, Math.max(1, Math.ceil(content.length / 3)));
+        return `<div class="voice-inner-container" onclick="toggleVoiceText(this, event)">
+                    <div class="voice-main-row">
+                        <div class="voice-animate-icon"><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div></div>
+                        <span class="voice-duration">${vDuration}"</span>
+                    </div>
+                    <div class="voice-trans-result">${content}</div>
+                </div>`;
+    });
+
+    let hasSticker = false;
+    parsedText = parsedText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
+        hasSticker = true; const sName = name.trim();
+        let sticker = myStickers.find(s => s.name === sName) || myStickers.find(s => s.name.includes(sName));
+        if (sticker) return `<img src="${sticker.src}" class="chat-sent-sticker">`;
+        if (myStickers.length > 0) return `<img src="${myStickers[Math.floor(Math.random() * myStickers.length)].src}" class="chat-sent-sticker">`;
+        return `<span style="color:#aaa;font-size:12px;">[${sName}]</span>`;
+    });
+
+    let isPureWidget = (hasSticker && parsedText.replace(/<img[^>]*>/g, '').trim() === '') || 
+                       (parsedText.includes('voice-inner-container') && parsedText.replace(/<div class="voice-inner-container"[\s\S]*?<\/div>\s*<\/div>/g, '').trim() === '');
+
+    let contentHtml = '';
+    if (isPureWidget) {
+        contentHtml = `
+        <div class="msg-stack">
+            ${replyBubbleHtml}
+            <div class="image-msg-wrapper">
+                <span class="image-timestamp" style="margin-right:6px;">${timeStr}</span>
+                <div class="msg-main-text">${parsedText}</div>
+            </div>
+        </div>`;
+    } else {
+        contentHtml = `
         <div class="msg-stack">
             <div class="Toutou-TT user">
                 <span class="bubble-time">${timeStr}</span>
-                <div class="content">${replyInBubbleHtml}<div>${safeText}</div></div>
+                <div class="content">${replyInBubbleHtml}<div class="msg-main-text">${parsedText}</div></div>
             </div>
-        </div>
+        </div>`;
+    }
+
+    const msgHtml = `
+    <div class="preview-msg-row right" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
+        <div class="msg-checkbox"></div>
+        ${contentHtml}
         <img src="${myAvatar}" class="preview-avatar" onclick="handleAvatarDoubleTap('${msgId}')" style="cursor: pointer;">
     </div>
     `;
@@ -1664,8 +1718,11 @@ function handleAiResponse(replyText, contact) {
             replyInBubbleHtml = `<div class="reply-in-bubble"><div class="reply-name">回复 ${aiReplyCtx.name}</div><div class="reply-text">${shortContent}</div></div>`;
         }
 
+        let isPureWidget = (hasSticker && parsedText.replace(/<img[^>]*>/g, '').trim() === '') || 
+                           (parsedText.includes('voice-inner-container') && parsedText.replace(/<div class="voice-inner-container"[\s\S]*?<\/div>\s*<\/div>/g, '').trim() === '');
+        
         let contentHtml = '';
-        if (hasSticker && parsedText.replace(/<img[^>]*>/g, '').trim() === '') {
+        if (isPureWidget) {
             contentHtml = `
             <div class="msg-stack">
                 ${replyBubbleHtml}
@@ -1945,9 +2002,11 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                     }
                 } else {
                     let msgObj = { id: msgId, sender: 'char', text: text, time: timeStr };
-                    if (transText) msgObj.text = msgObj.text + `<div class="msg-trans-line"></div><div class="msg-trans-text">${transText}</div>`;
+                    // 🌟 修复致命Bug：严禁拼接 HTML，必须存入独立的字段，交由渲染层处理
+                    if (transText) msgObj.transText = transText; 
                     if (aiReplyCtx) msgObj.replyCtx = aiReplyCtx;
                     contact.messages.push(msgObj);
+
 
                     if (row) {
                         row.id = `row-${msgId}`;
@@ -3064,9 +3123,9 @@ function renderVoiceMultiRows() {
     
     voiceRowsData.forEach((text, index) => {
         const row = document.createElement('div');
-        row.className = 'voice-input-row';
         
         if (currentVoiceMode === 'text') {
+            row.className = 'voice-input-row';
             // 🌟 模式 1：纯净的键盘输入框
             row.innerHTML = `
                 <textarea placeholder="输入第 ${index + 1} 条语音文字..." oninput="voiceRowsData[${index}] = this.value" id="voice-input-${index}">${text}</textarea>
@@ -3075,21 +3134,23 @@ function renderVoiceMultiRows() {
                 </div>
             `;
         } else {
-            // 🌟 模式 2：长按麦克风 + 文字实时识别显示区
+            row.className = 'voice-mic-row';
+            // 🌟 模式 2：长按麦克风 (上方居中悬浮) + 独立文字实时识别区 (下方白框)
             row.innerHTML = `
-                <div class="mic-text-display" id="voice-display-${index}">
-                    ${text ? text : '<span style="color:#ccc;">按住右侧麦克风说话...</span>'}
-                </div>
-                <div class="voice-input-action" style="flex-direction:row; align-items:center; gap:8px; border:none; padding-left:0;">
+                <div style="display:flex; justify-content:center; position:relative; width: 100%;">
                     <div class="mic-hold-btn" id="mic-btn-${index}"
+                         style="width: 60px; height: 60px;"
                          ontouchstart="startHoldRecord(${index}, event)"
                          ontouchend="stopHoldRecord(${index}, event)"
                          onmousedown="startHoldRecord(${index}, event)"
                          onmouseup="stopHoldRecord(${index}, event)"
                          onmouseleave="stopHoldRecord(${index}, event)">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
                     </div>
-                    ${voiceRowsData.length > 1 ? `<svg onclick="removeVoiceRow(${index})" style="width:18px;height:18px;color:#ff3b30;cursor:pointer;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>` : ''}
+                    ${voiceRowsData.length > 1 ? `<div onclick="removeVoiceRow(${index})" style="position:absolute; right: 5px; top: 50%; transform:translateY(-50%); width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:#ffe5e5; border-radius:50%; cursor:pointer;"><svg style="width:16px;height:16px;color:#ff3b30;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></div>` : ''}
+                </div>
+                <div class="voice-mic-display-box" id="voice-display-${index}">
+                    ${text ? text : '<span style="color:#ccc;">按住上方麦克风说话，识别文字将在此显示...</span>'}
                 </div>
             `;
         }
@@ -3153,9 +3214,10 @@ function startHoldRecord(index, event) {
         isRecording = false;
         if(btnEl) btnEl.classList.remove('recording');
         if (!voiceRowsData[index]) {
-            displayEl.innerHTML = '<span style="color:#ccc;">按住右侧麦克风说话...</span>';
+            displayEl.innerHTML = '<span style="color:#ccc;">按住上方麦克风说话，识别文字将在此显示...</span>';
         }
     };
+
 
     try { speechRecognizer.start(); } catch(e) {}
 }
@@ -3193,6 +3255,17 @@ function executeSendMultiVoice() {
             const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
             const msgId = 'msg_' + Date.now() + '_' + i;
             
+            // 🌟 统一存为协议文本，彻底切断重入报错！
+            const newMsg = { id: msgId, sender: 'user', text: `[VOICE:${text}]`, time: timeStr };
+            
+            if (i === 0 && activeReplyContext) {
+                newMsg.replyCtx = { ...activeReplyContext };
+                cancelReply();
+            }
+            if (!contact.messages) contact.messages = [];
+            contact.messages.push(newMsg);
+
+            // 前端实时渲染独立的语音气泡
             const vDuration = Math.min(60, Math.max(1, Math.ceil(text.length / 3)));
             const voiceHtmlContent = `
                 <div class="voice-inner-container" onclick="toggleVoiceText(this, event)">
@@ -3204,36 +3277,27 @@ function executeSendMultiVoice() {
                 </div>
             `;
 
-            const newMsg = { id: msgId, sender: 'user', text: voiceHtmlContent, time: timeStr, contentDescription: '[语音]' };
-            
-            if (i === 0 && activeReplyContext) {
-                newMsg.replyCtx = { ...activeReplyContext };
-                cancelReply();
-            }
-            if (!contact.messages) contact.messages = [];
-            contact.messages.push(newMsg);
-
             let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
             
-            let replyBubbleHtml = ''; let replyInBubbleHtml = '';
+            let replyBubbleHtml = '';
             if (newMsg.replyCtx) {
                 let shortContent = newMsg.replyCtx.content || '';
                 if (shortContent.length > 40) shortContent = shortContent.slice(0, 40) + '...';
                 replyBubbleHtml = `<div class="reply-tiny-bubble"><span style="opacity: 0.7; margin-right: 4px;">回复 ${newMsg.replyCtx.name}:</span>${shortContent}</div>`;
-                replyInBubbleHtml = `<div class="reply-in-bubble"><div class="reply-name">回复 ${newMsg.replyCtx.name}</div><div class="reply-text">${shortContent}</div></div>`;
             }
 
-            const msgHtml = `
-            <div class="preview-msg-row right" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
-                <div class="msg-checkbox"></div>
-                <div class="msg-stack">
-                    <div class="Toutou-TT user">
-                        <span class="bubble-time">${timeStr}</span>
-                        <div class="content">${replyInBubbleHtml}<div>${voiceHtmlContent}</div></div>
-                    </div>
-                </div>
-                <img src="${myAvatar}" class="preview-avatar" onclick="handleAvatarDoubleTap('${msgId}')" style="cursor: pointer;">
-            </div>`;
+    const msgHtml = `
+    <div class="preview-msg-row right" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
+        <div class="msg-checkbox"></div>
+        <div class="msg-stack">
+            ${replyBubbleHtml}
+            <div class="image-msg-wrapper">
+                <span class="image-timestamp" style="margin-right:6px;">${timeStr}</span>
+                <div class="msg-main-text"><img src="${sticker.src}" class="chat-sent-sticker"></div>
+            </div>
+        </div>
+        <img src="${myAvatar}" class="preview-avatar" onclick="handleAvatarDoubleTap('${msgId}')" style="cursor: pointer;">
+    </div>`;
             
             chatBody.insertAdjacentHTML('beforeend', msgHtml);
             chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });

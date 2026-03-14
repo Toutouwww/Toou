@@ -1377,24 +1377,45 @@
         </div>
     </div>
 
-    <!-- 🌟 全新：语音输入方式选择弹窗 -->
+    <!-- 🌟 全新：语音输入方式选择弹窗 (高级毛玻璃质感) -->
     <div class="custom-prompt-overlay" id="voiceChoiceOverlay" style="z-index: 4000;">
-        <div class="custom-prompt-box" style="width: 280px; padding: 25px 20px;">
-            <div class="custom-prompt-title">选择语音输入方式</div>
-            <div style="display:flex; flex-direction:column; gap:12px; width:100%;">
-                
-                <!-- 🌟 键盘输入：已改为和麦克风一样的纯黑底色白字 -->
-                <div class="inset-btn" style="background:#111; color:#fff; padding:15px 0; border:none; box-shadow:none;" onclick="startVoiceInputMode('text')">
+        <div class="custom-prompt-box" style="width: 260px; padding: 25px 20px; border-radius: 20px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(25px) saturate(180%); -webkit-backdrop-filter: blur(25px) saturate(180%); box-shadow: 0 10px 40px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.4);">
+            <div class="custom-prompt-title" style="font-size:14px;">语音输入方式</div>
+            <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
+                <div class="inset-btn" style="background:#111; color:#fff; padding:12px 0; border:none; box-shadow:none; font-size: 13px;" onclick="startVoiceInputMode('text')">
                     <svg style="width:16px;height:16px;margin-right:6px;vertical-align:middle;margin-top:-2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> 键盘输入
                 </div>
-                
-                <div class="inset-btn" style="background:#111; color:#fff; padding:15px 0; border:none; box-shadow:none;" onclick="startVoiceInputMode('mic')">
+                <div class="inset-btn" style="background:#111; color:#fff; padding:12px 0; border:none; box-shadow:none; font-size: 13px;" onclick="startVoiceInputMode('mic')">
                     <svg style="width:16px;height:16px;margin-right:6px;vertical-align:middle;margin-top:-2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg> 麦克风
                 </div>
-                <div class="inset-btn" style="color:#888; background:#f5f5f5; box-shadow:none; padding:12px 0; margin-top:5px;" onclick="document.getElementById('voiceChoiceOverlay').classList.remove('active')">取消</div>
+                <div class="inset-btn" style="color:#666; background:rgba(0,0,0,0.05); box-shadow:none; padding:10px 0; margin-top:5px; font-size: 12px;" onclick="document.getElementById('voiceChoiceOverlay').classList.remove('active')">取消</div>
             </div>
         </div>
     </div>
+
+    <!-- 🌟 全新：多条语音编辑与发送弹窗 (高级毛玻璃质感 + 缩巧按钮) -->
+    <div class="custom-prompt-overlay" id="voiceMultiOverlay" style="z-index: 4100; align-items: flex-end; padding-bottom: calc(15px + var(--safe-bottom));">
+        <div class="custom-prompt-box" style="width: 95%; max-width: 400px; padding: 18px 15px; border-radius: 20px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(25px) saturate(180%); -webkit-backdrop-filter: blur(25px) saturate(180%); box-shadow: 0 10px 40px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.4);">
+            <div style="display:flex; justify-content:center; align-items:center; margin-bottom: 12px; padding: 0 5px;">
+                <span style="font-size: 14px; font-weight: 800; color: #111; letter-spacing: 1px;">语音消息</span>
+            </div>
+            
+            <!-- 录音展示区域 -->
+            <div id="voice-rows-container" style="display:flex; flex-direction:column; gap:10px; max-height: 50vh; overflow-y:auto; padding: 0 5px 5px 5px;">
+                <!-- JS 动态渲染输入框 -->
+            </div>
+
+            <!-- 🌟 整体缩小且精致等宽的三段式底栏 -->
+            <div style="display:flex; gap:10px; width: 100%; margin-top: 10px;">
+                <div class="inset-btn" style="flex:1; padding:10px 0; background:rgba(255,255,255,0.6); color:#555; font-size:12px; font-weight:800;" onclick="closeVoiceMultiOverlay()">取消</div>
+                
+                <div class="inset-btn" style="flex:1; padding:10px 0; background:rgba(255,255,255,0.9); color:#111; font-size:18px; font-weight:800; line-height: 1;" onclick="addVoiceRow()">+</div>
+                
+                <div class="inset-btn" style="flex:1; padding:10px 0; background:#111111; color:#ffffff; font-size:12px; font-weight:800; box-shadow:none;" onclick="executeSendMultiVoice()">发送</div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- 🌟 全新：多条语音编辑与发送弹窗 -->
     <div class="custom-prompt-overlay" id="voiceMultiOverlay" style="z-index: 4100; align-items: flex-end; padding-bottom: calc(15px + var(--safe-bottom));">
@@ -1407,17 +1428,18 @@
                 <!-- JS 动态渲染输入框 -->
             </div>
 
-            <!-- 🌟 重新优化的三段式底栏：取消(不换行) | 白色凹陷+ | 立即发送(自动撑满) -->
-            <div style="display:flex; gap:12px; padding: 0 5px; margin-top: 10px;">
+            <!-- 🌟 全新三段式等比底栏：取消 | + | 发送 (强制统一大小) -->
+            <div style="display:flex; gap:12px; width: 100%; margin-top: 15px;">
                 
-                <div class="inset-btn" style="padding:12px 22px; background:#ffffff; color:#111; font-size:13px; font-weight:800; white-space:nowrap; flex-shrink: 0;" onclick="closeVoiceMultiOverlay()">取消</div>
+                <div class="inset-btn" style="flex:1; padding:14px 0; background:#ffffff; color:#777; font-size:14px; font-weight:800;" onclick="closeVoiceMultiOverlay()">取消</div>
                 
-                <!-- 🌟 恢复了高级的白色拟态凹陷效果 -->
-                <div class="inset-btn" style="padding:10px 26px; background:#ffffff; color:#111; font-size:18px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink: 0;" onclick="addVoiceRow()">+</div>
+                <!-- 🌟 等宽比例的居中加号 -->
+                <div class="inset-btn" style="flex:1; padding:14px 0; background:#ffffff; color:#111; font-size:22px; font-weight:800;" onclick="addVoiceRow()">+</div>
                 
-                <div class="inset-btn" style="flex:1; background:#111111; color:#ffffff; font-size:13px; font-weight:800; padding:12px 0; box-shadow:none; white-space:nowrap;" onclick="executeSendMultiVoice()">立即发送</div>
+                <div class="inset-btn" style="flex:1; padding:14px 0; background:#111111; color:#ffffff; font-size:14px; font-weight:800; box-shadow:none;" onclick="executeSendMultiVoice()">发送</div>
                 
             </div>
+
         </div>
     </div>
 

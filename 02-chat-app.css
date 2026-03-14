@@ -1512,8 +1512,13 @@
 /* ==========================================
    🌟 表情包系统专属样式
 ========================================== */
+/* 🌟 新增：强制清除表情包面板多余底部留白 */
+#sticker-panel {
+    padding-bottom: 0 !important; 
+}
+
 .sticker-grid-container {
-    width: 100%; flex: 1; padding: 10px 0; overflow: hidden;
+    width: 100%; flex: 1; padding: 10px 0 0 0; overflow: hidden;
     display: flex; flex-direction: column;
 }
 .sticker-pages-container {
@@ -1526,17 +1531,20 @@
     flex: 0 0 100%; width: 100%;
     scroll-snap-align: center;
     padding: 0 20px; box-sizing: border-box;
-    overflow-y: auto;
+    overflow-y: auto; /* 🌟 保证表情极多时，内部自由上下滑动 */
 }
 .sticker-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr); gap: 15px;
-    align-content: start; padding-bottom: 10px;
+    align-content: start; 
+    padding-bottom: 15px; /* 🌟 确保滑到最底下时，最后一行不会被切掉 */
 }
+
+/* 🌟 精准控距：距上方内容区3px，距屏幕物理底线 5px */
 .sticker-pagination {
     display: flex; justify-content: center; align-items: center; gap: 8px;
-    margin-top: 5px; flex-shrink: 0; 
-    /* 🌟 控制距离底部 5px */
+    flex-shrink: 0; 
+    padding-top: 3px; 
     padding-bottom: calc(5px + var(--safe-bottom));
 }
 
@@ -1801,18 +1809,26 @@
     border-left: 1px solid #f0f0f0; padding-left: 8px;
 }
 
-/* 🌟 全新：麦克风模式专属排版 */
-.mic-text-display {
-    flex: 1; font-size: 13px; color: #333; line-height: 1.4;
-    display: flex; align-items: center; word-break: break-all;
-    min-height: 40px; padding: 0 5px;
+/* 🌟 全新：麦克风模式专属排版 (居中悬浮按钮 + 独立白底识别框) */
+.voice-mic-row {
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    width: 100%; padding: 5px 0 15px 0; border-bottom: 1px dashed rgba(0,0,0,0.08);
+}
+.voice-mic-row:last-child {
+    border-bottom: none; padding-bottom: 5px;
+}
+.voice-mic-display-box {
+    width: 100%; background: #ffffff; border-radius: 14px; padding: 14px 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.05);
+    min-height: 50px; font-size: 14px; color: #111; line-height: 1.5;
+    word-break: break-all; box-sizing: border-box;
 }
 .mic-hold-btn {
     width: 44px; height: 44px; border-radius: 50%;
     background: #111; color: #fff;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: all 0.2s;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.15);
     user-select: none; -webkit-user-select: none;
     flex-shrink: 0;
 }
@@ -1820,8 +1836,9 @@
 .mic-hold-btn.recording {
     background: #ff3b30; /* 按住时变成危险红色 */
     transform: scale(0.9);
-    box-shadow: 0 4px 15px rgba(255,59,48,0.4);
+    box-shadow: 0 6px 20px rgba(255,59,48,0.4);
 }
+
 
 
 /* 聊天室语音气泡结构 */
