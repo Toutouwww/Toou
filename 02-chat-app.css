@@ -58,8 +58,10 @@
 
 /* --- 顶部白底区 --- */
 .msg-custom-header {
-    padding-top: calc(25px + var(--safe-top)) !important; position: relative; z-index: 20;
+    /* 🌟 核心修复：因为被假手机壳包裹，所以不需要叠加安全区，恢复原样，解决文字错位挤压问题 */
+    padding-top: 25px !important; position: relative; z-index: 20;
 }
+
 
 .msg-header-title {
     font-size: 16px; font-weight: 800; color: #000; letter-spacing: 1px; 
@@ -370,7 +372,8 @@
 
 /* 1. 最顶部的长方形纯白区域 (无阴影) */
 .chat-room-header {
-    padding-top: calc(10px + var(--safe-top)); 
+    /* 🌟 全屏聊天室与设定页：顶栏距离灵动岛精确控制为 8px */
+    padding-top: calc(8px + var(--safe-top)); 
     padding-bottom: 15px;
     display: flex; align-items: center; justify-content: space-between;
     background: #ffffff; 
@@ -1209,7 +1212,8 @@
    🌟 多选模式专属样式
 ========================================== */
 .multi-select-navbar {
-    padding-top: calc(10px + var(--safe-top)); 
+    /* 🌟 多选模式：顶栏距离灵动岛精确控制为 8px */
+    padding-top: calc(8px + var(--safe-top)); 
     padding-bottom: 15px;
     background: rgba(245, 245, 245, 0.95); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
     display: none; align-items: center; justify-content: space-between;
