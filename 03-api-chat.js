@@ -1521,7 +1521,8 @@ function handleAiResponse(replyText, contact) {
     bubbles.forEach((text, idx) => {
         const msgId = 'msg_' + Date.now() + '_' + idx;
         
-        let isRecall = /\[\s*(?:RECALL|撤回)\s*[:：]\s*(.*?)\s*\]/i.exec(text);
+        // 🌟 换用多行暴力正则匹配
+        let isRecall = /\[\s*(?:RECALL|撤回)\s*[:：]\s*([\s\S]*?)\s*\]/i.exec(text);
         if (isRecall) {
             contact.messages.push({
                 id: msgId, sender: 'char', type: 'recall', recalledText: isRecall[1], text: '撤回了一条消息', time: timeStr
@@ -1531,7 +1532,6 @@ function handleAiResponse(replyText, contact) {
             return; 
         }
 
-        // 🌟 拦截并解析 AI 引用指令
         let aiReplyCtx = null;
         let replyMatch = text.match(/\[\s*(?:REPLY|回复|引用)\s*[:：]\s*([\s\S]+?)\]/i);
         if (replyMatch) {
@@ -1558,7 +1558,6 @@ function handleAiResponse(replyText, contact) {
         
         let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
         
-        // 🌟 渲染 AI 的引用气泡
         let replyBubbleHtml = '';
         if (aiReplyCtx) {
             let shortContent = aiReplyCtx.content || '';
@@ -1663,12 +1662,12 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
             let safeText = text.trimStart().replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
             
             let isRecall = false;
-            safeText = safeText.replace(/\[\s*(?:RECALL|撤回)\s*[:：]\s*(.*?)\]/gi, () => {
+            // 🌟 换用多行暴力正则匹配
+            safeText = safeText.replace(/\[\s*(?:RECALL|撤回)\s*[:：]\s*([\s\S]*?)\]/gi, () => {
                 isRecall = true;
                 return `<div class="recall-notice-row" style="margin:0;"><div class="recall-pill">对方撤回了一条消息 <span class="recall-link" style="pointer-events:none;">查看</span></div></div>`;
             });
 
-            // 🌟 流式状态下，实时剥离并显示引用气泡
             let aiReplyHtml = '';
             let aiReplyCtx = null; 
             safeText = safeText.replace(/\[\s*(?:REPLY|回复|引用)\s*[:：]\s*([\s\S]+?)\]/gi, (match, q) => {
@@ -1803,11 +1802,9 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                 const msgId = 'msg_' + Date.now() + '_' + idx;
                 const row = rowList[idx];
 
-                // 🌟 将刚才挂载在 DOM 上的引用数据取出来准备入库
                 let aiReplyCtx = null;
                 if (row && row.dataset.replyName) {
                     aiReplyCtx = { name: row.dataset.replyName, content: row.dataset.replyContent };
-                    // 顺便把 text 里的指令吃掉，防止下次重新渲染出来
                     text = text.replace(/\[\s*(?:REPLY|回复|引用)\s*[:：]\s*([\s\S]+?)\]/gi, '').trim();
                 } else {
                     let replyMatch = text.match(/\[\s*(?:REPLY|回复|引用)\s*[:：]\s*([\s\S]+?)\]/i);
@@ -1819,7 +1816,8 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                     }
                 }
 
-                let recallMatch = text.match(/\[\s*(?:RECALL|撤回)\s*[:：]\s*(.*?)\]/i);
+                // 🌟 换用多行暴力正则匹配
+                let recallMatch = text.match(/\[\s*(?:RECALL|撤回)\s*[:：]\s*([\s\S]*?)\]/i);
                 if (recallMatch) {
                     contact.messages.push({
                         id: msgId, sender: 'char', type: 'recall', recalledText: recallMatch[1], text: '撤回了一条消息', time: timeStr
@@ -2088,7 +2086,6 @@ function openBubbleMenu(msgId, sender, timeStr) {
     
     const regenBtn = document.getElementById('b-action-regen');
     
-    // 🌟 全局放开回复按钮，你可以引用自己，也可以引用AI
     if(replyBtn) replyBtn.style.display = 'flex'; 
 
     if (sender === 'user') {
@@ -2169,7 +2166,6 @@ function bubbleAction(action) {
     } else if (action === 'multi') {
         enterMultiSelectMode(currentActionBubbleId); 
     } else if (action === 'reply') {
-        // 🌟 核心：触发并渲染引用预览条
         const replyName = msg.sender === 'user' ? '我' : (contact.realName || contact.name);
         let previewText = msg.text;
 
@@ -2718,7 +2714,6 @@ function sendStickerMessage(sticker) {
 
     const newMsg = { id: msgId, sender: 'user', text: stickerTag, time: timeStr, isSticker: true };
     
-    // 🌟 发送表情时也能附带引用回复！
     if (activeReplyContext) {
         newMsg.replyCtx = { ...activeReplyContext };
         cancelReply();
@@ -2760,7 +2755,7 @@ function sendStickerMessage(sticker) {
 }
 
 // ==========================================
-// 🌟 撤回系统：重新编辑与窥探暗黑弹窗引擎
+// 🌟 撤回系统：防爆兜底与发光暗黑弹窗引擎
 // ==========================================
 function viewRecalled(msgId) {
     if (!currentChatContactId) return;
@@ -2769,17 +2764,24 @@ function viewRecalled(msgId) {
     const msg = contact.messages.find(m => m.id === msgId);
     
     if (msg && msg.recalledText) {
-        // 拆解 AI 按规则返回的三段式内容，如果旧数据不符，则进行优雅降级
         let parts = msg.recalledText.split('|');
-        let content = parts[0] || msg.recalledText;
-        let reason = parts[1] || "（大脑一片空白，没有留下具体原因...）";
-        let mood = parts[2] || "( ˘•ω•˘ )";
+        let content = parts[0] ? parts[0].trim() : msg.recalledText.trim();
+        let reason = parts[1] ? parts[1].trim() : "（大脑一片空白，没有留下具体原因...）";
+        let mood = parts[2] ? parts[2].trim() : "( ˘•ω•˘ )";
 
-        document.getElementById('rm-content').innerText = content.trim();
-        document.getElementById('rm-reason').innerText = reason.trim();
-        document.getElementById('rm-mood').innerText = mood.trim();
+        const cEl = document.getElementById('rm-content');
+        const rEl = document.getElementById('rm-reason');
+        const mEl = document.getElementById('rm-mood');
+        const overlay = document.getElementById('recallModalOverlay');
         
-        document.getElementById('recallModalOverlay').classList.add('active');
+        if (cEl && rEl && mEl && overlay) {
+            cEl.innerText = content;
+            rEl.innerText = reason;
+            mEl.innerText = mood;
+            overlay.classList.add('active');
+        } else {
+            alert(`【撤回内容】\n${content}\n\n【原因】\n${reason}\n\n【心情】\n${mood}`);
+        }
     }
 }
 
@@ -2795,7 +2797,6 @@ function restoreEdit(msgId) {
     if (msg && msg.recalledText) {
         const input = document.getElementById('chatRoomInput');
         if (input) {
-            // 我方自己撤回的没有复杂格式，直接塞回去
             let parts = msg.recalledText.split('|');
             input.value = parts[0]; 
             input.focus();
