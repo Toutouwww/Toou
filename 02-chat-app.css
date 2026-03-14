@@ -1883,3 +1883,21 @@
 /* 根据发送者镜像波形图标 */
 .Toutou-TT.user .voice-animate-icon { transform: scaleX(-1); }
 
+
+/* 🌟 语音波动与时间排版优化 🌟 */
+.voice-animate-icon {
+    display: flex; align-items: center; gap: 2.5px; height: 16px;
+    flex: 1; /* 🌟 占据中间所有剩余空间 */
+    overflow: hidden; /* 防止超长溢出 */
+    justify-content: flex-start;
+}
+.voice-duration {
+    font-size: 14px; font-weight: 700; font-family: -apple-system, sans-serif; letter-spacing: 0.5px;
+    flex-shrink: 0; /* 🌟 绝对防御：禁止时间被超长波浪挤扁 */
+}
+
+/* 🌟 用户发出的语音：时长在左侧，波浪在右侧 (完美还原原生排版) */
+.Toutou-TT.user .voice-main-row { flex-direction: row-reverse; }
+
+/* 🌟 翻转后，让波浪靠右显示，紧贴着时间数字 */
+.Toutou-TT.user .voice-animate-icon { justify-content: flex-end; }

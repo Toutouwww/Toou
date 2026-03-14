@@ -5,6 +5,30 @@
 let activeReplyContext = null; 
 const TRANS_SPLIT = "@@@TRANS@@@"; // 🌟 【翻译核心引擎】全局翻译分隔符
 
+// 🌟 【全新动态声波渲染引擎】：智能计算宽度与波浪线数量
+function generateVoiceHtml(content, isActive = false) {
+    let vDuration = Math.min(60, Math.max(1, Math.ceil(content.length / 3)));
+    let widthPx = Math.min(200, 60 + vDuration * 2.5); // 基础长度 60px，最长 200px
+    
+    // 智能计算能放下多少根波浪线 (每根线宽2.5px+间距2.5px=5px，给数字留出25px缓冲)
+    let maxLines = Math.floor((widthPx - 25) / 5); 
+    let activeClass = isActive ? ' active' : '';
+    
+    let linesHtml = '';
+    for(let j=0; j<maxLines; j++){
+        let delay = (Math.random() * 0.8).toFixed(2); // 0~0.8秒随机错落跳动
+        linesHtml += `<div class="voice-line${activeClass}" style="animation-delay: ${delay}s;"></div>`;
+    }
+    
+    return `<div class="voice-inner-container" onclick="toggleVoiceText(this, event)">
+                <div class="voice-main-row" style="width: ${widthPx}px; justify-content: space-between;">
+                    <div class="voice-animate-icon">${linesHtml}</div>
+                    <span class="voice-duration">${vDuration}"</span>
+                </div>
+                <div class="voice-trans-result">${content}</div>
+            </div>`;
+}
+
 // ==========================================
 // 1. 千岛 API 配置界面逻辑
 // ==========================================
@@ -534,16 +558,11 @@ function openChatRoom(contactId) {
                     </div>`;
                 } else {
                     // 🌟 核心拦截语音格式
-                    safeText = safeText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
-                        let vDuration = Math.min(60, Math.max(1, Math.ceil(content.length / 3)));
-                        return `<div class="voice-inner-container" onclick="toggleVoiceText(this, event)">
-                                    <div class="voice-main-row">
-                                        <div class="voice-animate-icon"><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div></div>
-                                        <span class="voice-duration">${vDuration}"</span>
-                                    </div>
-                                    <div class="voice-trans-result">${content}</div>
-                                </div>`;
-                    });
+        // 🌟 注入动态声波引擎
+        safeText = safeText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
+            return generateVoiceHtml(content, true); 
+        });
+
 
                     let hasSticker = false;
                     let parsedText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
@@ -1226,14 +1245,16 @@ function sendChatMessage() {
 
     // 🌟 同步发送时的渲染逻辑：解析手动输入的表情包与语音协议
     let parsedText = safeText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
-        let vDuration = Math.min(60, Math.max(1, Math.ceil(content.length / 3)));
-        return `<div class="voice-inner-container" onclick="toggleVoiceText(this, event)">
-                    <div class="voice-main-row">
-                        <div class="voice-animate-icon"><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div></div>
-                        <span class="voice-duration">${vDuration}"</span>
-                    </div>
-                    <div class="voice-trans-result">${content}</div>
-                </div>`;
+                    let vDuration = Math.min(60, Math.max(1, Math.ceil(content.length / 3)));
+                    let widthPx = Math.min(200, 60 + vDuration * 2.5); // 🌟 算法：基础长度 60px，根据秒数变长，封顶 200px
+                    return `<div class="voice-inner-container" onclick="toggleVoiceText(this, event)">
+                                <div class="voice-main-row" style="width: ${widthPx}px; justify-content: space-between;">
+                                    <div class="voice-animate-icon"><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div></div>
+                                    <span class="voice-duration">${vDuration}"</span>
+                                </div>
+                                <div class="voice-trans-result">${content}</div>
+                            </div>`;
+
     });
 
     let hasSticker = false;
@@ -1679,16 +1700,11 @@ function handleAiResponse(replyText, contact) {
         let safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
         
         // 🌟 核心拦截语音格式：把 AI 发的 [VOICE:xxx] 转换成语音胶囊
+        // 🌟 注入动态声波引擎
         safeText = safeText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
-            let vDuration = Math.min(60, Math.max(1, Math.ceil(content.length / 3)));
-            return `<div class="voice-inner-container" onclick="toggleVoiceText(this, event)">
-                        <div class="voice-main-row">
-                            <div class="voice-animate-icon"><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div></div>
-                            <span class="voice-duration">${vDuration}"</span>
-                        </div>
-                        <div class="voice-trans-result">${content}</div>
-                    </div>`;
+            return generateVoiceHtml(content, true); 
         });
+
 
         let hasSticker = false;
         let parsedText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
@@ -1851,16 +1867,11 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
             }
 
             // 🌟 核心拦截语音格式：把 AI 发的 [VOICE:xxx] 转换成语音胶囊
-            safeText = safeText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
-                let vDuration = Math.min(60, Math.max(1, Math.ceil(content.length / 3)));
-                return `<div class="voice-inner-container" onclick="toggleVoiceText(this, event)">
-                            <div class="voice-main-row">
-                                <div class="voice-animate-icon"><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div></div>
-                                <span class="voice-duration">${vDuration}"</span>
-                            </div>
-                            <div class="voice-trans-result">${content}</div>
-                        </div>`;
-            });
+        // 🌟 注入动态声波引擎
+        safeText = safeText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
+            return generateVoiceHtml(content, true); 
+        });
+
 
             let hasSticker = false;
             safeText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
@@ -2381,7 +2392,22 @@ function bubbleAction(action) {
         navigator.clipboard.writeText(msg.text.replace(/<[^>]+>/g, '')).then(() => showToast('已复制')).catch(() => showToast('复制失败'));
     } else if (action === 'delete') {
         contact.messages.splice(msgIndex, 1);
+        
+        // 🌟 修复：删除消息后，自动重新提取最后一条消息作为外面的预览小字
+        if (contact.messages.length > 0) {
+            const lastMsg = contact.messages[contact.messages.length - 1];
+            let signText = lastMsg.text.replace(/\n/g, ' ');
+            signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音] $1');
+            signText = signText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
+            contact.sign = lastMsg.type === 'image' ? '[图片]' : (lastMsg.type === 'recall' ? '撤回了一条消息' : signText);
+            contact.time = lastMsg.time;
+        } else {
+            contact.sign = "";
+            contact.time = "";
+        }
+        
         saveToDB('contacts_data', JSON.stringify(contactsList));
+        renderMsgList(); // 🌟立刻刷新外面的列表UI
         showToast('已删除');
         openChatRoom(currentChatContactId); 
     } else if (action === 'regen') {
@@ -2474,11 +2500,14 @@ function executeRegenerate(msgId) {
             const deleteCount = endIndex - startIndex + 1;
             contact.messages.splice(startIndex, deleteCount);
 
-            if (contact.messages.length > 0) {
-                const lastMsg = contact.messages[contact.messages.length - 1];
-                contact.sign = lastMsg.type === 'image' ? '[图片]' : lastMsg.text.replace(/\n/g, ' ');
-                contact.time = lastMsg.time;
-            } else {
+                if (contact.messages.length > 0) {
+                    const lastMsg = contact.messages[contact.messages.length - 1];
+                    let signText = lastMsg.text.replace(/\n/g, ' ');
+                    signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音] $1');
+                    signText = signText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
+                    contact.sign = lastMsg.type === 'image' ? '[图片]' : (lastMsg.type === 'recall' ? '撤回了一条消息' : signText);
+                    contact.time = lastMsg.time;
+                } else {
                 contact.sign = "";
             }
 
@@ -3312,28 +3341,24 @@ function executeSendMultiVoice() {
             if (!contact.messages) contact.messages = [];
             contact.messages.push(newMsg);
 
-            // 前端实时渲染独立的语音气泡
-            const vDuration = Math.min(60, Math.max(1, Math.ceil(text.length / 3)));
-            const voiceHtmlContent = `
-                <div class="voice-inner-container" onclick="toggleVoiceText(this, event)">
-                    <div class="voice-main-row">
-                        <div class="voice-animate-icon"><div class="voice-line active"></div><div class="voice-line active"></div><div class="voice-line active"></div><div class="voice-line active"></div></div>
-                        <span class="voice-duration">${vDuration}"</span>
-                    </div>
-                    <div class="voice-trans-result">${text}</div>
-                </div>
-            `;
+            // 🌟 前端实时渲染独立的语音气泡 (调用动态声波引擎)
+            const voiceHtmlContent = generateVoiceHtml(text, true);
+
 
             let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
             
-            let replyBubbleHtml = '';
+            // 🌟 致命崩溃修复：提前声明这俩变量，防止 JS 报错中断！
+            let replyBubbleHtml = ''; 
+            let replyInBubbleHtml = '';
+            
             if (newMsg.replyCtx) {
                 let shortContent = newMsg.replyCtx.content || '';
                 if (shortContent.length > 40) shortContent = shortContent.slice(0, 40) + '...';
                 replyBubbleHtml = `<div class="reply-tiny-bubble"><span style="opacity: 0.7; margin-right: 4px;">回复 ${newMsg.replyCtx.name}:</span>${shortContent}</div>`;
+                replyInBubbleHtml = `<div class="reply-in-bubble"><div class="reply-name">回复 ${newMsg.replyCtx.name}</div><div class="reply-text">${shortContent}</div></div>`;
             }
 
-            // 🌟 修复：必须套在气泡壳里，语音文字颜色才能自动跟随！
+            // 🌟 必须套在气泡壳里，语音文字颜色才能自动跟随！
             const msgHtml = `
             <div class="preview-msg-row right" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
                 <div class="msg-checkbox"></div>
@@ -3349,7 +3374,7 @@ function executeSendMultiVoice() {
             chatBody.insertAdjacentHTML('beforeend', msgHtml);
             chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
 
-            // 🌟 修复：发完不再强制 AI 回复，交由用户点击飞机按钮控制
+            // 发完不再强制 AI 回复，交由用户点击飞机按钮控制
             if (i === validRows.length - 1) {
                 contact.sign = '[语音]';
                 contact.time = timeStr;
