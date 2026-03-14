@@ -497,12 +497,14 @@ function openChatRoom(contactId) {
                     continue; 
                 }
 
-                // 🌟 构建引用气泡 DOM
+                // 🌟 【内置引用气泡】构建 DOM
                 let replyBubbleHtml = '';
+                let replyInBubbleHtml = '';
                 if (msg.replyCtx) {
                     let shortContent = msg.replyCtx.content || '';
                     if (shortContent.length > 40) shortContent = shortContent.slice(0, 40) + '...';
                     replyBubbleHtml = `<div class="reply-tiny-bubble"><span style="opacity: 0.7; margin-right: 4px;">回复 ${msg.replyCtx.name}:</span>${shortContent}</div>`;
+                    replyInBubbleHtml = `<div class="reply-in-bubble"><div class="reply-name">回复 ${msg.replyCtx.name}</div><div class="reply-text">${shortContent}</div></div>`;
                 }
 
                 let contentHtml = '';
@@ -541,10 +543,9 @@ function openChatRoom(contactId) {
                     }else {
                         contentHtml = `
                         <div class="msg-stack">
-                            ${replyBubbleHtml}
                             <div class="Toutou-TT ${msg.sender}">
                                 ${msg.sender === 'user' ? `<span class="bubble-time">${msg.time}</span>` : ''}
-                                <div class="content">${parsedText}</div>
+                                <div class="content">${replyInBubbleHtml}${parsedText}</div>
                                 ${msg.sender === 'char' ? `<span class="bubble-time">${msg.time}</span>` : ''}
                             </div>
                         </div>`;
@@ -1149,23 +1150,24 @@ function sendChatMessage() {
     const msgId = newMsg.id;
     let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
     
-    // 🌟 动态渲染自己的引用小气泡
+    // 🌟 【内置引用气泡】动态渲染
     let replyBubbleHtml = '';
+    let replyInBubbleHtml = '';
     if (newMsg.replyCtx) {
         let shortContent = newMsg.replyCtx.content || '';
         if (shortContent.length > 40) shortContent = shortContent.slice(0, 40) + '...';
         replyBubbleHtml = `<div class="reply-tiny-bubble"><span style="opacity: 0.7; margin-right: 4px;">回复 ${newMsg.replyCtx.name}:</span>${shortContent}</div>`;
+        replyInBubbleHtml = `<div class="reply-in-bubble"><div class="reply-name">回复 ${newMsg.replyCtx.name}</div><div class="reply-text">${shortContent}</div></div>`;
     }
 
-    // 🌟 将原本孤立的 Toutou-TT 包裹在 msg-stack 里实现堆叠
+    // 🌟 文本消息采用内部引用，图片等使用外部堆叠引用
     const msgHtml = `
     <div class="preview-msg-row right" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
         <div class="msg-checkbox"></div>
         <div class="msg-stack">
-            ${replyBubbleHtml}
             <div class="Toutou-TT user">
                 <span class="bubble-time">${timeStr}</span>
-                <div class="content">${safeText}</div>
+                <div class="content">${replyInBubbleHtml}${safeText}</div>
             </div>
         </div>
         <img src="${myAvatar}" class="preview-avatar" onclick="handleAvatarDoubleTap('${msgId}')" style="cursor: pointer;">
@@ -1344,7 +1346,8 @@ ${stickerRule}
 1. 文本语境原则：
 - 跳出舒适句式结构，保证“文本创新，不与前文重复”。每次说出的话，尽量要推动剧情和事件发展，而非停在原地不转、反复纠结一件事。根据{{user}}个性、身份、现阶段身份不同，{char}的态度会有微妙变化，生活与态度都会随剧情发展改变，不得过于拘泥人物设定与提示词参照，但请保持{char}核心。
 - 严禁你使用“如果……，我就……”句式与它的一切近意句，这是典型的带有攻击性的威胁句，出现概率已被下调至0！
-- 采用“白话书面语”风格。文风为烟火气十足的日常风格，跳脱自然、随性，口语化程度高。避免毫无用处的过渡性描写。反刻板印象与真实感：拒绝标签化：冷漠≠只会说“嗯/哦”（也可以是礼貌的疏离）；傲娇≠脸红结巴（也可以是极强的自尊心攻击性）；暴躁≠无脑狂怒（也可以是缺乏耐心的躁郁）。真实语境：模拟真实打字习惯，包括断句、非正式口语、偶尔的错别字。
+- 采用“白话书面语”风格。文风为烟火气十足的日常风格，跳脱自然、随性，口语化程度高。避免毫无用处的过渡性描写。每次回复消息时，不要过多，除非特殊情况！尽量控制在1到5句话左右。更多话需要根据情况来定，比如太开心、太难过在质问的情况下等。一定完全去模仿真人聊天。
+- 反刻板印象与真实感：拒绝标签化：冷漠≠只会说“嗯/哦”（也可以是礼貌的疏离）；傲娇≠脸红结巴（也可以是极强的自尊心攻击性）；暴躁≠无脑狂怒（也可以是缺乏耐心的躁郁）。真实语境：模拟真实打字习惯，包括断句、非正式口语、偶尔的错别字。
 - 对话不一定要讲述信息，但一定要体现个性。合理运用潜台词技巧（如受了重伤还装没事，然后突然倒下）。
 你可以参考以下情绪处理方式：
 低气压/生闷气/疲惫：回复极简、敷衍、意兴阑珊，甚至长时间不回（意念回复）。
@@ -1385,7 +1388,7 @@ ${wbStr}
     格式严格如下（必须放在整个回复的最末尾，包裹在 <voice> 标签内）：
     <voice>
     <location>角色当前所处的具体地点（如：办公室 / 被窝里）</location>
-    <action>角色当前正在做的小动作（如：烦躁地咬着笔头 / 盯着屏幕傻笑）- 严禁通过堆砌形容词或名词（如脸色、外貌、眼神、情绪等）来反应这是个什么样的人。必须通过“他正在做什么”、“他会怎么做”、“他在想什么”来刻画。绝不在一句话里使用 2-4 个连续的修饰语（如“xx的、xx的”、“xx地、xx地”）。对类似“露出笑容”这种动作的表述必须极简化，绝不能超过 20 字。</action>
+    <action>角色当前正在做的小动作（如：烦躁地咬着笔头 /盯着屏幕傻笑）- 严禁通过堆砌形容词或名词（如脸色、外貌、眼神、情绪等）来反应这是个什么样的人。必须通过“他正在做什么”、“他会怎么做”、“他在想什么”来刻画。绝不在一句话里使用 2-4 个连续的修饰语（如“xx的、xx的”、“xx地、xx地”）。对类似“露出笑容”这种动作的表述必须极简化，绝不能超过 20 字。</action>
     <thought>角色当前最真实、最私密的内心情感活动（20字以内，符合人设的腹诽或真实情绪）</thought>
     <quiz>
     <question>根据历史聊天内容，出1个单项选择题，只能关于你们的共同经历。必须使用大白话、绝对符合角色性格语气来写！</question>
@@ -1521,7 +1524,6 @@ function handleAiResponse(replyText, contact) {
     bubbles.forEach((text, idx) => {
         const msgId = 'msg_' + Date.now() + '_' + idx;
         
-        // 🌟 换用多行暴力正则匹配
         let isRecall = /\[\s*(?:RECALL|撤回)\s*[:：]\s*([\s\S]*?)\s*\]/i.exec(text);
         if (isRecall) {
             contact.messages.push({
@@ -1558,11 +1560,14 @@ function handleAiResponse(replyText, contact) {
         
         let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
         
+        // 🌟 【内置引用气泡】动态渲染
         let replyBubbleHtml = '';
+        let replyInBubbleHtml = '';
         if (aiReplyCtx) {
             let shortContent = aiReplyCtx.content || '';
             if (shortContent.length > 40) shortContent = shortContent.slice(0, 40) + '...';
             replyBubbleHtml = `<div class="reply-tiny-bubble"><span style="opacity: 0.7; margin-right: 4px;">回复 ${aiReplyCtx.name}:</span>${shortContent}</div>`;
+            replyInBubbleHtml = `<div class="reply-in-bubble"><div class="reply-name">回复 ${aiReplyCtx.name}</div><div class="reply-text">${shortContent}</div></div>`;
         }
 
         let contentHtml = '';
@@ -1578,9 +1583,8 @@ function handleAiResponse(replyText, contact) {
         } else {
             contentHtml = `
             <div class="msg-stack">
-                ${replyBubbleHtml}
                 <div class="Toutou-TT char">
-                    <div class="content">${safeText}</div>
+                    <div class="content">${replyInBubbleHtml}${safeText}</div>
                     <span class="bubble-time">${timeStr}</span>
                 </div>
             </div>`;
@@ -1634,10 +1638,10 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
         bubbleIsWaiting = true;
         const row = document.createElement('div');
         row.className = 'preview-msg-row left';
+        // 🌟 流式生成结构统一移除外部渲染容器
         row.innerHTML = `
             <img src="${charAvatar}" class="preview-avatar">
             <div class="msg-stack">
-                <div class="reply-container-stream"></div>
                 <div class="Toutou-TT char">
                     <div class="content stream-waiting">…</div>
                     <span class="bubble-time">${timeStr}</span>
@@ -1662,27 +1666,23 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
             let safeText = text.trimStart().replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
             
             let isRecall = false;
-            // 🌟 换用多行暴力正则匹配
             safeText = safeText.replace(/\[\s*(?:RECALL|撤回)\s*[:：]\s*([\s\S]*?)\]/gi, () => {
                 isRecall = true;
                 return `<div class="recall-notice-row" style="margin:0;"><div class="recall-pill">对方撤回了一条消息 <span class="recall-link" style="pointer-events:none;">查看</span></div></div>`;
             });
 
+            // 🌟 实时在流式生成的文本最前端插入内置引用气泡
             let aiReplyHtml = '';
             let aiReplyCtx = null; 
             safeText = safeText.replace(/\[\s*(?:REPLY|回复|引用)\s*[:：]\s*([\s\S]+?)\]/gi, (match, q) => {
                 if (q.length > 40) q = q.slice(0, 40) + '...';
                 aiReplyCtx = { name: "我", content: q };
-                aiReplyHtml = `<div class="reply-tiny-bubble"><span style="opacity: 0.7; margin-right: 4px;">回复 我:</span>${q}</div>`;
+                aiReplyHtml = `<div class="reply-in-bubble"><div class="reply-name">回复 我</div><div class="reply-text">${q}</div></div>`;
                 return ''; 
             });
             
             let rowEl = currentBubbleEl.closest('.preview-msg-row');
             if (rowEl) {
-                let replyContainer = rowEl.querySelector('.reply-container-stream');
-                if (replyContainer && aiReplyHtml) {
-                    replyContainer.innerHTML = aiReplyHtml;
-                }
                 if (aiReplyCtx) {
                     rowEl.dataset.replyName = aiReplyCtx.name;
                     rowEl.dataset.replyContent = aiReplyCtx.content;
@@ -1699,7 +1699,7 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                 return `<span style="color:#aaa;font-size:12px;">[${sName}]</span>`;
             });
             
-            currentBubbleEl.innerHTML = safeText;
+            currentBubbleEl.innerHTML = aiReplyHtml + safeText;
 
             if (isRecall) {
                 currentBubbleEl.style.background = 'transparent';
@@ -1709,8 +1709,6 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                     let avatarEl = rowEl.querySelector('.preview-avatar');
                     if (avatarEl) avatarEl.style.display = 'none';
                     rowEl.style.justifyContent = 'center';
-                    let rContainer = rowEl.querySelector('.reply-container-stream');
-                    if(rContainer) rContainer.style.display = 'none';
                 }
             } else if (hasSticker && safeText.replace(/<img[^>]*>/g, '').trim() === '') {
                 currentBubbleEl.style.background = 'transparent';
@@ -1816,7 +1814,6 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                     }
                 }
 
-                // 🌟 换用多行暴力正则匹配
                 let recallMatch = text.match(/\[\s*(?:RECALL|撤回)\s*[:：]\s*([\s\S]*?)\]/i);
                 if (recallMatch) {
                     contact.messages.push({
@@ -2730,6 +2727,7 @@ function sendStickerMessage(sticker) {
     const myAvatar = getBoundUserAvatar(contact);
     let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)"`;
 
+    // 🌟 纯表情包等无底色消息使用外部引用的 replyBubbleHtml
     let replyBubbleHtml = '';
     if (newMsg.replyCtx) {
         let shortContent = newMsg.replyCtx.content || '';

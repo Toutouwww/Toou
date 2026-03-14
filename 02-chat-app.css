@@ -1085,7 +1085,7 @@
 }
 
 /* ==========================================
-   🌟 引用消息系统样式
+   🌟 引用消息系统样式 【内置引用气泡】
 ========================================== */
 .chat-room-input-bar { position: relative; } /* 确保悬浮条定位基准 */
 
@@ -1113,6 +1113,7 @@
 .preview-msg-row.right .msg-stack { align-items: flex-end; }
 .preview-msg-row.left .msg-stack { align-items: flex-start; }
 
+/* 外部悬浮引用小气泡 (仅用于图片/纯表情包等无底色消息) */
 .reply-tiny-bubble {
     font-size: 10px; color: #888; background-color: #f2f2f2;
     padding: 4px 8px; border-radius: 8px; margin-bottom: 4px;
@@ -1121,6 +1122,48 @@
     border: 1px solid rgba(0,0,0,0.02);
 }
 .preview-msg-row.right .reply-tiny-bubble { background-color: rgba(0,0,0,0.04); }
+
+/* 🌟 新增：内置在普通文本气泡内部的凹陷引用块 */
+.reply-in-bubble {
+    margin-bottom: 6px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    word-break: break-all;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* 角色气泡内的引用 (加深黑透明遮罩) */
+.Toutou-TT.char .reply-in-bubble {
+    background-color: rgba(0, 0, 0, 0.06);
+    border-left: 3px solid rgba(0, 0, 0, 0.15);
+    box-shadow: inset 1px 1px 3px rgba(0,0,0,0.04);
+}
+
+/* 用户气泡内的引用 (加浅白透明遮罩) */
+.Toutou-TT.user .reply-in-bubble {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-left: 3px solid rgba(255, 255, 255, 0.4);
+    box-shadow: inset 1px 1px 3px rgba(0,0,0,0.08);
+}
+
+.reply-name {
+    font-size: 10px;
+    font-weight: 800;
+    margin-bottom: 2px;
+    opacity: 0.8;
+}
+
+.reply-text {
+    font-size: 11px;
+    opacity: 0.9;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
 
 /* ==========================================
    🌟 气泡长按菜单引擎 (高级磨砂浅灰玻璃)
