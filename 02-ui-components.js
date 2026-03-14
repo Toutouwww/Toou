@@ -251,8 +251,13 @@ function confirmCustomPrompt() {
         const el = document.getElementById(currentTargetId);
         if(el) {
             el.innerText = finalVal;
-            currentTempPlan[currentTargetId] = finalVal;
-            autoSaveTempPlan(); 
+            // 🌟 如果是 icity 正文修改，则存入专属独立数据库；否则才存入身份卡方案
+            if (currentTargetId === 'icity-content-display') {
+                saveToDB('icity_custom_content', finalVal);
+            } else {
+                currentTempPlan[currentTargetId] = finalVal;
+                autoSaveTempPlan(); 
+            }
         }
     }
     closeCustomPrompt();
@@ -527,12 +532,24 @@ function updateSidebarProfile(planId) {
     if (plan) {
         const avatarSrc = plan.data['avatar'] || baseDefaults['avatar'];
         const nameText = plan.data['text-profile-name'] || '某某';
+        const emailPrefix = plan.data['text-tag-1'] || '前缀'; // 提取你设定的邮箱前缀
+        
         const avatarEl = document.getElementById('img-sidebar-avatar');
         const nameEl = document.getElementById('text-sidebar-name');
         if (avatarEl) avatarEl.src = avatarSrc;
         if (nameEl) nameEl.innerText = nameText;
+
+        // 🌟 全息联动更新 icity 日记的卡片信息
+        const icityAvatar = document.getElementById('icity-avatar');
+        const icityName = document.getElementById('icity-nickname');
+        const icityEmail = document.getElementById('icity-email');
+        if (icityAvatar) icityAvatar.src = avatarSrc;
+        if (icityName) icityName.innerText = nameText;
+        // 🌟 将后缀统一更改为你自己的 Toutou.com 设定
+        if (icityEmail) icityEmail.innerText = `${emailPrefix}@Toutou.com`;
     }
 }
+
 
 // 方案列表弹窗
 function openProfileDataModal() {

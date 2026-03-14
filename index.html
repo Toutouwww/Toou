@@ -12,6 +12,7 @@
     <title>Toutou小手机</title>
     
     <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="01-base-desktop.css">
     <link rel="stylesheet" href="02-chat-app.css">
     <link rel="stylesheet" href="03-worldbook.css">
@@ -458,11 +459,11 @@
                     </div>
                 </div> <!-- 结束 phone-frame-wrapper -->
 
-                <!-- 🌟 【主页 5：设置页 (脱离手机壳，icity日记风)】 -->
+                 <!-- 🌟 【主页 5：设置页 (脱离手机壳，icity日记风)】 -->
                 <div class="screen-tab" id="tab-settings">
-                    <!-- 顶部 icity 标识 -->
+                    <!-- 顶部 icity 标识 (整体上提) -->
                     <div class="icity-header">
-                        <span class="icity-eng">icity</span><span class="icity-dot">·</span><span class="icity-chn">我的日记</span>
+                        <span class="icity-eng">icity</span><div class="icity-dot"></div><span class="icity-chn">我的日记</span>
                     </div>
                     
                     <!-- 内容区：日记排版 -->
@@ -470,17 +471,15 @@
                         <!-- icity 日记帖子大长方形卡片 -->
                         <div class="icity-post-card">
                             <div class="icity-post-header">
-                                <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" class="icity-avatar">
+                                <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" class="icity-avatar" id="icity-avatar">
                                 <div class="icity-user-info">
-                                    <div class="icity-nickname">Toutou</div>
-                                    <div class="icity-email">toutou@icity.com</div>
+                                    <div class="icity-nickname" id="icity-nickname">Toutou</div>
+                                    <div class="icity-email" id="icity-email">toutou@icity.com</div>
                                 </div>
                             </div>
                             
-                            <div class="icity-post-content">
-                                欢迎来到控制中心。<br><br>
-                                在这里，没有繁杂的参数和冰冷的开关，只有属于你的一方小天地。所有的故事与设定，都像日记一样被妥善安放。<br><br>
-                                当你准备好后，我们就可以在这里添加更多的系统级功能。
+                            <div class="icity-post-content" id="icity-content-display" onclick="openCustomPrompt('编辑日记内容', 'icity-content-display', '点击任意地点修改成你喜欢的', 'input')">
+                                点击任意地点修改成你喜欢的
                             </div>
                             
                             <div class="icity-post-time">
@@ -488,18 +487,27 @@
                                     <circle cx="12" cy="12" r="10"></circle>
                                     <polyline points="12 6 12 12 16 14"></polyline>
                                 </svg>
-                                <span>2026-03-14 23:59</span>
+                                <span id="icity-time-display">2026-03-14 23:59</span>
                             </div>
 
                             <div class="icity-divider"></div>
 
                             <div class="icity-post-actions">
-                                <span class="action-btn">喜欢</span>
-                                <span class="action-sep">/</span>
-                                <span class="action-btn">小纸条</span>
-                                <span class="action-sep">/</span>
-                                <span class="action-btn">存为图片</span>
-                                <span class="action-sep">/</span>
+                                <span class="action-btn">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                                    喜欢
+                                </span>
+                                <div class="action-sep"></div>
+                                <span class="action-btn">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                                    小纸条
+                                </span>
+                                <div class="action-sep"></div>
+                                <span class="action-btn">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    存为图片
+                                </span>
+                                <div class="action-sep"></div>
                                 <span class="action-btn more-btn">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg>
                                 </span>
@@ -507,12 +515,30 @@
                         </div>
                         
                         <div style="text-align: center; margin-top: 30px; font-size: 11px; color: #ccc; font-weight: 600; letter-spacing: 1px;">
+                        <!-- 🌟 底部新增：数据相关黑白撞色斜切长条 -->
+                        <div class="data-manage-bar">
+                            <div class="data-left-section" onclick="openDataModal()">
+                                <div class="dm-content">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                    <span>数据相关</span>
+                                </div>
+                            </div>
+                            <div class="data-right-section" onclick="openResetModal()">
+                                <div class="dm-content">
+                                    <span>清除所有</span>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="text-align: center; margin-top: 10px; font-size: 11px; color: #ccc; font-weight: 600; letter-spacing: 1px;">
                             - 更多设定功能开发中 -
                         </div>
                     </div>
                 </div> <!-- 结束 tab-settings -->
 
             </div> <!-- 结束 app-main-content -->
+
 
 
             </div> <!-- 结束 app-main-content -->
@@ -1275,6 +1301,67 @@
     <script src="04-profile-worldbook.js"></script>
     <script src="05-mind-voice.js"></script>
     <script src="03-api-chat.js"></script>
+
+    <!-- 🌟 全新：数据管理与智能备份大弹窗 -->
+    <div class="custom-prompt-overlay" id="dataManageOverlay" style="z-index: 4000;">
+        <div class="custom-prompt-box" style="width: 320px; padding: 25px 20px;">
+            <div class="custom-prompt-title">数据相关</div>
+            
+            <div class="storage-status-box" style="width: 100%; text-align: left;">
+                <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:600; color:#666; margin-bottom:8px;">
+                    <span>浏览器存储占用</span>
+                    <span id="storage-text">计算中...</span>
+                </div>
+                <div style="width:100%; height:6px; background:#e0e0e0; border-radius:3px; overflow:hidden;">
+                    <div id="storage-bar" style="width:0%; height:100%; background:#111; transition: width 0.5s;"></div>
+                </div>
+                <div style="font-size:10px; font-weight:500; color:#999; margin-top:8px; text-align: center;">
+                    建议定期导出备份，防止浏览器自动清理缓存
+                </div>
+            </div>
+
+            <div class="model-list-modal" style="width: 100%; max-height: 280px; overflow-y: auto;">
+                <div class="model-item-btn" style="text-align: center; font-weight: 700;" onclick="exportSmartBackup()">
+                    <svg style="width:14px;height:14px;vertical-align:middle;margin-top:-2px;margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> 智能分卷备份 (JSON)
+                </div>
+                <div class="model-item-btn" style="text-align: center; font-weight: 700;" onclick="exportZipBackup()">
+                    <svg style="width:14px;height:14px;vertical-align:middle;margin-top:-2px;margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><path d="M12 22V12"></path><polyline points="12 12 20.5 7"></polyline><polyline points="12 12 3.5 7"></polyline></svg> 生成全量压缩包 (ZIP)
+                </div>
+                <div class="model-item-btn" style="text-align: center; font-weight: 700;" onclick="exportBackup()">
+                    <svg style="width:14px;height:14px;vertical-align:middle;margin-top:-2px;margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg> 全量单文件导出 (JSON)
+                </div>
+                <div class="model-item-btn" style="text-align: center; font-weight: 700;" onclick="exportChatsOnly()">
+                    <svg style="width:14px;height:14px;vertical-align:middle;margin-top:-2px;margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg> 仅导出聊天记录
+                </div>
+                <div class="model-item-btn" style="text-align: center; font-weight: 800; background: #111; color: #fff; border: 1px solid #111; margin-top: 10px;" onclick="document.getElementById('importInput').click()">
+                    <svg style="width:14px;height:14px;vertical-align:middle;margin-top:-2px;margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> 导入并恢复备份 (ZIP/JSON)
+                </div>
+            </div>
+            
+            <div class="custom-prompt-actions" style="margin-top: 15px;">
+                <div class="prompt-btn cancel" onclick="closeDataModal()">关闭</div>
+            </div>
+        </div>
+    </div>
+    <input type="file" id="importInput" accept=".json,.zip" style="display: none;" onchange="handleImportFile(this)">
+
+    <!-- 🌟 暗黑系重置高危弹窗 -->
+    <div class="custom-prompt-overlay" id="resetDataModalOverlay" style="z-index: 4500; background: rgba(0,0,0,0.75);">
+        <div class="recall-modal-box" style="text-align: center;">
+            <!-- 🌟 标题改为纯白色发光 -->
+            <div class="glow-title" style="color:#ffffff; text-shadow: 0 0 10px rgba(255,255,255,0.4);">DANGER</div>
+            <div style="font-size:14px; color:#fff; font-weight:600; line-height:1.6; margin-bottom:20px;">
+                此操作将永久抹除所有角色、聊天、世界书以及一切自定义配置。<br><br>清除后无法撤销，确定要清空全局数据吗？
+            </div>
+            <div style="display:flex; gap:10px; width:100%;">
+                <div class="inset-btn" style="background:rgba(255,255,255,0.1); color:#fff; border:none; box-shadow:none;" onclick="closeResetModal()">点错了，返回</div>
+                <!-- 🌟 按钮文案修改 -->
+                <div class="inset-btn" style="background:#ff3b30; color:#fff; border:none; box-shadow:none;" onclick="executeResetAllData()">确定全部清除</div>
+            </div>
+        </div>
+    </div>
+
+
 
 </body>
 </html>

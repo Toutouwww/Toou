@@ -75,9 +75,19 @@ function updateSystemTime() {
     
     if (document.getElementById('chat-time-1')) document.getElementById('chat-time-1').innerText = pastTimeStr;
     if (document.getElementById('chat-time-2')) document.getElementById('chat-time-2').innerText = currentTimeStr;
+
+    // 🌟 实时更新 icity 时钟时间 (格式: YYYY-MM-DD HH:mm)
+    const icityTimeEl = document.getElementById('icity-time-display');
+    if (icityTimeEl) {
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const date = String(now.getDate()).padStart(2, '0');
+        icityTimeEl.innerText = `${year}-${month}-${date} ${hours}:${minutes}`;
+    }
 }
 updateSystemTime(); 
 setInterval(updateSystemTime, 1000);
+
 
 // 🌟 核心：照片压缩算法 (防止存储爆炸)
 function compressImage(file, maxWidth = 800, quality = 0.6) {
