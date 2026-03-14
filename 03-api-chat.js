@@ -554,8 +554,9 @@ function openChatRoom(contactId) {
                         return `<span style="color:#aaa;font-size:12px;">[${sName}]</span>`;
                     });
                     
-                    let isPureWidget = (hasSticker && parsedText.replace(/<img[^>]*>/g, '').trim() === '') || 
-                                       (parsedText.includes('voice-inner-container') && parsedText.replace(/<div class="voice-inner-container"[\s\S]*?<\/div>\s*<\/div>/g, '').trim() === '');
+                    // 🌟 修复：只允许纯表情包脱去气泡外壳，语音绝不能脱壳！
+                    let isPureWidget = (hasSticker && parsedText.replace(/<img[^>]*>/g, '').trim() === '');
+
                     
                     let finalContentText = `<div class="msg-main-text" ${msg.transText ? `onclick="toggleTransDisplay('${msg.id}')"` : ''}>${parsedText}</div>${transHtml}`;
 
@@ -1244,8 +1245,9 @@ function sendChatMessage() {
         return `<span style="color:#aaa;font-size:12px;">[${sName}]</span>`;
     });
 
-    let isPureWidget = (hasSticker && parsedText.replace(/<img[^>]*>/g, '').trim() === '') || 
-                       (parsedText.includes('voice-inner-container') && parsedText.replace(/<div class="voice-inner-container"[\s\S]*?<\/div>\s*<\/div>/g, '').trim() === '');
+    // 🌟 修复：只允许纯表情包脱去气泡外壳，语音绝不能脱壳！
+    let isPureWidget = (hasSticker && parsedText.replace(/<img[^>]*>/g, '').trim() === '');
+
 
     let contentHtml = '';
     if (isPureWidget) {
@@ -1718,8 +1720,9 @@ function handleAiResponse(replyText, contact) {
             replyInBubbleHtml = `<div class="reply-in-bubble"><div class="reply-name">回复 ${aiReplyCtx.name}</div><div class="reply-text">${shortContent}</div></div>`;
         }
 
-        let isPureWidget = (hasSticker && parsedText.replace(/<img[^>]*>/g, '').trim() === '') || 
-                           (parsedText.includes('voice-inner-container') && parsedText.replace(/<div class="voice-inner-container"[\s\S]*?<\/div>\s*<\/div>/g, '').trim() === '');
+    // 🌟 修复：只允许纯表情包脱去气泡外壳，语音绝不能脱壳！
+    let isPureWidget = (hasSticker && parsedText.replace(/<img[^>]*>/g, '').trim() === '');
+
         
         let contentHtml = '';
         if (isPureWidget) {
@@ -1752,9 +1755,14 @@ function handleAiResponse(replyText, contact) {
     });
 
     if (bubbles.length > 0) {
-        contact.sign = bubbles[bubbles.length - 1].replace(/\n/g, ' ');
+        let signText = bubbles[bubbles.length - 1].replace(/\n/g, ' ');
+        // 🌟 修复：外面列表只显示干净的 [语音] 提示
+        signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音] $1');
+        signText = signText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
+        contact.sign = signText;
         contact.time = timeStr;
     }
+
     
     saveToDB('contacts_data', JSON.stringify(contactsList));
     renderMsgList();
@@ -2023,10 +2031,14 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
         });
 
         if (allFinishedBubbleTexts.length > 0) {
-            const lastMsg = allFinishedBubbleTexts[allFinishedBubbleTexts.length - 1];
-            contact.sign = lastMsg.replace(/\n/g, ' ');
+            let signText = allFinishedBubbleTexts[allFinishedBubbleTexts.length - 1].replace(/\n/g, ' ');
+            // 🌟 修复：外面列表只显示干净的 [语音] 提示
+            signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音] $1');
+            signText = signText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
+            contact.sign = signText;
             contact.time = timeStr;
         }
+
         saveToDB('contacts_data', JSON.stringify(contactsList));
         renderMsgList();
         
@@ -2399,7 +2411,10 @@ function bubbleAction(action) {
 
         if (msg.type === 'image') previewText = '[图片]';
         else if (msg.type === 'recall') previewText = '[撤回的消息]';
-        else previewText = msg.text.replace(/<div class="msg-trans-line">[\s\S]*/, '').replace(/<[^>]+>/g, '').replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
+        else previewText = msg.text.replace(/<div class="msg-trans-line">[\s\S]*/, '').replace(/<[^>]+>/g, '')
+                                  .replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]')
+                                  .replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音] $1');
+
 
         activeReplyContext = {
             name: replyName,
@@ -3023,11 +3038,18 @@ function restoreEdit(msgId) {
     const contact = contactsList.find(c => c.id === currentChatContactId);
     if (!contact) return;
     const msg = contact.messages.find(m => m.id === msgId);
+    
     if (msg && msg.recalledText) {
         const input = document.getElementById('chatRoomInput');
         if (input) {
             let parts = msg.recalledText.split('|');
-            input.value = parts[0]; 
+            let textToRestore = parts[0];
+            
+            // 🌟 修复：如果撤回的是语音，重新编辑时自动剥除外壳，只把你要说的话放回输入框！
+            let voiceMatch = textToRestore.match(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/i);
+            if (voiceMatch) textToRestore = voiceMatch[1];
+            
+            input.value = textToRestore; 
             input.focus();
             input.style.height = 'auto'; 
             input.style.height = input.scrollHeight + 'px';
@@ -3169,8 +3191,9 @@ function removeVoiceRow(index) {
     renderVoiceMultiRows();
 }
 
-// 🌟 按住说话：开启识别
+// 🌟 按住说话：开启识别 (所见即所得修复版)
 function startHoldRecord(index, event) {
+    // 阻止移动端长按唤出浏览器右键菜单
     if (event && event.type === 'touchstart') event.preventDefault(); 
     if (isRecording) return;
 
@@ -3183,10 +3206,13 @@ function startHoldRecord(index, event) {
     speechRecognizer = new SpeechRecognition();
     speechRecognizer.lang = 'zh-CN';
     speechRecognizer.interimResults = true; 
+    speechRecognizer.continuous = true; // 允许连续拾音，防止说话间隙被切断
 
     const displayEl = document.getElementById(`voice-display-${index}`);
     const btnEl = document.getElementById(`mic-btn-${index}`);
-    const originalText = voiceRowsData[index]; // 记住当前已有的文字（追加模式）
+    
+    // 取出该框之前已有的文字，用于实现多次按住追加文字
+    const originalText = voiceRowsData[index] || ''; 
     
     speechRecognizer.onstart = () => {
         isRecording = true;
@@ -3197,39 +3223,60 @@ function startHoldRecord(index, event) {
     
     speechRecognizer.onresult = (e) => {
         let interimTranscript = '';
+        let finalTranscript = '';
         for (let i = e.resultIndex; i < e.results.length; ++i) {
             if (e.results[i].isFinal) {
-                voiceRowsData[index] = originalText + e.results[i][0].transcript;
-                displayEl.innerText = voiceRowsData[index];
+                finalTranscript += e.results[i][0].transcript;
             } else {
                 interimTranscript += e.results[i][0].transcript;
-                displayEl.innerText = originalText + interimTranscript;
             }
         }
+        
+        // 🌟 核心修复：无论是否说完，只要屏幕上识别出字，立刻强行塞进底层数组！
+        const currentTotal = originalText + finalTranscript + interimTranscript;
+        voiceRowsData[index] = currentTotal; 
+        displayEl.innerText = currentTotal;
     };
     
-    speechRecognizer.onerror = (e) => { showToast("录音中断: " + e.error); };
+    speechRecognizer.onerror = (e) => { 
+        // 忽略非致命网络报错，不打扰体验
+        if(e.error !== 'no-speech') showToast("录音状态: " + e.error); 
+    };
     
     speechRecognizer.onend = () => {
         isRecording = false;
         if(btnEl) btnEl.classList.remove('recording');
-        if (!voiceRowsData[index]) {
+        
+        // 兜底：如果底层数组真的是空的，才显示提示语
+        if (!voiceRowsData[index] || voiceRowsData[index].trim() === '') {
             displayEl.innerHTML = '<span style="color:#ccc;">按住上方麦克风说话，识别文字将在此显示...</span>';
+        } else {
+            // 如果有字，确保 UI 锁定真实文字，防止消失
+            displayEl.innerText = voiceRowsData[index];
         }
     };
-
 
     try { speechRecognizer.start(); } catch(e) {}
 }
 
 // 🌟 松开手：停止识别
 function stopHoldRecord(index, event) {
-    if (event && event.type === 'touchend') event.preventDefault();
+    if (event && (event.type === 'touchend' || event.type === 'mouseleave')) {
+        event.preventDefault();
+    }
     if (speechRecognizer && isRecording) {
         speechRecognizer.stop();
         isRecording = false;
+        
         const btnEl = document.getElementById(`mic-btn-${index}`);
         if(btnEl) btnEl.classList.remove('recording');
+        
+        const displayEl = document.getElementById(`voice-display-${index}`);
+        if (!voiceRowsData[index] || voiceRowsData[index].trim() === '') {
+            displayEl.innerHTML = '<span style="color:#ccc;">按住上方麦克风说话，识别文字将在此显示...</span>';
+        } else {
+            displayEl.innerText = voiceRowsData[index];
+        }
     }
 }
 
@@ -3286,28 +3333,28 @@ function executeSendMultiVoice() {
                 replyBubbleHtml = `<div class="reply-tiny-bubble"><span style="opacity: 0.7; margin-right: 4px;">回复 ${newMsg.replyCtx.name}:</span>${shortContent}</div>`;
             }
 
-    const msgHtml = `
-    <div class="preview-msg-row right" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
-        <div class="msg-checkbox"></div>
-        <div class="msg-stack">
-            ${replyBubbleHtml}
-            <div class="image-msg-wrapper">
-                <span class="image-timestamp" style="margin-right:6px;">${timeStr}</span>
-                <div class="msg-main-text"><img src="${sticker.src}" class="chat-sent-sticker"></div>
-            </div>
-        </div>
-        <img src="${myAvatar}" class="preview-avatar" onclick="handleAvatarDoubleTap('${msgId}')" style="cursor: pointer;">
-    </div>`;
+            // 🌟 修复：必须套在气泡壳里，语音文字颜色才能自动跟随！
+            const msgHtml = `
+            <div class="preview-msg-row right" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
+                <div class="msg-checkbox"></div>
+                <div class="msg-stack">
+                    <div class="Toutou-TT user">
+                        <span class="bubble-time">${timeStr}</span>
+                        <div class="content">${replyInBubbleHtml}<div class="msg-main-text">${voiceHtmlContent}</div></div>
+                    </div>
+                </div>
+                <img src="${myAvatar}" class="preview-avatar" onclick="handleAvatarDoubleTap('${msgId}')" style="cursor: pointer;">
+            </div>`;
             
             chatBody.insertAdjacentHTML('beforeend', msgHtml);
             chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
 
+            // 🌟 修复：发完不再强制 AI 回复，交由用户点击飞机按钮控制
             if (i === validRows.length - 1) {
                 contact.sign = '[语音]';
                 contact.time = timeStr;
                 saveToDB('contacts_data', JSON.stringify(contactsList));
                 renderMsgList();
-                setTimeout(() => triggerAiReply(), 500);
             }
         }, i * 300); 
     });

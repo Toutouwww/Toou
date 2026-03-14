@@ -1871,11 +1871,14 @@
 
 /* 隐藏在下面的翻译/原文本 */
 .voice-trans-result {
-    display: none; margin-top: 8px; padding-top: 8px;
-    border-top: 1px solid rgba(120,120,120,0.2);
-    font-size: 12px; line-height: 1.4; opacity: 0.9;
+    display: none; 
+    margin-top: 4px; padding-top: 4px;
+    border-top: 1px dashed currentColor; /* 颜色跟随气泡文字颜色，更加和谐 */
+    font-size: 13px; line-height: 1.4; opacity: 0.9;
+    color: inherit; /* 强制继承气泡内的字体颜色 */
 }
 .voice-trans-result.show { display: block; animation: slideDownFade 0.2s ease-out;}
+
 
 /* 根据发送者镜像波形图标 */
 .Toutou-TT.user .voice-animate-icon { transform: scaleX(-1); }
