@@ -246,10 +246,13 @@
 #tab-settings.active { display: flex; }
 
 /* 🌟 左上角经典标识 (上移，并对齐点位) */
+/* 🌟 左上角经典标识 (修复iPhone双重安全区下压Bug，绝对贴顶) */
 .icity-header {
-    padding: calc(10px + var(--safe-top)) 20px 0 20px; 
+    /* 核心：去掉了 var(--safe-top)，直接锁死距离灰色边缘的物理像素 */
+    /* 这里的 10px 视觉上刚好避开灰色的圆角弧度，看起来就是你想要的极近距离 */
+    padding: 10px 20px 0 20px; 
     display: flex;
-    align-items: center; /* 居中对齐 */
+    align-items: center; 
     flex-shrink: 0;
     background: transparent;
 }
