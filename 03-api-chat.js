@@ -478,31 +478,46 @@ function openChatRoom(contactId) {
                  if (contact.lastSummaryMsgIndex && i === contact.lastSummaryMsgIndex) {
                     htmlStr += `<div style="text-align:center; margin: 15px 0; font-size:10px; color:#ccc; letter-spacing:1px; font-weight:bold;">—— 以上消息已生成记忆总结并折叠归档 ——</div>`;
                 }
-                const safeText = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>')
-                                          // 🌟 【翻译核心引擎】容错渲染已有消息中的分隔符
-                                          .replace(/@@@TRANS@@@/g, '</div><div class="msg-trans-line"></div><div class="msg-trans-text">');
+                // 🌟 【翻译引擎重构】：容错清洗老旧的错乱数据
+                let rawText = msg.text || '';
+                rawText = rawText.replace(/<div class="msg-trans-line"><\/div><div class="msg-trans-text">([\s\S]*?)<\/div>$/i, (match, p1) => {
+                    msg.transText = p1.trim(); return '';
+                }).replace(/<div class="msg-trans-line">[\s\S]*/, '');
+
+                if (rawText.includes(TRANS_SPLIT)) {
+                    let parts = rawText.split(TRANS_SPLIT);
+                    rawText = parts[0].trim();
+                    if(!msg.transText) msg.transText = parts[1] ? parts[1].trim() : null;
+                }
+
+                // 🌟 生成原文的安全文本
+                let safeText = rawText.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
                 
                 let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msg.id}', '${msg.sender}', '${msg.time}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msg.id}', '${msg.sender}', '${msg.time}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
 
                 if (msg.type === 'recall') {
                     let nameDisplay = msg.sender === 'user' ? '你' : (contact.realName || contact.name);
                     let actionLink = '';
-                    if (msg.sender === 'user' && msg.recalledText) {
-                        actionLink = `<span class="recall-link" onclick="restoreEdit('${msg.id}')">重新编辑</span>`;
-                    } else if (msg.sender === 'char' && msg.recalledText) {
-                        actionLink = `<span class="recall-link" onclick="viewRecalled('${msg.id}')">查看</span>`;
-                    }
+                    if (msg.sender === 'user' && msg.recalledText) actionLink = `<span class="recall-link" onclick="restoreEdit('${msg.id}')">重新编辑</span>`;
+                    else if (msg.sender === 'char' && msg.recalledText) actionLink = `<span class="recall-link" onclick="viewRecalled('${msg.id}')">查看</span>`;
                     htmlStr += `<div class="recall-notice-row"><div class="recall-pill">${nameDisplay} 撤回了一条消息 ${actionLink}</div></div>`;
                     continue; 
                 }
 
-                let replyBubbleHtml = '';
-                let replyInBubbleHtml = '';
+                let replyBubbleHtml = ''; let replyInBubbleHtml = '';
                 if (msg.replyCtx) {
                     let shortContent = msg.replyCtx.content || '';
                     if (shortContent.length > 40) shortContent = shortContent.slice(0, 40) + '...';
                     replyBubbleHtml = `<div class="reply-tiny-bubble"><span style="opacity: 0.7; margin-right: 4px;">回复 ${msg.replyCtx.name}:</span>${shortContent}</div>`;
                     replyInBubbleHtml = `<div class="reply-in-bubble"><div class="reply-name">回复 ${msg.replyCtx.name}</div><div class="reply-text">${shortContent}</div></div>`;
+                }
+
+                // 🌟 新增：独立构建翻译的 HTML 显示块
+                let transHtml = '';
+                if (msg.transText) {
+                    let safeTrans = msg.transText.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+                    let displayStyle = contact.transDisplayMode === 'hide' ? 'style="display:none;"' : '';
+                    transHtml = `<div class="msg-trans-container" id="trans-${msg.id}" ${displayStyle}><div class="msg-trans-line"></div><div class="msg-trans-text">${safeTrans}</div></div>`;
                 }
 
                 let contentHtml = '';
@@ -519,13 +534,15 @@ function openChatRoom(contactId) {
                 } else {
                     let hasSticker = false;
                     let parsedText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
-                        hasSticker = true;
-                        const sName = name.trim();
+                        hasSticker = true; const sName = name.trim();
                         let sticker = myStickers.find(s => s.name === sName) || myStickers.find(s => s.name.includes(sName));
                         if (sticker) return `<img src="${sticker.src}" class="chat-sent-sticker">`;
                         if (myStickers.length > 0) return `<img src="${myStickers[Math.floor(Math.random() * myStickers.length)].src}" class="chat-sent-sticker">`;
                         return `<span style="color:#aaa;font-size:12px;">[${sName}]</span>`;
                     });
+                    
+                    // 🌟 核心组装：把原文与独立的翻译层结合
+                    let finalContentText = `<div class="msg-main-text" ${msg.transText ? `onclick="toggleTransDisplay('${msg.id}')"` : ''}>${parsedText}</div>${transHtml}`;
 
                     if (hasSticker && parsedText.replace(/<img[^>]*>/g, '').trim() === '') {
                         contentHtml = `
@@ -533,17 +550,16 @@ function openChatRoom(contactId) {
                             ${replyBubbleHtml}
                             <div class="image-msg-wrapper">
                                 ${msg.sender === 'user' ? `<span class="image-timestamp" style="margin-right:6px;">${msg.time}</span>` : ''}
-                                ${parsedText}
+                                ${finalContentText}
                                 ${msg.sender === 'char' ? `<span class="image-timestamp" style="margin-left:6px;">${msg.time}</span>` : ''}
                             </div>
                         </div>`;
-                    }else {
-                        // 🌟 若是被包过一次 </div> 还需要确保前方有一个开启标签（浏览器通常会自动包容修补）
+                    } else {
                         contentHtml = `
                         <div class="msg-stack">
                             <div class="Toutou-TT ${msg.sender}">
                                 ${msg.sender === 'user' ? `<span class="bubble-time">${msg.time}</span>` : ''}
-                                <div class="content">${replyInBubbleHtml}<div>${parsedText}</div></div>
+                                <div class="content">${replyInBubbleHtml}<div>${finalContentText}</div></div>
                                 ${msg.sender === 'char' ? `<span class="bubble-time">${msg.time}</span>` : ''}
                             </div>
                         </div>`;
@@ -675,6 +691,12 @@ function openChatSettings() {
     // 把上次填写的语种读取进来
     document.getElementById('cs-trans-from').value = contact.transFrom || '';
     document.getElementById('cs-trans-to').value = contact.transTo || '';
+    if(contact.transDisplayMode === 'hide') {
+        setTransMode('hide');
+    } else {
+        setTransMode('show');
+    }
+
 
     csSelectedGroup = contact.group || '未分组';
 
@@ -789,6 +811,8 @@ function saveChatSettings() {
     contactsList[contactIndex].autoTranslate = document.getElementById('cs-translateToggleSwitch').classList.contains('active');
     contactsList[contactIndex].transFrom = document.getElementById('cs-trans-from').value.trim();
     contactsList[contactIndex].transTo = document.getElementById('cs-trans-to').value.trim();
+    contactsList[contactIndex].transDisplayMode = document.getElementById('trans-mode-hide').classList.contains('active') ? 'hide' : 'show';
+
 
     contactsList[contactIndex].details = {
         gender: document.getElementById('cs-gender').value.trim(),
@@ -1578,7 +1602,7 @@ function handleAiResponse(replyText, contact) {
             text = text.replace(replyMatch[0], '').trim();
         }
 
-        // 🌟 核心提取翻译并保存
+         // 🌟 核心提取翻译并分离保存 (告别 HTML 污染)
         let transText = null;
         if (text.includes(TRANS_SPLIT)) {
             const tParts = text.split(TRANS_SPLIT);
@@ -1587,30 +1611,34 @@ function handleAiResponse(replyText, contact) {
         }
 
         let msgObj = { id: msgId, sender: 'char', text: text, time: timeStr };
-        if (transText) msgObj.text = msgObj.text + `<div class="msg-trans-line"></div><div class="msg-trans-text">${transText}</div>`;
+        if (transText) msgObj.transText = transText; // 单独存入新字段！
         if (aiReplyCtx) msgObj.replyCtx = aiReplyCtx;
         contact.messages.push(msgObj);
         
         let safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
         
-        if (transText) {
-            safeText += `<div class="msg-trans-line"></div><div class="msg-trans-text">${transText.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>')}</div>`;
-        }
-
         let hasSticker = false;
-        safeText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
-            hasSticker = true;
-            const sName = name.trim();
+        let parsedText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
+            hasSticker = true; const sName = name.trim();
             let sticker = myStickers.find(s => s.name === sName) || myStickers.find(s => s.name.includes(sName));
             if (sticker) return `<img src="${sticker.src}" class="chat-sent-sticker" style="margin: 2px 0;">`;
             if (myStickers.length > 0) return `<img src="${myStickers[Math.floor(Math.random() * myStickers.length)].src}" class="chat-sent-sticker" style="margin: 2px 0;">`;
             return `<span style="color:#aaa;font-size:12px;">[${sName}]</span>`;
         });
         
+        // 动态构建翻译层显示 HTML
+        let transHtml = '';
+        if (transText) {
+            let safeTrans = transText.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+            let displayStyle = contact.transDisplayMode === 'hide' ? 'style="display:none;"' : '';
+            transHtml = `<div class="msg-trans-container" id="trans-${msgId}" ${displayStyle}><div class="msg-trans-line"></div><div class="msg-trans-text">${safeTrans}</div></div>`;
+        }
+        
+        let finalContentText = `<div class="msg-main-text" ${transText ? `onclick="toggleTransDisplay('${msgId}')"` : ''}>${parsedText}</div>${transHtml}`;
+
         let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
         
-        let replyBubbleHtml = '';
-        let replyInBubbleHtml = '';
+        let replyBubbleHtml = ''; let replyInBubbleHtml = '';
         if (aiReplyCtx) {
             let shortContent = aiReplyCtx.content || '';
             if (shortContent.length > 40) shortContent = shortContent.slice(0, 40) + '...';
@@ -1619,12 +1647,12 @@ function handleAiResponse(replyText, contact) {
         }
 
         let contentHtml = '';
-        if (hasSticker && safeText.replace(/<img[^>]*>/g, '').trim() === '') {
+        if (hasSticker && parsedText.replace(/<img[^>]*>/g, '').trim() === '') {
             contentHtml = `
             <div class="msg-stack">
                 ${replyBubbleHtml}
                 <div class="image-msg-wrapper">
-                    ${safeText}
+                    ${finalContentText}
                     <span class="image-timestamp" style="margin-left:6px;">${timeStr}</span>
                 </div>
             </div>`;
@@ -1632,11 +1660,12 @@ function handleAiResponse(replyText, contact) {
             contentHtml = `
             <div class="msg-stack">
                 <div class="Toutou-TT char">
-                    <div class="content">${replyInBubbleHtml}<div>${safeText}</div></div>
+                    <div class="content">${replyInBubbleHtml}<div>${finalContentText}</div></div>
                     <span class="bubble-time">${timeStr}</span>
                 </div>
             </div>`;
         }
+
 
         const msgHtml = `
         <div class="preview-msg-row left" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
@@ -2227,14 +2256,7 @@ async function executeTranslate(msgId) {
         const data = await response.json();
         const transText = data.choices[0].message.content.trim();
         
-        if (msg.text.includes('<div class="msg-trans-line">')) {
-             msg.text = msg.text.split('<div class="msg-trans-line">')[0] + '<div class="msg-trans-line"></div><div class="msg-trans-text">' + transText + '</div>';
-        } else if (msg.text.includes(TRANS_SPLIT)) {
-             msg.text = msg.text.split(TRANS_SPLIT)[0] + '<div class="msg-trans-line"></div><div class="msg-trans-text">' + transText + '</div>';
-        } else {
-             msg.text += '<div class="msg-trans-line"></div><div class="msg-trans-text">' + transText + '</div>';
-        }
-
+        msg.transText = transText; // 🌟 独立存储，彻底切断乱码之源
         saveToDB('contacts_data', JSON.stringify(contactsList));
         openChatRoom(currentChatContactId); 
         showToast("翻译已附在下方");
@@ -2553,7 +2575,8 @@ function renderStickerGrid() {
             box.innerHTML = `
                 <div class="sticker-img-wrapper" ${touchEvents}>
                     <img src="${sticker.src}">
-                    <div class="sticker-delete-badge" onclick="event.stopPropagation(); deleteSticker('${sticker.id}')">×</div>
+                                        <div class="sticker-delete-badge" ontouchstart="event.stopPropagation(); deleteSticker('${sticker.id}')" onmousedown="event.stopPropagation(); deleteSticker('${sticker.id}')">×</div>
+
                 </div>
                 <span class="sticker-name">${sticker.name}</span>
             `;
@@ -2922,3 +2945,52 @@ function restoreEdit(msgId) {
         }
     }
 }
+
+// ==========================================
+// 🌟 翻译面板控制与表情包系统补充函数
+// ==========================================
+
+// 切换翻译内容的可见性
+function toggleTransDisplay(msgId) {
+    if (isMultiSelectMode) return; 
+    const transContainer = document.getElementById(`trans-${msgId}`);
+    if (transContainer) {
+        if (transContainer.style.display === 'none') {
+            transContainer.style.display = 'block';
+        } else {
+            transContainer.style.display = 'none';
+        }
+    }
+}
+
+// 设置默认翻译模式
+function setTransMode(mode) {
+    document.getElementById('trans-mode-show').classList.remove('active');
+    document.getElementById('trans-mode-hide').classList.remove('active');
+    document.getElementById(`trans-mode-${mode}`).classList.add('active');
+}
+
+// 导入 TXT 表情包
+function importTxtStickers(input) {
+    const file = input.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const content = e.target.result;
+        const textarea = document.getElementById('batchStickerInput');
+        textarea.value = textarea.value ? textarea.value + '\n' + content : content;
+    };
+    reader.readAsText(file);
+    input.value = '';
+}
+
+// 双击清除所有表情包
+function clearAllStickers() {
+    if(confirm('警告：确定要清空你的所有表情包吗？此操作无法恢复！')) {
+        myStickers = [];
+        saveToDB('my_stickers_data', JSON.stringify(myStickers));
+        renderStickerGrid();
+        showToast('表情包库已清空');
+    }
+}
+

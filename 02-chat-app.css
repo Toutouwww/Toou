@@ -1527,8 +1527,11 @@
 }
 .sticker-pagination {
     display: flex; justify-content: center; align-items: center; gap: 8px;
-    margin-top: 5px; flex-shrink: 0; padding-bottom: calc(5px + var(--safe-bottom));
+    margin-top: 5px; flex-shrink: 0; 
+    /* 🌟 控制距离底部 5px */
+    padding-bottom: calc(5px + var(--safe-bottom));
 }
+
 .sticker-pagination .dot {
     width: 6px; height: 6px; border-radius: 50%;
     background: rgba(0, 0, 0, 0.1); 
@@ -1669,26 +1672,33 @@
 /* 具体修改到哪里：直接复制追加到 02-chat-app.css 文件的最底部即可 */
 
 /* ==========================================
-   🌟 翻译消息系统专属样式 【翻译气泡样式】
+   🌟 翻译消息系统专属样式 【分离架构重构版】
 ========================================== */
+/* 增加主文本的点击互动感 */
+.msg-main-text {
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.msg-main-text:active { opacity: 0.7; }
+
+/* 翻译包裹层与横线 */
+.msg-trans-container { margin-top: 4px; }
+
 .msg-trans-line {
-    width: 100%;
-    height: 1px;
-    background-color: rgba(0, 0, 0, 0.1); /* 角色气泡默认暗边 */
-    margin: 6px 0;
-    display: block;
+    width: 100%; height: 1px;
+    background-color: rgba(0, 0, 0, 0.1); 
+    margin: 8px 0; display: block;
 }
+.Toutou-TT.user .content .msg-trans-line { background-color: rgba(255, 255, 255, 0.25); }
 
-.Toutou-TT.user .content .msg-trans-line {
-    background-color: rgba(255, 255, 255, 0.25); /* 用户气泡默认亮边 */
-}
-
+/* 🌟 核心：将翻译文字大小设定为与正文一致的大字号 */
 .msg-trans-text {
-    font-size: 11.5px; 
-    line-height: 1.4;
-    opacity: 0.85;   
-    font-weight: 500;
+    font-size: 14px; 
+    line-height: 1.5;
+    opacity: 1; /* 取消原来的变淡 */
+    font-weight: normal;
 }
+
 
 /* ==========================================
    🌟 新增：数据相关黑白撞色斜切管理条 UI

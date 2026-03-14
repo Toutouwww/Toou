@@ -772,7 +772,7 @@
                     </div>
 
                     <!-- ========================================== -->
-                    <!-- 🌟 【翻译设定配置UI】 新增的自动翻译白卡片及折叠面板 -->
+                    <!-- 🌟 【翻译设定配置UI】 强化版双语翻译系统 -->
                     <!-- ========================================== -->
                     <div class="settings-white-card" style="padding: 15px; flex-direction: column; gap: 10px; margin-bottom: 5px;">
                         <div style="display:flex; flex-direction: row; align-items: center; justify-content: space-between; width: 100%;">
@@ -788,6 +788,15 @@
                                 <input type="text" id="cs-trans-from" class="settings-input" style="flex:1; padding:10px; font-size:12px; text-align:center; border-radius:10px; background:#f5f5f5; border:none;" placeholder="源语言 (如: 日语)">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                                 <input type="text" id="cs-trans-to" class="settings-input" style="flex:1; padding:10px; font-size:12px; text-align:center; border-radius:10px; background:#f5f5f5; border:none;" placeholder="目标语言 (如: 中文)">
+                            </div>
+                            
+                            <!-- 🌟 新增：翻译显示模式控制 -->
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:12px;">
+                                <span style="font-size:12px; color:#555; font-weight:600;">翻译显示模式 (点击原文切换)</span>
+                                <div class="sheet-capsule-group" style="gap:8px;">
+                                    <div class="sheet-capsule active" id="trans-mode-show" onclick="setTransMode('show')" style="padding:6px 12px; font-size:10px;">自动展开</div>
+                                    <div class="sheet-capsule" id="trans-mode-hide" onclick="setTransMode('hide')" style="padding:6px 12px; font-size:10px;">默认隐藏</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1185,7 +1194,8 @@
     <div class="chat-plus-overlay" id="sticker-overlay" onclick="closeStickerPanel()"></div>
     <div class="chat-plus-menu" id="sticker-panel" style="padding-top: 15px;">
         <div style="display:flex; justify-content:space-between; align-items:center; padding: 0 20px 10px 20px;">
-            <span style="font-size: 14px; font-weight: 800; color: #111;">表情库</span>
+            <span style="font-size: 14px; font-weight: 800; color: #111; user-select: none;" ondblclick="clearAllStickers()">表情库</span>
+
             <div style="display:flex; gap: 15px;">
                 <span style="font-size: 12px; font-weight: 700; color: #666; cursor: pointer;" onclick="triggerLocalStickerUpload()">+ 本地</span>
                 <span style="font-size: 12px; font-weight: 700; color: #666; cursor: pointer;" onclick="openBatchStickerPrompt()">+ 网络链接</span>
@@ -1248,7 +1258,6 @@
                 <span style="font-size:10px; font-weight:bold; color:#555; background:#eaeaea; padding:4px 8px; border-radius:6px; cursor:pointer;" onclick="document.getElementById('batchStickerPromptOverlay').classList.remove('active'); openStickerGroupManager('batch');">管理分组</span>
             </div>
 
-            <!-- 🌟 升级版自定义极简下拉列表 (替换原生 select) -->
             <div style="position: relative; width: 100%; margin-bottom: 15px;">
                 <div class="custom-prompt-input" onclick="document.getElementById('batch-group-dropdown').classList.toggle('active')" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin:0; padding: 10px 15px; font-weight: 700; font-size: 13px; background: #f0f0f0; border-radius: 12px; transition: background 0.2s;">
                     <span id="batch-group-display" style="flex:1; text-align:center; padding-left:14px;">通用</span>
@@ -1257,15 +1266,20 @@
                 <div class="url-dropdown-menu" id="batch-group-dropdown" style="top: 100%; max-height: 150px; background: #fff; border: 1px solid #eee; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.08); padding: 4px 0;"></div>
             </div>
 
+            <!-- 🌟 修改提示文案 -->
             <div style="font-size: 10px; color: #888; margin-bottom: 10px; line-height: 1.6; text-align:left; width:100%;">
-                格式：名字与链接同行，支持空格、+、-、| 以及冒号(:)隔开。<br>
-                支持 .png、.gif (动图)、.jpg 等任意图片格式链接。<br>
-                如：开心：https://img.com/1.gif
+                格式：名字与链接同行，支持空格、+、-、| 以及冒号 : 隔开。<br>
+                如：开心:https://img.com/1.gif
             </div>
             <textarea id="batchStickerInput" style="width:100%; height:120px; background:#f5f5f5; border:none; border-radius:12px; padding:10px; font-size:12px; outline:none; resize:none; margin-bottom:15px;"></textarea>
+            
+            <!-- 🌟 新增 TXT 导入按钮区 -->
+            <div class="inset-btn" style="width: 100%; margin-bottom: 15px; background: #f0f0f0; color: #333; box-shadow: none;" onclick="document.getElementById('txtStickerInput').click()">+ 导入 TXT 表情包文件</div>
+            <input type="file" id="txtStickerInput" accept=".txt" style="display:none;" onchange="importTxtStickers(this)">
+
             <div class="custom-prompt-actions">
                 <div class="prompt-btn cancel" onclick="document.getElementById('batchStickerPromptOverlay').classList.remove('active')">取消</div>
-                <div class="prompt-btn confirm" onclick="processBatchStickerImport()">导入</div>
+                <div class="prompt-btn confirm" onclick="processBatchStickerImport()">开始导入</div>
             </div>
         </div>
     </div>
