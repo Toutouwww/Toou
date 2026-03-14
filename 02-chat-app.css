@@ -563,19 +563,22 @@
 .chat-room-input-bar {
     width: 100%; 
     box-sizing: border-box; 
-    /* 🌟 核心：无论任何设备，始终距离屏幕最底层真实物理边界 10px + 安全区 */
-    padding-bottom: calc(10px + var(--safe-bottom));
-    padding-top: 12px; 
+    /* 🌟 核心：极其精准的 6px 距离 + 苹果底部小白条高度适配 */
+    padding-bottom: calc(6px + var(--safe-bottom));
+    padding-top: 10px; 
     background: #ffffff; 
     display: flex; 
-    align-items: flex-end; /* 所有子元素统一贴底 */
-    padding-left: 12px; 
-    padding-right: 15px; 
-    gap: 12px; 
+    align-items: flex-end; 
+    /* 🌟 加大左右两侧的安全距离，让+号往右缩、飞机往左缩，完美避开 iPhone 屏幕底部的物理大圆角 */
+    padding-left: 20px; 
+    padding-right: 20px; 
+    /* 缩小内部基础间隙，把空间省下来留给中间的输入框 */
+    gap: 8px; 
     flex-shrink: 0;
     z-index: 30;
     transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
+
 
 .chat-room-screen.plus-active .chat-room-input-bar {
     transform: translateY(-260px);
@@ -1370,10 +1373,15 @@
     width: 32px; height: 32px;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: transform 0.1s;
-    margin-bottom: 10px; /* 向上提，脱离底部 */
-    flex-shrink: 0; margin-right: 2px;
+    margin-bottom: 10px; 
+    flex-shrink: 0; 
+    /* 🌟 利用负边距将小飞机强行往自己身边拉近，距离极其紧密 */
+    margin-right: -4px; 
+    /* 🌟 增加一点左侧边距，把腾出来的空间反向喂给中间的输入框（促使装饰线拉长） */
+    margin-left: 4px;
 }
 .chat-emoji-btn:active { transform: scale(0.9); }
+
 
 .chat-room-screen.plus-active .chat-room-input-bar { 
     transform: translateY(calc(-260px - var(--safe-bottom))); 
