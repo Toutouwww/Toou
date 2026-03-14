@@ -1018,11 +1018,16 @@
 /* ==========================================
    🌟 独立纸张拓展区域：十年后评论帖子样式
 ========================================== */
+#mind-content-view {
+    padding-top: 30px; 
+}
+
 .future-section-wrapper {
-    width: 280px; /* 和上方的 mind-box 保持完美等宽对齐 */
+    width: 280px; 
     display: flex;
     flex-direction: column;
-    margin-top: 15px; /* 在白色纸张正下方拉开距离 */
+    /* 🌟 修改：配合心声卡片的下压，把十年后卡片也同步往下多推 30px，达到整体和谐 */
+    margin-top: 30px; 
 }
 
 /* 🌟 恢复的日历长方形白卡片样式 */

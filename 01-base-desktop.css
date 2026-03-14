@@ -36,16 +36,17 @@
 .mobile-container {
     width: 100%;
     height: 100%;
-    /* 🌟 极致压缩：顶部白卡片与灵动岛保持 5px 距离 */
     padding: calc(5px + var(--safe-top)) 20px 0 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* 🌟 核心修复：彻底砍掉主页面的滚动条，像真实手机桌面一样锁死排版 */
     overflow-y: hidden; 
-    /* 🌟 优化：既然不让滑了，底部留白缩减到刚好能避开 Dock 栏即可，释放屏幕空间 */
+    /* 🌟 绝杀：物理级封死移动端的触摸滑动与回弹，使其变成死死钉住的桌面 */
+    touch-action: none; 
+    overscroll-behavior: none;
     padding-bottom: calc(90px + var(--safe-bottom));
 }
+
 .mobile-container::-webkit-scrollbar { display: none; }
 
 /* 🌟 新增：底层锁死类，防止键盘顶飞与滚动穿透 */

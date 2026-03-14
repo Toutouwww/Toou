@@ -404,7 +404,8 @@ function handleLongPressEnd(event) {
 
 function promptDeleteContact(id) {
     contactIdToDelete = id;
-    openCustomPrompt('删除联系人', 'action_delete_contact', '确定要彻底删除此角色吗？此操作将清除其相关资料与聊天记录（不包括绑定的世界书）。', 'confirm_delete');
+    // 🌟 修复：将弹窗引擎切换为接管了底层删除逻辑的角色专属黑红确认弹窗
+    openNcCustomPrompt('删除联系人', 'action_delete_contact', '确定要彻底删除此角色吗？此操作将清除其相关资料与聊天记录（不包括绑定的世界书）。', 'confirm_delete');
 }
 
 
@@ -534,7 +535,8 @@ function openChatRoom(contactId) {
 
 
                 if (msg.sender === 'user') {
-                    htmlStr += `<div class="preview-msg-row right" id="row-${msg.id}" onclick="handleMsgClickInMultiMode('${msg.id}', this)" ${touchEvents}><div class="msg-checkbox"></div>${contentHtml}<img src="${myAvatar}" class="preview-avatar"></div>`;
+                    // 🌟 修复：使用绝对存在的 msg.id，并加入 event.stopPropagation() 防止误触起泡菜单
+                    htmlStr += `<div class="preview-msg-row right" id="row-${msg.id}" onclick="handleMsgClickInMultiMode('${msg.id}', this)" ${touchEvents}><div class="msg-checkbox"></div>${contentHtml}<img src="${myAvatar}" class="preview-avatar" onclick="event.stopPropagation(); handleAvatarDoubleTap('${msg.id}')" style="cursor: pointer;"></div>`;
                 } else {
                     htmlStr += `<div class="preview-msg-row left" id="row-${msg.id}" onclick="handleMsgClickInMultiMode('${msg.id}', this)" ${touchEvents}><img src="${charAvatar}" class="preview-avatar">${contentHtml}<div class="msg-checkbox"></div></div>`;
                 }
@@ -1131,7 +1133,7 @@ function sendChatMessage() {
             <span class="bubble-time">${timeStr}</span>
             <div class="content">${safeText}</div>
         </div>
-        <img src="${myAvatar}" class="preview-avatar">
+        <img src="${myAvatar}" class="preview-avatar" onclick="handleAvatarDoubleTap('${msgId || msg.id}')" style="cursor: pointer;">
     </div>
     `;
     chatBody.insertAdjacentHTML('beforeend', msgHtml);
@@ -1191,7 +1193,7 @@ async function handleChatPhotoUpload(input) {
                 <span class="image-timestamp">${timeStr}</span>
                 <img src="${compressedBase64}" class="chat-sent-image">
             </div>
-            <img src="${myAvatar}" class="preview-avatar">
+            <img src="${myAvatar}" class="preview-avatar" onclick="handleAvatarDoubleTap('${msgId || msg.id}')" style="cursor: pointer;">
         </div>
         `;
         chatBody.insertAdjacentHTML('beforeend', msgHtml);
@@ -1976,13 +1978,17 @@ function openBubbleMenu(msgId, sender, timeStr) {
     const recallBtn = document.getElementById('b-action-recall');
     const replyBtn = document.getElementById('b-action-reply');
     
+    const regenBtn = document.getElementById('b-action-regen');
     if (sender === 'user') {
         if(replyBtn) replyBtn.style.display = 'none'; 
         if(recallBtn) recallBtn.style.display = 'flex'; 
+        if(regenBtn) regenBtn.style.display = 'none'; // 自己发的消息不能从菜单重生成，必须双击头像
     } else {
         if(replyBtn) replyBtn.style.display = 'flex'; 
         if(recallBtn) recallBtn.style.display = 'none'; 
+        if(regenBtn) regenBtn.style.display = 'flex'; // AI 的消息可以重生成
     }
+
     
     if (currentBubbleEventTarget) {
         let bubbleEl = currentBubbleEventTarget.querySelector('.content') || currentBubbleEventTarget;
@@ -2032,6 +2038,8 @@ function bubbleAction(action) {
         saveToDB('contacts_data', JSON.stringify(contactsList));
         showToast('已删除');
         openChatRoom(currentChatContactId); 
+    } else if (action === 'regen') {
+        executeRegenerate(currentActionBubbleId);
     } else if (action === 'recall') {
         // 🌟 核心：引入参考代码中的 2分钟超时限制与原文本备份机制
         const timestamp = parseInt(msg.id.split('_')[1]);
@@ -2058,6 +2066,87 @@ function bubbleAction(action) {
         showToast('正在接入AI翻译引擎...');
     }
 }
+
+// ==========================================
+// 🌟 核心：重新生成回复引擎 (支持双击头像或长按菜单)
+// ==========================================
+function executeRegenerate(msgId) {
+    if (!currentChatContactId) return;
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    if (!contact || !contact.messages) return;
+
+    const msgIndex = contact.messages.findIndex(m => m.id === msgId);
+    if (msgIndex === -1) return;
+
+    let startIndex = -1;
+    let endIndex = -1;
+
+    if (contact.messages[msgIndex].sender === 'user') {
+        // 触发来源：双击了我方头像 -> 寻找这句我方消息【之后】的一连串 AI 消息
+        if (msgIndex + 1 < contact.messages.length && contact.messages[msgIndex + 1].sender === 'char') {
+            startIndex = msgIndex + 1;
+            endIndex = startIndex;
+            while (endIndex < contact.messages.length - 1 && contact.messages[endIndex + 1].sender === 'char') {
+                endIndex++;
+            }
+        } else {
+            showToast('这条消息之后还没有对方的回复哦');
+            return;
+        }
+    } else {
+        // 触发来源：长按了对方的气泡 -> 寻找当前点击的这一整块连续的 AI 消息
+        startIndex = msgIndex;
+        while (startIndex > 0 && contact.messages[startIndex - 1].sender === 'char') {
+            startIndex--;
+        }
+        endIndex = msgIndex;
+        while (endIndex < contact.messages.length - 1 && contact.messages[endIndex + 1].sender === 'char') {
+            endIndex++;
+        }
+    }
+
+    if (startIndex !== -1 && endIndex !== -1) {
+        if (confirm('确定要重新生成这轮回复吗？\n(当前回合对方的所有消息将被删除并重新生成)')) {
+            const deleteCount = endIndex - startIndex + 1;
+            contact.messages.splice(startIndex, deleteCount);
+
+            if (contact.messages.length > 0) {
+                const lastMsg = contact.messages[contact.messages.length - 1];
+                contact.sign = lastMsg.type === 'image' ? '[图片]' : lastMsg.text.replace(/\n/g, ' ');
+                contact.time = lastMsg.time;
+            } else {
+                contact.sign = "";
+            }
+
+            saveToDB('contacts_data', JSON.stringify(contactsList));
+            openChatRoom(currentChatContactId); 
+            
+            // 延迟一点点触发，让 UI 先删干净
+            setTimeout(() => {
+                triggerAiReply();
+            }, 300);
+        }
+    }
+}
+
+// 🌟 模拟移动端双击探测器
+let avatarTapTimer = null;
+let lastTappedMsgId = null;
+function handleAvatarDoubleTap(msgId) {
+    if (lastTappedMsgId === msgId && avatarTapTimer) {
+        clearTimeout(avatarTapTimer);
+        avatarTapTimer = null;
+        lastTappedMsgId = null;
+        executeRegenerate(msgId);
+    } else {
+        lastTappedMsgId = msgId;
+        avatarTapTimer = setTimeout(() => {
+            avatarTapTimer = null;
+            lastTappedMsgId = null;
+        }, 300); 
+    }
+}
+
 
 function enterMultiSelectMode(initialMsgId = null) {
     isMultiSelectMode = true;
@@ -2539,7 +2628,7 @@ function sendStickerMessage(sticker) {
             <span class="image-timestamp" style="margin-right:6px;">${timeStr}</span>
             <img src="${sticker.src}" class="chat-sent-sticker">
         </div>
-        <img src="${myAvatar}" class="preview-avatar">
+        <img src="${myAvatar}" class="preview-avatar" onclick="handleAvatarDoubleTap('${msgId || msg.id}')" style="cursor: pointer;">
     </div>`;
     chatBody.insertAdjacentHTML('beforeend', msgHtml);
     setTimeout(() => chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' }), 10);
