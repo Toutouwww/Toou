@@ -1779,3 +1779,87 @@
     border-radius: 12px;
     border: 1px solid #f0f0f0;
 }
+
+/* ==========================================
+   🌟 新增：极简连环语音矩阵与气泡系统
+========================================== */
+/* 输入面板每行样式 */
+.voice-input-row {
+    display: flex; align-items: stretch; gap: 8px;
+    background: #ffffff; padding: 8px 10px; border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.03);
+    transition: transform 0.2s;
+}
+.voice-input-row textarea {
+    flex: 1; border: none; background: transparent; outline: none;
+    font-size: 13px; color: #333; line-height: 1.4; resize: none;
+    height: 40px; font-family: inherit;
+}
+.voice-input-row textarea::placeholder { color: #ccc; }
+.voice-input-action {
+    display: flex; flex-direction: column; justify-content: center; gap: 5px;
+    border-left: 1px solid #f0f0f0; padding-left: 8px;
+}
+
+/* 🌟 全新：麦克风模式专属排版 */
+.mic-text-display {
+    flex: 1; font-size: 13px; color: #333; line-height: 1.4;
+    display: flex; align-items: center; word-break: break-all;
+    min-height: 40px; padding: 0 5px;
+}
+.mic-hold-btn {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: #111; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    user-select: none; -webkit-user-select: none;
+    flex-shrink: 0;
+}
+.mic-hold-btn svg { width: 18px; height: 18px; }
+.mic-hold-btn.recording {
+    background: #ff3b30; /* 按住时变成危险红色 */
+    transform: scale(0.9);
+    box-shadow: 0 4px 15px rgba(255,59,48,0.4);
+}
+
+
+/* 聊天室语音气泡结构 */
+.voice-inner-container {
+    display: inline-flex; flex-direction: column; cursor: pointer; user-select: none;
+}
+.voice-main-row {
+    display: flex; align-items: center; gap: 8px; justify-content: center;
+}
+.voice-animate-icon {
+    display: flex; align-items: center; gap: 2.5px; height: 16px;
+}
+.voice-line {
+    width: 2.5px; background-color: currentColor; border-radius: 2px;
+    height: 6px; opacity: 0.8;
+}
+/* 动态波浪 */
+.voice-line.active { animation: voice-wave 1s infinite ease-in-out; }
+.voice-line.active:nth-child(1) { animation-delay: 0.1s; }
+.voice-line.active:nth-child(2) { animation-delay: 0.3s; }
+.voice-line.active:nth-child(3) { animation-delay: 0.5s; }
+.voice-line.active:nth-child(4) { animation-delay: 0.2s; }
+
+@keyframes voice-wave {
+    0%, 100% { height: 6px; opacity: 0.6; }
+    50% { height: 14px; opacity: 1; }
+}
+
+.voice-duration { font-size: 14px; font-weight: 700; font-family: -apple-system, sans-serif; letter-spacing: 0.5px;}
+
+/* 隐藏在下面的翻译/原文本 */
+.voice-trans-result {
+    display: none; margin-top: 8px; padding-top: 8px;
+    border-top: 1px solid rgba(120,120,120,0.2);
+    font-size: 12px; line-height: 1.4; opacity: 0.9;
+}
+.voice-trans-result.show { display: block; animation: slideDownFade 0.2s ease-out;}
+
+/* 根据发送者镜像波形图标 */
+.Toutou-TT.user .voice-animate-icon { transform: scaleX(-1); }
+

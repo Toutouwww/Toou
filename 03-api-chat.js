@@ -1378,6 +1378,10 @@ function buildSystemPrompt(contact) {
         }
     }
 
+    // 🌟 语音格式提示约束
+    let voiceRule = `\n【重要：发语音指令】\n如果遇到语境适合发语音的情况，或者你想用语音表达情绪（带着嗯、啊等语气词），请在文本中使用 [VOICE:你要说的纯文字] 格式。系统会自动把它转换成语音条发给用户。例如：[VOICE:哎呀，我刚刚出门太急了，你在哪儿呢？]`;
+
+
     // 🌟 翻译协议判断 (读取用户自定义的语言选项)
     let translateProtocol = "";
     if (contact.autoTranslate) {
@@ -1388,6 +1392,7 @@ function buildSystemPrompt(contact) {
 
     return `你需要扮演 {char}，模拟真实生活中的聊天软件来回复我 {user}。严禁复述、扩写{user} 的话！
 ${stickerRule}
+${voiceRule}
 
 【高级交互指令 (引用回复)】
 如果你需要针对我很久之前的一句话进行明确的反驳或澄清，可以在你要说的那句话开头加入引用指令：[REPLY:我曾经说过的原话]。
@@ -1617,8 +1622,21 @@ function handleAiResponse(replyText, contact) {
         
         let safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
         
+        // 🌟 核心拦截语音格式：把 AI 发的 [VOICE:xxx] 转换成语音胶囊
+        safeText = safeText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
+            let vDuration = Math.min(60, Math.max(1, Math.ceil(content.length / 3)));
+            return `<div class="voice-inner-container" onclick="toggleVoiceText(this, event)">
+                        <div class="voice-main-row">
+                            <div class="voice-animate-icon"><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div></div>
+                            <span class="voice-duration">${vDuration}"</span>
+                        </div>
+                        <div class="voice-trans-result">${content}</div>
+                    </div>`;
+        });
+
         let hasSticker = false;
         let parsedText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
+
             hasSticker = true; const sName = name.trim();
             let sticker = myStickers.find(s => s.name === sName) || myStickers.find(s => s.name.includes(sName));
             if (sticker) return `<img src="${sticker.src}" class="chat-sent-sticker" style="margin: 2px 0;">`;
@@ -1766,6 +1784,18 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                     rowEl.dataset.replyContent = aiReplyCtx.content;
                 }
             }
+
+            // 🌟 核心拦截语音格式：把 AI 发的 [VOICE:xxx] 转换成语音胶囊
+            safeText = safeText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
+                let vDuration = Math.min(60, Math.max(1, Math.ceil(content.length / 3)));
+                return `<div class="voice-inner-container" onclick="toggleVoiceText(this, event)">
+                            <div class="voice-main-row">
+                                <div class="voice-animate-icon"><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div></div>
+                                <span class="voice-duration">${vDuration}"</span>
+                            </div>
+                            <div class="voice-trans-result">${content}</div>
+                        </div>`;
+            });
 
             let hasSticker = false;
             safeText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
@@ -2994,3 +3024,239 @@ function clearAllStickers() {
     }
 }
 
+
+// ==========================================
+// 🌟 连环语音矩阵引擎 (模式彻底分离版：键盘打字 vs 长按录音)
+// ==========================================
+
+let voiceRowsData = [];
+let speechRecognizer = null;
+let currentVoiceMode = 'text'; // 记录当前是键盘还是麦克风模式
+let isRecording = false;       // 录音状态锁
+
+// 点击+号界面的 Voice 按钮
+function openVoiceChoiceOverlay() {
+    closeChatPlusMenu();
+    document.getElementById('voiceChoiceOverlay').classList.add('active');
+}
+
+// 激活对应的语音模式
+function startVoiceInputMode(mode) {
+    document.getElementById('voiceChoiceOverlay').classList.remove('active');
+    currentVoiceMode = mode;
+    voiceRowsData = ['']; // 初始化第一条为空
+    renderVoiceMultiRows();
+    document.getElementById('voiceMultiOverlay').classList.add('active');
+}
+
+function closeVoiceMultiOverlay() {
+    document.getElementById('voiceMultiOverlay').classList.remove('active');
+    if (speechRecognizer && isRecording) { 
+        speechRecognizer.stop(); 
+        isRecording = false; 
+    }
+}
+
+// 动态渲染输入行 (根据模式渲染不同的 UI)
+function renderVoiceMultiRows() {
+    const container = document.getElementById('voice-rows-container');
+    container.innerHTML = '';
+    
+    voiceRowsData.forEach((text, index) => {
+        const row = document.createElement('div');
+        row.className = 'voice-input-row';
+        
+        if (currentVoiceMode === 'text') {
+            // 🌟 模式 1：纯净的键盘输入框
+            row.innerHTML = `
+                <textarea placeholder="输入第 ${index + 1} 条语音文字..." oninput="voiceRowsData[${index}] = this.value" id="voice-input-${index}">${text}</textarea>
+                <div class="voice-input-action">
+                    ${voiceRowsData.length > 1 ? `<svg onclick="removeVoiceRow(${index})" style="width:18px;height:18px;color:#ff3b30;cursor:pointer;margin:auto;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>` : ''}
+                </div>
+            `;
+        } else {
+            // 🌟 模式 2：长按麦克风 + 文字实时识别显示区
+            row.innerHTML = `
+                <div class="mic-text-display" id="voice-display-${index}">
+                    ${text ? text : '<span style="color:#ccc;">按住右侧麦克风说话...</span>'}
+                </div>
+                <div class="voice-input-action" style="flex-direction:row; align-items:center; gap:8px; border:none; padding-left:0;">
+                    <div class="mic-hold-btn" id="mic-btn-${index}"
+                         ontouchstart="startHoldRecord(${index}, event)"
+                         ontouchend="stopHoldRecord(${index}, event)"
+                         onmousedown="startHoldRecord(${index}, event)"
+                         onmouseup="stopHoldRecord(${index}, event)"
+                         onmouseleave="stopHoldRecord(${index}, event)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+                    </div>
+                    ${voiceRowsData.length > 1 ? `<svg onclick="removeVoiceRow(${index})" style="width:18px;height:18px;color:#ff3b30;cursor:pointer;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>` : ''}
+                </div>
+            `;
+        }
+        container.appendChild(row);
+    });
+    setTimeout(() => container.scrollTop = container.scrollHeight, 50);
+}
+
+function addVoiceRow() {
+    voiceRowsData.push('');
+    renderVoiceMultiRows();
+}
+
+function removeVoiceRow(index) {
+    voiceRowsData.splice(index, 1);
+    renderVoiceMultiRows();
+}
+
+// 🌟 按住说话：开启识别
+function startHoldRecord(index, event) {
+    if (event && event.type === 'touchstart') event.preventDefault(); 
+    if (isRecording) return;
+
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        showToast("您的设备/浏览器暂不支持原生语音识别");
+        return;
+    }
+    
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    speechRecognizer = new SpeechRecognition();
+    speechRecognizer.lang = 'zh-CN';
+    speechRecognizer.interimResults = true; 
+
+    const displayEl = document.getElementById(`voice-display-${index}`);
+    const btnEl = document.getElementById(`mic-btn-${index}`);
+    const originalText = voiceRowsData[index]; // 记住当前已有的文字（追加模式）
+    
+    speechRecognizer.onstart = () => {
+        isRecording = true;
+        btnEl.classList.add('recording');
+        displayEl.innerHTML = `<span style="color:#ff3b30;font-weight:bold;">聆听中...</span>`;
+        if(navigator.vibrate) navigator.vibrate(50);
+    };
+    
+    speechRecognizer.onresult = (e) => {
+        let interimTranscript = '';
+        for (let i = e.resultIndex; i < e.results.length; ++i) {
+            if (e.results[i].isFinal) {
+                voiceRowsData[index] = originalText + e.results[i][0].transcript;
+                displayEl.innerText = voiceRowsData[index];
+            } else {
+                interimTranscript += e.results[i][0].transcript;
+                displayEl.innerText = originalText + interimTranscript;
+            }
+        }
+    };
+    
+    speechRecognizer.onerror = (e) => { showToast("录音中断: " + e.error); };
+    
+    speechRecognizer.onend = () => {
+        isRecording = false;
+        if(btnEl) btnEl.classList.remove('recording');
+        if (!voiceRowsData[index]) {
+            displayEl.innerHTML = '<span style="color:#ccc;">按住右侧麦克风说话...</span>';
+        }
+    };
+
+    try { speechRecognizer.start(); } catch(e) {}
+}
+
+// 🌟 松开手：停止识别
+function stopHoldRecord(index, event) {
+    if (event && event.type === 'touchend') event.preventDefault();
+    if (speechRecognizer && isRecording) {
+        speechRecognizer.stop();
+        isRecording = false;
+        const btnEl = document.getElementById(`mic-btn-${index}`);
+        if(btnEl) btnEl.classList.remove('recording');
+    }
+}
+
+// 批量发送连环语音
+function executeSendMultiVoice() {
+    const validRows = voiceRowsData.map(v => v.trim()).filter(v => v !== '');
+    if (validRows.length === 0) {
+        showToast("没有任何可发送的语音内容");
+        return;
+    }
+
+    if (!currentChatContactId) return;
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    if (!contact) return;
+    
+    closeVoiceMultiOverlay();
+    const chatBody = document.getElementById('chatRoomBody');
+    const myAvatar = getBoundUserAvatar(contact);
+    
+    validRows.forEach((text, i) => {
+        setTimeout(() => {
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            const msgId = 'msg_' + Date.now() + '_' + i;
+            
+            const vDuration = Math.min(60, Math.max(1, Math.ceil(text.length / 3)));
+            const voiceHtmlContent = `
+                <div class="voice-inner-container" onclick="toggleVoiceText(this, event)">
+                    <div class="voice-main-row">
+                        <div class="voice-animate-icon"><div class="voice-line active"></div><div class="voice-line active"></div><div class="voice-line active"></div><div class="voice-line active"></div></div>
+                        <span class="voice-duration">${vDuration}"</span>
+                    </div>
+                    <div class="voice-trans-result">${text}</div>
+                </div>
+            `;
+
+            const newMsg = { id: msgId, sender: 'user', text: voiceHtmlContent, time: timeStr, contentDescription: '[语音]' };
+            
+            if (i === 0 && activeReplyContext) {
+                newMsg.replyCtx = { ...activeReplyContext };
+                cancelReply();
+            }
+            if (!contact.messages) contact.messages = [];
+            contact.messages.push(newMsg);
+
+            let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
+            
+            let replyBubbleHtml = ''; let replyInBubbleHtml = '';
+            if (newMsg.replyCtx) {
+                let shortContent = newMsg.replyCtx.content || '';
+                if (shortContent.length > 40) shortContent = shortContent.slice(0, 40) + '...';
+                replyBubbleHtml = `<div class="reply-tiny-bubble"><span style="opacity: 0.7; margin-right: 4px;">回复 ${newMsg.replyCtx.name}:</span>${shortContent}</div>`;
+                replyInBubbleHtml = `<div class="reply-in-bubble"><div class="reply-name">回复 ${newMsg.replyCtx.name}</div><div class="reply-text">${shortContent}</div></div>`;
+            }
+
+            const msgHtml = `
+            <div class="preview-msg-row right" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
+                <div class="msg-checkbox"></div>
+                <div class="msg-stack">
+                    <div class="Toutou-TT user">
+                        <span class="bubble-time">${timeStr}</span>
+                        <div class="content">${replyInBubbleHtml}<div>${voiceHtmlContent}</div></div>
+                    </div>
+                </div>
+                <img src="${myAvatar}" class="preview-avatar" onclick="handleAvatarDoubleTap('${msgId}')" style="cursor: pointer;">
+            </div>`;
+            
+            chatBody.insertAdjacentHTML('beforeend', msgHtml);
+            chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+
+            if (i === validRows.length - 1) {
+                contact.sign = '[语音]';
+                contact.time = timeStr;
+                saveToDB('contacts_data', JSON.stringify(contactsList));
+                renderMsgList();
+                setTimeout(() => triggerAiReply(), 500);
+            }
+        }, i * 300); 
+    });
+}
+
+function toggleVoiceText(el, e) {
+    if (e) e.stopPropagation();
+    if (isMultiSelectMode) return;
+    
+    const lines = el.querySelectorAll('.voice-line');
+    lines.forEach(l => l.classList.add('active'));
+    setTimeout(() => lines.forEach(l => l.classList.remove('active')), 800);
+
+    const resultBox = el.querySelector('.voice-trans-result');
+    if (resultBox) resultBox.classList.toggle('show');
+}
