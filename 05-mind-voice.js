@@ -164,12 +164,14 @@ function renderSummaryList(contact) {
 
     const sortedList = [...contact.historySummaries].reverse();
     
-    sortedList.forEach(item => {
+    sortedList.forEach((item, reversedIdx) => {
+        const realPhaseIdx = contact.historySummaries.length - reversedIdx; // 🌟 计算真实的阶段标号(从1递增)
+
         const card = document.createElement('div');
         card.className = 'summary-card';
         card.innerHTML = `
             <div class="summary-card-header">
-                <span class="summary-time-title">${item.timeRange}</span>
+                <span class="summary-time-title">[阶段 ${realPhaseIdx}] ${item.timeRange}</span>
             </div>
             <div class="summary-content-preview" id="preview-${item.id}">${item.content}</div>
             <div class="summary-content-full" id="full-${item.id}">${item.content.replace(/\n/g, '<br>')}</div>
@@ -481,15 +483,11 @@ function showMindContent(contact) {
     
     if (contact.innerVoice.future && contact.innerVoice.future.content) {
         futureSection.style.display = 'flex'; 
-        
-        // 🌟 核心：将角色的专属头像，以及AI独立推演的10年后身份名称写入帖子 UI 中
         document.getElementById('future-post-avatar').src = contact.avatar;
         document.getElementById('future-post-name').innerText = contact.innerVoice.future.identity || "十年后的对方";
         
-        const playBtn = document.getElementById('future-play-btn');
-        const glassLayer = document.getElementById('future-glass-layer');
-        if (playBtn) playBtn.classList.remove('hidden-anim');
-        if (glassLayer) glassLayer.classList.remove('unlocked');
+        // 🌟 核心：取消所有特效，打开直接就是明文
+        document.getElementById('future-comment-text').innerText = contact.innerVoice.future.content;
     } else {
         futureSection.style.display = 'none';
     }
@@ -499,25 +497,35 @@ function showMindContent(contact) {
     document.getElementById('mind-content-view').style.display = 'block';
 }
 
-function playFutureVoice() {
-    const playBtn = document.getElementById('future-play-btn');
-    const glassLayer = document.getElementById('future-glass-layer');
-    const textEl = document.getElementById('future-comment-text');
-
+// 🌟 新增：手动触发强制静默总结
+async function triggerManualSummary() {
     if (!currentChatContactId) return;
     const contact = contactsList.find(c => c.id === currentChatContactId);
-    if (!contact || !contact.innerVoice || !contact.innerVoice.future) return;
-
-    textEl.innerText = contact.innerVoice.future.content;
-
-    playBtn.classList.add('hidden-anim');
-    glassLayer.classList.add('unlocked');
-
-    const readTime = Math.max(3000, contact.innerVoice.future.content.length * 150);
-    setTimeout(() => {
-        setTimeout(() => {
-            glassLayer.classList.remove('unlocked');
-            playBtn.classList.remove('hidden-anim');
-        }, 3000);
-    }, readTime);
+    if (!contact || !contact.messages) return;
+    
+    if (contact.isSummarizing) {
+        showToast("后台正在执行剧情总结中，请稍后再试");
+        return;
+    }
+    
+    let lastSumIndex = contact.lastSummaryMsgIndex || 0;
+    if (contact.messages.length - lastSumIndex < 4) {
+        showToast("新产生的消息数量太少，暂不需要提取记忆");
+        return;
+    }
+    
+    showToast("已下达指令，AI正在静默提取新剧情脉络...");
+    contact.isSummarizing = true; 
+    const msgsToSummarize = contact.messages.slice(lastSumIndex, contact.messages.length);
+    
+    contact.lastSummaryMsgIndex = contact.messages.length;
+    saveToDB('contacts_data', JSON.stringify(contactsList));
+    
+    // 强制下达给后台处理，并在完成后刷新 UI
+    doAutoSummaryCall(contact, msgsToSummarize).finally(() => {
+        contact.isSummarizing = false;
+        if (document.getElementById('summary-bottom-sheet').classList.contains('active')) {
+            renderSummaryList(contact);
+        }
+    });
 }

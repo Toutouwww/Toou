@@ -1045,104 +1045,35 @@
 
 /* 🌟 全新：朋友圈帖子卡片 */
 
+/* 🌟 全新：十年后朋友圈帖子卡片 (纯净版) */
 .future-post-card {
     width: 100%;
     background: #ffffff;
     border-radius: 12px;
-    padding: 15px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.04);
-    border: 1px solid #eaeaea;
+    padding: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    border: 1px solid #f0f0f0;
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
-.post-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.post-header { display: flex; align-items: center; gap: 10px; }
+.post-avatar { width: 38px; height: 38px; border-radius: 6px; object-fit: cover; border: 1px solid #f0f0f0;}
+.post-info { display: flex; flex-direction: column; justify-content: center; }
+.post-name { font-size: 14px; font-weight: 700; color: #576b95; /* 微信蓝 */ }
+.post-time { font-size: 10px; color: #b2b2b2; margin-top: 2px; }
+
+.post-content-text {
+    font-size: 14px; color: #111; line-height: 1.6; text-align: justify; word-break: break-all;
+    font-family: -apple-system, sans-serif;
 }
-.post-avatar {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 1px solid #eee;
+.post-footer-actions {
+    display: flex; justify-content: flex-end; align-items: center; gap: 15px; margin-top: 4px;
 }
-.post-info {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-.post-name {
-    font-size: 13px;
-    font-weight: 800;
-    color: #111;
-}
-.post-time {
-    font-size: 10px;
-    font-weight: 600;
-    color: #999;
-    letter-spacing: 0.5px;
-    margin-top: 2px;
+.post-action-icon {
+    width: 16px; height: 16px; color: #b2b2b2;
 }
 
-.audio-record-container {
-    position: relative;
-    width: 100%;
-    height: 90px;
-    background: #fcfcfc;
-    border: 1px solid #eaeaea;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: inset 0 2px 10px rgba(0,0,0,0.01);
-}
-
-/* 🌟 十年后解锁动画相关 CSS */
-.glass-text-layer {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(255, 255, 255, 0.4);
-    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.5s ease;
-    z-index: 2; 
-    padding: 10px 15px; 
-    box-sizing: border-box;
-}
-.glass-text-layer.unlocked {
-    backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px);
-    background: transparent;
-}
-.blur-text-mask {
-    font-family: 'ToutouHandwrite', 'Ma Shan Zheng', cursive; 
-    font-size: 16px; font-weight: 500; color: #333;
-    line-height: 1.5; text-align: center; letter-spacing: 1px;
-    opacity: 0; filter: blur(4px); transition: all 0.5s ease;
-    max-height: 100%; 
-    width: 100%;
-    overflow-y: auto;
-}
-.blur-text-mask::-webkit-scrollbar { 
-    display: none; 
-}
-
-.glass-text-layer.unlocked .blur-text-mask {
-    opacity: 1; filter: blur(0px);
-}
-
-.play-btn-wrapper {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 40px; height: 40px; border-radius: 50%;
-    background: #111; color: #fff;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; z-index: 5;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.play-btn-wrapper svg { width: 18px; height: 18px; margin-left: 2px; }
-.play-btn-wrapper:active { transform: translate(-50%, -50%) scale(0.9); }
-.play-btn-wrapper.hidden-anim {
-    opacity: 0; transform: translate(-50%, -50%) scale(0.5); pointer-events: none;
-}
 
 /* ==========================================
    🌟 气泡长按菜单引擎 (高级磨砂浅灰玻璃)
@@ -1501,7 +1432,10 @@
    🌟 撤回消息系统专属样式 (吸收微信规范)
 ========================================== */
 .recall-notice-row { 
-    width: 100%; margin: 15px 0; text-align: center; 
+    width: 100%; 
+    /* 🌟 核心修复：使用负边距吃掉父容器 28px 的默认空隙，强制拉近距离 */
+    margin: -8px 0; 
+    text-align: center; 
     display: flex; justify-content: center; align-items: center;
 }
 .recall-pill { 
