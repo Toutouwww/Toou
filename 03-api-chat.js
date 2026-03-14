@@ -663,14 +663,21 @@ function openChatSettings() {
         document.getElementById('cs-secretFileCard').classList.remove('open');
     }
 
-    // 🌟 翻译开关回显
+    // 🌟 翻译开关与下方的语种框回显
     if(contact.autoTranslate) {
         document.getElementById('cs-translateToggleSwitch').classList.add('active');
+        document.getElementById('cs-translate-lang-config').style.display = 'block';
     } else {
         document.getElementById('cs-translateToggleSwitch').classList.remove('active');
+        document.getElementById('cs-translate-lang-config').style.display = 'none';
     }
+    
+    // 把上次填写的语种读取进来
+    document.getElementById('cs-trans-from').value = contact.transFrom || '';
+    document.getElementById('cs-trans-to').value = contact.transTo || '';
 
     csSelectedGroup = contact.group || '未分组';
+
     document.getElementById('cs-group-dogtag').innerText = csSelectedGroup;
 
     tempBoundProfileId = contact.boundProfileId || 'default';
@@ -694,10 +701,19 @@ function closeChatSettings() {
     document.getElementById('chatSettingsScreen').classList.remove('active');
 }
 
-// 🌟 翻译开关控制
+// 🌟 翻译开关控制 (联动手风琴面板)
 function toggleCsTranslate() {
-    document.getElementById('cs-translateToggleSwitch').classList.toggle('active');
+    const sw = document.getElementById('cs-translateToggleSwitch');
+    const configPanel = document.getElementById('cs-translate-lang-config');
+    sw.classList.toggle('active');
+    
+    if (sw.classList.contains('active')) {
+        configPanel.style.display = 'block';
+    } else {
+        configPanel.style.display = 'none';
+    }
 }
+
 
 function renderCsProfileMenu() {
     const menu = document.getElementById('csProfileMenu');
@@ -769,8 +785,10 @@ function saveChatSettings() {
     contactsList[contactIndex].boundProfileId = tempBoundProfileId; 
     contactsList[contactIndex].group = csSelectedGroup; 
 
-    // 🌟 保存翻译开关状态
+    // 🌟 保存翻译开关状态及设定的具体语种
     contactsList[contactIndex].autoTranslate = document.getElementById('cs-translateToggleSwitch').classList.contains('active');
+    contactsList[contactIndex].transFrom = document.getElementById('cs-trans-from').value.trim();
+    contactsList[contactIndex].transTo = document.getElementById('cs-trans-to').value.trim();
 
     contactsList[contactIndex].details = {
         gender: document.getElementById('cs-gender').value.trim(),
@@ -1336,10 +1354,12 @@ function buildSystemPrompt(contact) {
         }
     }
 
-    // 🌟 翻译协议判断
+    // 🌟 翻译协议判断 (读取用户自定义的语言选项)
     let translateProtocol = "";
     if (contact.autoTranslate) {
-        translateProtocol = `\n\n【⚠️系统最高优先级指令：双语翻译协议】\n用户已强制开启实时翻译模式。你的每一次正常说话聊天内容，必须且只能遵循以下格式进行拼装：\n原文内容${TRANS_SPLIT}中文翻译\n\n❌ 严禁将原文和翻译拆分成两个气泡！\n❌ 严禁只发原文不带翻译，或只发翻译不带原文。\n✅ 标准输出样例：I miss you so much.${TRANS_SPLIT}我好想你。`;
+        let tFrom = contact.transFrom || "外语";
+        let tTo = contact.transTo || "中文";
+        translateProtocol = `\n\n【⚠️系统最高优先级指令：双语翻译协议】\n用户已强制开启实时翻译模式。你的每一次正常说话聊天内容，必须且只能遵循以下格式进行拼装：\n【${tFrom}】原文内容${TRANS_SPLIT}【${tTo}】翻译内容\n\n❌ 严禁将原文和翻译拆分成两个气泡！\n❌ 严禁只发原文不带翻译，或只发翻译不带原文。\n✅ 标准输出样例：I miss you so much.${TRANS_SPLIT}我好想你。`;
     }
 
     return `你需要扮演 {char}，模拟真实生活中的聊天软件来回复我 {user}。严禁复述、扩写{user} 的话！
@@ -2179,6 +2199,10 @@ async function executeTranslate(msgId) {
     
     showToast("正在请求 AI 翻译...");
     
+    // 🌟 获取设定的语言，未设置则用保底兜底
+    let tFrom = contact.transFrom || "源语言(或自动识别)";
+    let tTo = contact.transTo || "纯正流畅的中文";
+
     try {
         const response = await fetch(`${apiConfig.baseUrl}/chat/completions`, {
             method: 'POST',
@@ -2186,12 +2210,13 @@ async function executeTranslate(msgId) {
             body: JSON.stringify({
                 model: apiConfig.model,
                 messages: [
-                    {role: "system", content: "你是一个翻译官。如果用户输入外语，请翻译成纯正流畅的中文；如果用户输入中文，请判断是否需要翻译，如果是大白话也可以不翻译直接复述。必须且只能输出最终的翻译结果，禁止出现任何解释。"}, 
+                    {role: "system", content: `你是一个专业的翻译官。请把用户输入的【${tFrom}】翻译成【${tTo}】，如果用户输入的就是目标语言，则判断是否需要润色，不需要则直接复述。必须且只能输出最终的翻译结果，禁止出现任何废话和解释。`}, 
                     {role: "user", content: pureText}
                 ],
                 temperature: 0.3
             })
         });
+
 
         if (!response.ok) throw new Error("API 请求失败");
         const data = await response.json();

@@ -665,6 +665,8 @@
 
                     <div class="settings-white-card custom-bubble-panel" id="custom-bubble-panel" style="display: none; margin-top: -5px; margin-bottom: -5px;"></div>
 
+                    <!-- 具体修改到哪里：替换效果预览与上下文记忆之间的所有内容 -->
+
                     <div class="settings-white-card" style="padding: 12px; height: auto;">
                         <div class="settings-input-group" style="margin-bottom: 0;">
                             <label style="margin-left: 5px;">效果预览</label>
@@ -688,20 +690,25 @@
                     </div>
 
                     <!-- ========================================== -->
-                    <!-- 🌟 【翻译相关设置UI】 新增的自动翻译白卡片 -->
+                    <!-- 🌟 【翻译设定配置UI】 新增的自动翻译白卡片及折叠面板 -->
                     <!-- ========================================== -->
-                    <div class="settings-white-card" style="padding: 15px; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 5px;">
-                        <div style="display:flex; flex-direction:column; gap:4px;">
-                            <span style="font-size:14px; font-weight:700; color:#111;">自动翻译模式</span>
-                            <span style="font-size:10px; color:#888;">AI回复时自动带上中文翻译</span>
+                    <div class="settings-white-card" style="padding: 15px; flex-direction: column; gap: 10px; margin-bottom: 5px;">
+                        <div style="display:flex; flex-direction: row; align-items: center; justify-content: space-between; width: 100%;">
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <span style="font-size:14px; font-weight:700; color:#111;">自动翻译模式</span>
+                                <span style="font-size:10px; color:#888;">AI回复时自动带上指定的翻译</span>
+                            </div>
+                            <div class="secret-switch" id="cs-translateToggleSwitch" onclick="toggleCsTranslate()"><div class="switch-knob"></div></div>
                         </div>
-                        <div class="secret-switch" id="cs-translateToggleSwitch" onclick="toggleCsTranslate()"><div class="switch-knob"></div></div>
+                        
+                        <div id="cs-translate-lang-config" style="display:none; width:100%; border-top: 1px dashed #eee; padding-top: 10px; margin-top: 2px;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; gap: 10px;">
+                                <input type="text" id="cs-trans-from" class="settings-input" style="flex:1; padding:10px; font-size:12px; text-align:center; border-radius:10px; background:#f5f5f5; border:none;" placeholder="源语言 (如: 日语)">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                                <input type="text" id="cs-trans-to" class="settings-input" style="flex:1; padding:10px; font-size:12px; text-align:center; border-radius:10px; background:#f5f5f5; border:none;" placeholder="目标语言 (如: 中文)">
+                            </div>
+                        </div>
                     </div>
-
-                    <div class="inset-pill-label">F E A T U R E S</div>
-
-                    <div class="settings-white-card">
-                        <div class="settings-input-group" style="margin-bottom: 0;">
 
                     <div class="inset-pill-label">F E A T U R E S</div>
 
