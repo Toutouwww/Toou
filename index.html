@@ -505,6 +505,16 @@
 
                     <!-- 🌟 补回刚才丢失的包裹容器 🌟 -->
                     <div class="chat-room-input-bar">
+                        
+                        <!-- 🌟 新增：高级毛玻璃引用回复预览条 -->
+                        <div class="reply-bar-container" id="reply-bar-container">
+                            <div class="reply-bar-content">
+                                <div class="reply-bar-title" id="reply-bar-title">回复 XXX</div>
+                                <div class="reply-bar-text" id="reply-bar-text">引用的内容预览</div>
+                            </div>
+                            <div class="reply-close-btn" onclick="cancelReply()">×</div>
+                        </div>
+
                         <!-- 1. 最左侧：极简无圆圈加号 (细线条、浅色) -->
                         <div class="chat-add-btn" onclick="toggleChatPlusMenu(event)">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1152,6 +1162,29 @@
             </div>
         </div>
     </div>
+
+    <!-- 🌟 暗黑系撤回消息窥探弹窗 -->
+    <div class="custom-prompt-overlay" id="recallModalOverlay" onclick="closeRecallModal()" style="z-index: 3500; background: rgba(0,0,0,0.6);">
+        <div class="recall-modal-box" onclick="event.stopPropagation()">
+            <div class="glow-title">I WAS THINKING</div>
+            <div class="recall-section">
+                <div class="recall-label">CONTENT</div>
+                <div class="recall-text" id="rm-content">加载中...</div>
+            </div>
+            <div class="recall-section">
+                <div class="recall-label">REASON</div>
+                <div class="recall-text" id="rm-reason">加载中...</div>
+            </div>
+            <div class="recall-section" style="margin-bottom: 0; align-items: center; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 15px; margin-top: 5px;">
+                <div class="recall-label">MOOD</div>
+                <div class="recall-mood" id="rm-mood">(*/ω＼*)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部全局透明小弹窗 -->
+    <div class="toast-msg" id="globalToast">操作成功</div>
+
 
     <!-- 底部全局透明小弹窗 -->
     <div class="toast-msg" id="globalToast">操作成功</div>

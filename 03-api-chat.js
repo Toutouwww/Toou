@@ -2,6 +2,8 @@
 // 03-api-chat.js: API核心配置与聊天发送渲染引擎
 // ==========================================
 
+let activeReplyContext = null; // 🌟 存储全局引用上下文
+
 // ==========================================
 // 1. 千岛 API 配置界面逻辑
 // ==========================================
@@ -404,7 +406,6 @@ function handleLongPressEnd(event) {
 
 function promptDeleteContact(id) {
     contactIdToDelete = id;
-    // 🌟 修复：将弹窗引擎切换为接管了底层删除逻辑的角色专属黑红确认弹窗
     openNcCustomPrompt('删除联系人', 'action_delete_contact', '确定要彻底删除此角色吗？此操作将清除其相关资料与聊天记录（不包括绑定的世界书）。', 'confirm_delete');
 }
 
@@ -419,6 +420,13 @@ function closeChatRoom() {
     if (document.activeElement) document.activeElement.blur(); 
     document.getElementById('chatRoomScreen').classList.remove('active');
     currentChatContactId = null;
+    cancelReply(); // 🌟 关闭聊天室时清空引用状态
+}
+
+function cancelReply() {
+    activeReplyContext = null;
+    const bar = document.getElementById('reply-bar-container');
+    if (bar) bar.classList.remove('show');
 }
 
 function openChatRoom(contactId) {
@@ -427,6 +435,7 @@ function openChatRoom(contactId) {
     if (!contact) return;
     
     document.getElementById('chatRoomTitle').innerText = contact.name; 
+    cancelReply(); // 🌟 初始化时清空上一个人的引用残留
     
     const textEl = document.getElementById('chat-init-text');
     if (contact.innerVoice && contact.innerVoice.thought) {
@@ -458,7 +467,7 @@ function openChatRoom(contactId) {
     });
 
     if (contact.messages && contact.messages.length > 0) {
-        const myAvatar = getBoundUserAvatar(contact); // 🌟 彻底隔离拉取该角色独立的身份卡头像
+        const myAvatar = getBoundUserAvatar(contact); 
         const charAvatar = contact.avatar; 
 
         let allMsgs = contact.messages;
@@ -476,7 +485,6 @@ function openChatRoom(contactId) {
                 const safeText = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
                 let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msg.id}', '${msg.sender}', '${msg.time}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msg.id}', '${msg.sender}', '${msg.time}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
 
-                // 🌟 新增：拦截撤回类型的消息，并渲染成居中的灰色系统提示词（附带蓝字操作链接）
                 if (msg.type === 'recall') {
                     let nameDisplay = msg.sender === 'user' ? '你' : (contact.realName || contact.name);
                     let actionLink = '';
@@ -489,53 +497,61 @@ function openChatRoom(contactId) {
                     continue; 
                 }
 
+                // 🌟 构建引用气泡 DOM
+                let replyBubbleHtml = '';
+                if (msg.replyCtx) {
+                    let shortContent = msg.replyCtx.content || '';
+                    if (shortContent.length > 40) shortContent = shortContent.slice(0, 40) + '...';
+                    replyBubbleHtml = `<div class="reply-tiny-bubble"><span style="opacity: 0.7; margin-right: 4px;">回复 ${msg.replyCtx.name}:</span>${shortContent}</div>`;
+                }
+
                 let contentHtml = '';
                 if (msg.type === 'image' && msg.imageUrl) {
-
-                    // 原本发图片的逻辑不变
-
                     contentHtml = `
-                    <div class="image-msg-wrapper">
-                        ${msg.sender === 'user' ? `<span class="image-timestamp">${msg.time}</span>` : ''}
-                        <img src="${msg.imageUrl}" class="chat-sent-image">
-                        ${msg.sender === 'char' ? `<span class="image-timestamp">${msg.time}</span>` : ''}
+                    <div class="msg-stack">
+                        ${replyBubbleHtml}
+                        <div class="image-msg-wrapper">
+                            ${msg.sender === 'user' ? `<span class="image-timestamp">${msg.time}</span>` : ''}
+                            <img src="${msg.imageUrl}" class="chat-sent-image">
+                            ${msg.sender === 'char' ? `<span class="image-timestamp">${msg.time}</span>` : ''}
+                        </div>
                     </div>`;
                 } else {
-                    // 🌟 核心：正则拦截 [STICKER:xxx] 并转为纯净图片
-                    let safeText = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
                     let hasSticker = false;
-                    safeText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
+                    let parsedText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
                         hasSticker = true;
                         const sName = name.trim();
                         let sticker = myStickers.find(s => s.name === sName) || myStickers.find(s => s.name.includes(sName));
                         if (sticker) return `<img src="${sticker.src}" class="chat-sent-sticker">`;
-                        // 如果AI瞎编的表情没找到，随机发一个，防止破功
                         if (myStickers.length > 0) return `<img src="${myStickers[Math.floor(Math.random() * myStickers.length)].src}" class="chat-sent-sticker">`;
                         return `<span style="color:#aaa;font-size:12px;">[${sName}]</span>`;
                     });
 
-                    // 如果整句话只有表情包，去掉原本丑陋的气泡框底色
-                    if (hasSticker && safeText.replace(/<img[^>]*>/g, '').trim() === '') {
+                    // 纯表情去底色
+                    if (hasSticker && parsedText.replace(/<img[^>]*>/g, '').trim() === '') {
                         contentHtml = `
-                        <div class="image-msg-wrapper">
-                            ${msg.sender === 'user' ? `<span class="image-timestamp" style="margin-right:6px;">${msg.time}</span>` : ''}
-                            ${safeText}
-                            ${msg.sender === 'char' ? `<span class="image-timestamp" style="margin-left:6px;">${msg.time}</span>` : ''}
+                        <div class="msg-stack">
+                            ${replyBubbleHtml}
+                            <div class="image-msg-wrapper">
+                                ${msg.sender === 'user' ? `<span class="image-timestamp" style="margin-right:6px;">${msg.time}</span>` : ''}
+                                ${parsedText}
+                                ${msg.sender === 'char' ? `<span class="image-timestamp" style="margin-left:6px;">${msg.time}</span>` : ''}
+                            </div>
                         </div>`;
                     }else {
-                        // 正常气泡包含文字或文字+表情
                         contentHtml = `
-                        <div class="Toutou-TT ${msg.sender}">
-                            ${msg.sender === 'user' ? `<span class="bubble-time">${msg.time}</span>` : ''}
-                            <div class="content">${safeText}</div>
-                            ${msg.sender === 'char' ? `<span class="bubble-time">${msg.time}</span>` : ''}
+                        <div class="msg-stack">
+                            ${replyBubbleHtml}
+                            <div class="Toutou-TT ${msg.sender}">
+                                ${msg.sender === 'user' ? `<span class="bubble-time">${msg.time}</span>` : ''}
+                                <div class="content">${parsedText}</div>
+                                ${msg.sender === 'char' ? `<span class="bubble-time">${msg.time}</span>` : ''}
+                            </div>
                         </div>`;
                     }
                 }
 
-
                 if (msg.sender === 'user') {
-                    // 🌟 修复：使用绝对存在的 msg.id，并加入 event.stopPropagation() 防止误触起泡菜单
                     htmlStr += `<div class="preview-msg-row right" id="row-${msg.id}" onclick="handleMsgClickInMultiMode('${msg.id}', this)" ${touchEvents}><div class="msg-checkbox"></div>${contentHtml}<img src="${myAvatar}" class="preview-avatar" onclick="event.stopPropagation(); handleAvatarDoubleTap('${msg.id}')" style="cursor: pointer;"></div>`;
                 } else {
                     htmlStr += `<div class="preview-msg-row left" id="row-${msg.id}" onclick="handleMsgClickInMultiMode('${msg.id}', this)" ${touchEvents}><img src="${charAvatar}" class="preview-avatar">${contentHtml}<div class="msg-checkbox"></div></div>`;
@@ -612,7 +628,6 @@ function uploadChatInitLocalAvatar(input) {
 // 角色专属聊天设置页
 let tempBoundProfileId = 'default';
 
-// 🌟 新增：角色设定页的生日与星座自动联动引擎
 function handleCsBirthdayChange(dateString) {
     if (!dateString) return;
     document.getElementById('display-cs-birthday').value = dateString;
@@ -1112,28 +1127,48 @@ function sendChatMessage() {
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
-    if (!contact.messages) contact.messages = [];
-    contact.messages.push({
+    const newMsg = {
         id: 'msg_' + Date.now(),
         sender: 'user',
         text: text,
         time: timeStr
-    });
+    };
+    
+    // 🌟 将全局引用上下文吸入当前发出的消息
+    if (activeReplyContext) {
+        newMsg.replyCtx = { ...activeReplyContext };
+        cancelReply(); // 吃掉后立刻关闭预览条
+    }
+
+    if (!contact.messages) contact.messages = [];
+    contact.messages.push(newMsg);
 
     const chatBody = document.getElementById('chatRoomBody');
-    const myAvatar = getBoundUserAvatar(contact); // 彻底解决每次发言乱借用其他资料头像的Bug
+    const myAvatar = getBoundUserAvatar(contact); 
     const safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
-    const msgId = contact.messages[contact.messages.length - 1].id;
+    const msgId = newMsg.id;
     let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
     
+    // 🌟 动态渲染自己的引用小气泡
+    let replyBubbleHtml = '';
+    if (newMsg.replyCtx) {
+        let shortContent = newMsg.replyCtx.content || '';
+        if (shortContent.length > 40) shortContent = shortContent.slice(0, 40) + '...';
+        replyBubbleHtml = `<div class="reply-tiny-bubble"><span style="opacity: 0.7; margin-right: 4px;">回复 ${newMsg.replyCtx.name}:</span>${shortContent}</div>`;
+    }
+
+    // 🌟 将原本孤立的 Toutou-TT 包裹在 msg-stack 里实现堆叠
     const msgHtml = `
     <div class="preview-msg-row right" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
         <div class="msg-checkbox"></div>
-        <div class="Toutou-TT user">
-            <span class="bubble-time">${timeStr}</span>
-            <div class="content">${safeText}</div>
+        <div class="msg-stack">
+            ${replyBubbleHtml}
+            <div class="Toutou-TT user">
+                <span class="bubble-time">${timeStr}</span>
+                <div class="content">${safeText}</div>
+            </div>
         </div>
-        <img src="${myAvatar}" class="preview-avatar" onclick="handleAvatarDoubleTap('${msgId || msg.id}')" style="cursor: pointer;">
+        <img src="${myAvatar}" class="preview-avatar" onclick="handleAvatarDoubleTap('${msgId}')" style="cursor: pointer;">
     </div>
     `;
     chatBody.insertAdjacentHTML('beforeend', msgHtml);
@@ -1172,28 +1207,45 @@ async function handleChatPhotoUpload(input) {
 
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const compressedBase64 = await compressImage(file); // 依赖于 00-utils
+        const compressedBase64 = await compressImage(file); 
         
         const msgId = 'msg_' + Date.now() + '_' + i;
-        contact.messages.push({
+        const newMsg = {
             id: msgId,
             sender: 'user',
             type: 'image', 
             imageUrl: compressedBase64,
             text: '[图片]', 
             time: timeStr
-        });
-
-         let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
+        };
         
+        // 🌟 将引用挂载到上传的第一张图片上
+        if (i === 0 && activeReplyContext) {
+            newMsg.replyCtx = { ...activeReplyContext };
+            cancelReply();
+        }
+        contact.messages.push(newMsg);
+
+        let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
+        
+        let replyBubbleHtml = '';
+        if (newMsg.replyCtx) {
+            let shortContent = newMsg.replyCtx.content || '';
+            if (shortContent.length > 40) shortContent = shortContent.slice(0, 40) + '...';
+            replyBubbleHtml = `<div class="reply-tiny-bubble"><span style="opacity: 0.7; margin-right: 4px;">回复 ${newMsg.replyCtx.name}:</span>${shortContent}</div>`;
+        }
+
         const msgHtml = `
         <div class="preview-msg-row right" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
             <div class="msg-checkbox"></div>
-            <div class="image-msg-wrapper">
-                <span class="image-timestamp">${timeStr}</span>
-                <img src="${compressedBase64}" class="chat-sent-image">
+            <div class="msg-stack">
+                ${replyBubbleHtml}
+                <div class="image-msg-wrapper">
+                    <span class="image-timestamp">${timeStr}</span>
+                    <img src="${compressedBase64}" class="chat-sent-image">
+                </div>
             </div>
-            <img src="${myAvatar}" class="preview-avatar" onclick="handleAvatarDoubleTap('${msgId || msg.id}')" style="cursor: pointer;">
+            <img src="${myAvatar}" class="preview-avatar" onclick="handleAvatarDoubleTap('${msgId}')" style="cursor: pointer;">
         </div>
         `;
         chatBody.insertAdjacentHTML('beforeend', msgHtml);
@@ -1262,10 +1314,8 @@ function buildSystemPrompt(contact) {
     const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
     const currentTimeStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${days[now.getDay()]} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-    // 🌟 将用户的表情包库存喂给 AI
     let stickerRule = "";
     if (myStickers && myStickers.length > 0) {
-        // 🌟 核心：筛选出通用组，以及绑定了当前角色的组
         let availableStickers = myStickers.filter(s => {
             let grp = stickerGroups.find(g => g.name === s.group);
             if (!grp) return false;
@@ -1282,6 +1332,11 @@ function buildSystemPrompt(contact) {
 
     return `你需要扮演 {char}，模拟真实生活中的聊天软件来回复我 {user}。严禁复述、扩写{user} 的话！
 ${stickerRule}
+
+【高级交互指令 (引用回复)】
+如果你需要针对我很久之前的一句话进行明确的反驳或澄清，可以在你要说的那句话开头加入引用指令：[REPLY:我曾经说过的原话]。
+例如：[REPLY:你昨天说要请我吃饭的] 其实我今天更想吃火锅。
+注意：正常聊天绝不要使用引用！严禁连续多轮回复都带引用。
 
 【扮演与性格核心约束 (极度严格)】
 当前现实时间确认：${currentTimeStr}。请结合当前时间（早中晚/工作日/休息日），进行合乎逻辑的作息模拟！严禁因为太晚而催促用户睡觉，除非用户主动提及。
@@ -1309,7 +1364,8 @@ ${stickerRule}
 
 4. 标点符号与撤回格式：
 - 正常情况（无特殊情况）下必须正常且正确地使用中文标点符号！
-- 作为真实聊天软件，对方会撤回消息，你作为角色也同样拥有撤回消息的能力。也可以发送颜文字、网络热梗或表情包。如果你觉得刚才说的话不合适想要反悔，请在一个独立气泡中发送格式 [RECALL:你想撤回的具体内容] (例如：[RECALL:发错了])，系统会自动将其转换成撤回状态。
+- 作为真实聊天软件，对方会撤回消息，你作为角色也同样拥有撤回消息的能力。如果你觉得刚才说的话不合适想要反悔，请在一个独立气泡中发送格式 [RECALL:撤回的具体内容|撤回的原因|此时的心情颜文字]。
+(例如：[RECALL:你今天真好看|觉得太直接了有点害羞|(*/ω＼*)])，系统会自动将其转换成撤回状态。
 
 【最终输出格式严格协议】
 严禁返回纯文本，严禁包含任何解释性文字。
@@ -1449,7 +1505,7 @@ function handleAiResponse(replyText, contact) {
     const voiceMatch = replyText.match(voiceRegex);
     let cleanReplyText = replyText;
     if (voiceMatch) {
-        if(typeof parseAndSaveVoice === 'function') parseAndSaveVoice(voiceMatch[0], contact); // 依赖 05-mind-voice
+        if(typeof parseAndSaveVoice === 'function') parseAndSaveVoice(voiceMatch[0], contact); 
         cleanReplyText = replyText.replace(voiceRegex, '').trim();
     }
 
@@ -1465,7 +1521,6 @@ function handleAiResponse(replyText, contact) {
     bubbles.forEach((text, idx) => {
         const msgId = 'msg_' + Date.now() + '_' + idx;
         
-        // 🌟 核心：精准拦截 AI 发出的撤回指令，将其转化为撤回痕迹
         let isRecall = /\[\s*(?:RECALL|撤回)\s*[:：]\s*(.*?)\s*\]/i.exec(text);
         if (isRecall) {
             contact.messages.push({
@@ -1473,14 +1528,23 @@ function handleAiResponse(replyText, contact) {
             });
             const msgHtml = `<div class="recall-notice-row"><div class="recall-pill">${contact.realName || contact.name} 撤回了一条消息 <span class="recall-link" onclick="viewRecalled('${msgId}')">查看</span></div></div>`;
             chatBody.insertAdjacentHTML('beforeend', msgHtml);
-            return; // 拦截成功，结束本次渲染，不画聊天气泡了
+            return; 
         }
 
-        contact.messages.push({
-            id: msgId, sender: 'char', text: text, time: timeStr
-        });
+        // 🌟 拦截并解析 AI 引用指令
+        let aiReplyCtx = null;
+        let replyMatch = text.match(/\[\s*(?:REPLY|回复|引用)\s*[:：]\s*([\s\S]+?)\]/i);
+        if (replyMatch) {
+            let q = replyMatch[1].trim();
+            if (q.length > 40) q = q.slice(0, 40) + '...';
+            aiReplyCtx = { name: "我", content: q };
+            text = text.replace(replyMatch[0], '').trim();
+        }
+
+        let msgObj = { id: msgId, sender: 'char', text: text, time: timeStr };
+        if (aiReplyCtx) msgObj.replyCtx = aiReplyCtx;
+        contact.messages.push(msgObj);
         
-        // 🌟 核心：为实时回复加上表情包正则拦截器
         let safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
         let hasSticker = false;
         safeText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
@@ -1494,19 +1558,32 @@ function handleAiResponse(replyText, contact) {
         
         let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'char', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
         
-        // 🌟 核心：如果整句话只有表情包，去掉丑陋的气泡底色
+        // 🌟 渲染 AI 的引用气泡
+        let replyBubbleHtml = '';
+        if (aiReplyCtx) {
+            let shortContent = aiReplyCtx.content || '';
+            if (shortContent.length > 40) shortContent = shortContent.slice(0, 40) + '...';
+            replyBubbleHtml = `<div class="reply-tiny-bubble"><span style="opacity: 0.7; margin-right: 4px;">回复 ${aiReplyCtx.name}:</span>${shortContent}</div>`;
+        }
+
         let contentHtml = '';
         if (hasSticker && safeText.replace(/<img[^>]*>/g, '').trim() === '') {
             contentHtml = `
-            <div class="image-msg-wrapper">
-                ${safeText}
-                <span class="image-timestamp" style="margin-left:6px;">${timeStr}</span>
+            <div class="msg-stack">
+                ${replyBubbleHtml}
+                <div class="image-msg-wrapper">
+                    ${safeText}
+                    <span class="image-timestamp" style="margin-left:6px;">${timeStr}</span>
+                </div>
             </div>`;
         } else {
             contentHtml = `
-            <div class="Toutou-TT char">
-                <div class="content">${safeText}</div>
-                <span class="bubble-time">${timeStr}</span>
+            <div class="msg-stack">
+                ${replyBubbleHtml}
+                <div class="Toutou-TT char">
+                    <div class="content">${safeText}</div>
+                    <span class="bubble-time">${timeStr}</span>
+                </div>
             </div>`;
         }
 
@@ -1560,9 +1637,12 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
         row.className = 'preview-msg-row left';
         row.innerHTML = `
             <img src="${charAvatar}" class="preview-avatar">
-            <div class="Toutou-TT char">
-                <div class="content stream-waiting">…</div>
-                <span class="bubble-time">${timeStr}</span>
+            <div class="msg-stack">
+                <div class="reply-container-stream"></div>
+                <div class="Toutou-TT char">
+                    <div class="content stream-waiting">…</div>
+                    <span class="bubble-time">${timeStr}</span>
+                </div>
             </div>
             <div class="msg-checkbox"></div>
         `;
@@ -1580,19 +1660,38 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                 currentBubbleEl.classList.remove('stream-waiting');
             }
             
-            // 🌟 核心：流式打字机实时探测！只要打出完整的标签，瞬间变成图片
             let safeText = text.trimStart().replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
             
-            // 🌟 侦测流式撤回指令，瞬间变身灰色系统文字，并附带蓝色查看按钮
             let isRecall = false;
             safeText = safeText.replace(/\[\s*(?:RECALL|撤回)\s*[:：]\s*(.*?)\]/gi, () => {
                 isRecall = true;
                 return `<div class="recall-notice-row" style="margin:0;"><div class="recall-pill">对方撤回了一条消息 <span class="recall-link" style="pointer-events:none;">查看</span></div></div>`;
             });
 
+            // 🌟 流式状态下，实时剥离并显示引用气泡
+            let aiReplyHtml = '';
+            let aiReplyCtx = null; 
+            safeText = safeText.replace(/\[\s*(?:REPLY|回复|引用)\s*[:：]\s*([\s\S]+?)\]/gi, (match, q) => {
+                if (q.length > 40) q = q.slice(0, 40) + '...';
+                aiReplyCtx = { name: "我", content: q };
+                aiReplyHtml = `<div class="reply-tiny-bubble"><span style="opacity: 0.7; margin-right: 4px;">回复 我:</span>${q}</div>`;
+                return ''; 
+            });
+            
+            let rowEl = currentBubbleEl.closest('.preview-msg-row');
+            if (rowEl) {
+                let replyContainer = rowEl.querySelector('.reply-container-stream');
+                if (replyContainer && aiReplyHtml) {
+                    replyContainer.innerHTML = aiReplyHtml;
+                }
+                if (aiReplyCtx) {
+                    rowEl.dataset.replyName = aiReplyCtx.name;
+                    rowEl.dataset.replyContent = aiReplyCtx.content;
+                }
+            }
+
             let hasSticker = false;
             safeText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
-
                 hasSticker = true;
                 const sName = name.trim();
                 let sticker = myStickers.find(s => s.name === sName) || myStickers.find(s => s.name.includes(sName));
@@ -1603,23 +1702,22 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
             
             currentBubbleEl.innerHTML = safeText;
 
-            // 🌟 动态侦测：撤回与图片去底色
             if (isRecall) {
                 currentBubbleEl.style.background = 'transparent';
                 currentBubbleEl.style.boxShadow = 'none';
                 currentBubbleEl.style.border = 'none';
-                let rowEl = currentBubbleEl.closest('.preview-msg-row');
                 if (rowEl) {
                     let avatarEl = rowEl.querySelector('.preview-avatar');
                     if (avatarEl) avatarEl.style.display = 'none';
                     rowEl.style.justifyContent = 'center';
+                    let rContainer = rowEl.querySelector('.reply-container-stream');
+                    if(rContainer) rContainer.style.display = 'none';
                 }
             } else if (hasSticker && safeText.replace(/<img[^>]*>/g, '').trim() === '') {
                 currentBubbleEl.style.background = 'transparent';
                 currentBubbleEl.style.boxShadow = 'none';
                 currentBubbleEl.style.border = 'none';
             } else {
-
                 currentBubbleEl.style.background = '';
                 currentBubbleEl.style.boxShadow = '';
                 currentBubbleEl.style.border = '';
@@ -1685,7 +1783,7 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
 
     function finishStream() {
         if (voiceBuffer) {
-            if(typeof parseAndSaveVoice === 'function') parseAndSaveVoice("<voice>" + voiceBuffer + "</voice>", contact); // 依赖 05
+            if(typeof parseAndSaveVoice === 'function') parseAndSaveVoice("<voice>" + voiceBuffer + "</voice>", contact); 
         }
         
         const lastText = currentBubbleText.trim();
@@ -1703,15 +1801,29 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
         allFinishedBubbleTexts.forEach((text, idx) => {
             if (text) {
                 const msgId = 'msg_' + Date.now() + '_' + idx;
-                
-                // 🌟 数据保存时拦截撤回指令并正确写入数据库 (带上 recalledText)
+                const row = rowList[idx];
+
+                // 🌟 将刚才挂载在 DOM 上的引用数据取出来准备入库
+                let aiReplyCtx = null;
+                if (row && row.dataset.replyName) {
+                    aiReplyCtx = { name: row.dataset.replyName, content: row.dataset.replyContent };
+                    // 顺便把 text 里的指令吃掉，防止下次重新渲染出来
+                    text = text.replace(/\[\s*(?:REPLY|回复|引用)\s*[:：]\s*([\s\S]+?)\]/gi, '').trim();
+                } else {
+                    let replyMatch = text.match(/\[\s*(?:REPLY|回复|引用)\s*[:：]\s*([\s\S]+?)\]/i);
+                    if (replyMatch) {
+                        let q = replyMatch[1].trim();
+                        if (q.length > 40) q = q.slice(0, 40) + '...';
+                        aiReplyCtx = { name: "我", content: q };
+                        text = text.replace(replyMatch[0], '').trim();
+                    }
+                }
+
                 let recallMatch = text.match(/\[\s*(?:RECALL|撤回)\s*[:：]\s*(.*?)\]/i);
                 if (recallMatch) {
                     contact.messages.push({
                         id: msgId, sender: 'char', type: 'recall', recalledText: recallMatch[1], text: '撤回了一条消息', time: timeStr
                     });
-                    // 彻底替换当前所在的 DOM 行，变为真实的撤回条，并激活蓝字点击事件
-                    const row = rowList[idx];
                     if (row) {
                         row.className = 'recall-notice-row';
                         row.innerHTML = `<div class="recall-pill">${contact.realName || contact.name} 撤回了一条消息 <span class="recall-link" onclick="viewRecalled('${msgId}')">查看</span></div>`;
@@ -1720,10 +1832,9 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                         row.removeAttribute('onmousedown');
                     }
                 } else {
-                    contact.messages.push({
-                        id: msgId, sender: 'char', text: text, time: timeStr
-                    });
-                    const row = rowList[idx];
+                    let msgObj = { id: msgId, sender: 'char', text: text, time: timeStr };
+                    if (aiReplyCtx) msgObj.replyCtx = aiReplyCtx;
+                    contact.messages.push(msgObj);
 
                     if (row) {
                         row.id = `row-${msgId}`;
@@ -1735,8 +1846,8 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                         row.setAttribute('onmouseup', `bubbleTouchEnd(event)`);
                         row.setAttribute('onmouseleave', `bubbleTouchEnd(event)`);
                     }
-                } // 🌟 补上了闭合括号
-            } // 🌟 补上了闭合括号
+                } 
+            } 
         });
 
         if (allFinishedBubbleTexts.length > 0) {
@@ -1911,11 +2022,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 🌟 新增：监听加号菜单页面的手指横向滑动，自动切换底部小白点
     const pagesContainer = document.getElementById('plus-pages-container');
     if (pagesContainer) {
         pagesContainer.addEventListener('scroll', () => {
-            // 根据滚动距离计算出当前是第几页 (0 还是 1)
             const index = Math.round(pagesContainer.scrollLeft / pagesContainer.clientWidth);
             const dots = document.querySelectorAll('.plus-pagination .dot');
             dots.forEach((dot, i) => {
@@ -1926,7 +2035,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// 🌟 新增：点击小圆点也可以进行平滑跨页
 function switchPlusPage(index) {
     const pagesContainer = document.getElementById('plus-pages-container');
     if (pagesContainer) {
@@ -1979,17 +2087,18 @@ function openBubbleMenu(msgId, sender, timeStr) {
     const replyBtn = document.getElementById('b-action-reply');
     
     const regenBtn = document.getElementById('b-action-regen');
+    
+    // 🌟 全局放开回复按钮，你可以引用自己，也可以引用AI
+    if(replyBtn) replyBtn.style.display = 'flex'; 
+
     if (sender === 'user') {
-        if(replyBtn) replyBtn.style.display = 'none'; 
         if(recallBtn) recallBtn.style.display = 'flex'; 
-        if(regenBtn) regenBtn.style.display = 'none'; // 自己发的消息不能从菜单重生成，必须双击头像
+        if(regenBtn) regenBtn.style.display = 'none'; 
     } else {
-        if(replyBtn) replyBtn.style.display = 'flex'; 
         if(recallBtn) recallBtn.style.display = 'none'; 
-        if(regenBtn) regenBtn.style.display = 'flex'; // AI 的消息可以重生成
+        if(regenBtn) regenBtn.style.display = 'flex'; 
     }
 
-    
     if (currentBubbleEventTarget) {
         let bubbleEl = currentBubbleEventTarget.querySelector('.content') || currentBubbleEventTarget;
         const rect = bubbleEl.getBoundingClientRect();
@@ -2041,7 +2150,6 @@ function bubbleAction(action) {
     } else if (action === 'regen') {
         executeRegenerate(currentActionBubbleId);
     } else if (action === 'recall') {
-        // 🌟 核心：引入参考代码中的 2分钟超时限制与原文本备份机制
         const timestamp = parseInt(msg.id.split('_')[1]);
         const now = Date.now();
         
@@ -2061,15 +2169,35 @@ function bubbleAction(action) {
     } else if (action === 'multi') {
         enterMultiSelectMode(currentActionBubbleId); 
     } else if (action === 'reply') {
-        showToast('回复引用业务逻辑已成功接管');
+        // 🌟 核心：触发并渲染引用预览条
+        const replyName = msg.sender === 'user' ? '我' : (contact.realName || contact.name);
+        let previewText = msg.text;
+
+        if (msg.type === 'image') previewText = '[图片]';
+        else if (msg.type === 'recall') previewText = '[撤回的消息]';
+        else previewText = msg.text.replace(/<[^>]+>/g, '').replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
+
+        activeReplyContext = {
+            name: replyName,
+            content: previewText
+        };
+
+        const bar = document.getElementById('reply-bar-container');
+        if (bar) {
+            document.getElementById('reply-bar-title').innerText = `回复 ${replyName}`;
+            document.getElementById('reply-bar-text').innerText = previewText;
+            bar.classList.add('show');
+        }
+        
+        const input = document.getElementById('chatRoomInput');
+        if (input) input.focus();
+
     } else if (action === 'translate') {
         showToast('正在接入AI翻译引擎...');
     }
 }
 
-// ==========================================
-// 🌟 核心：重新生成回复引擎 (支持双击头像或长按菜单)
-// ==========================================
+// 🌟 核心：重新生成回复引擎
 function executeRegenerate(msgId) {
     if (!currentChatContactId) return;
     const contact = contactsList.find(c => c.id === currentChatContactId);
@@ -2082,7 +2210,6 @@ function executeRegenerate(msgId) {
     let endIndex = -1;
 
     if (contact.messages[msgIndex].sender === 'user') {
-        // 触发来源：双击了我方头像 -> 寻找这句我方消息【之后】的一连串 AI 消息
         if (msgIndex + 1 < contact.messages.length && contact.messages[msgIndex + 1].sender === 'char') {
             startIndex = msgIndex + 1;
             endIndex = startIndex;
@@ -2094,7 +2221,6 @@ function executeRegenerate(msgId) {
             return;
         }
     } else {
-        // 触发来源：长按了对方的气泡 -> 寻找当前点击的这一整块连续的 AI 消息
         startIndex = msgIndex;
         while (startIndex > 0 && contact.messages[startIndex - 1].sender === 'char') {
             startIndex--;
@@ -2121,7 +2247,6 @@ function executeRegenerate(msgId) {
             saveToDB('contacts_data', JSON.stringify(contactsList));
             openChatRoom(currentChatContactId); 
             
-            // 延迟一点点触发，让 UI 先删干净
             setTimeout(() => {
                 triggerAiReply();
             }, 300);
@@ -2129,7 +2254,6 @@ function executeRegenerate(msgId) {
     }
 }
 
-// 🌟 模拟移动端双击探测器
 let avatarTapTimer = null;
 let lastTappedMsgId = null;
 function handleAvatarDoubleTap(msgId) {
@@ -2218,8 +2342,6 @@ function openStickerPanel(event) {
     document.getElementById('sticker-panel').classList.add('active');
     document.getElementById('chatRoomScreen').classList.add('sticker-active'); 
     isStickerEditMode = false;
-    
-    // 🌟 核心：每次打开表情面板，强制选中定位为默认的 "通用" 分组
     currentStickerGroup = '通用'; 
     renderStickerGrid();
 }
@@ -2235,7 +2357,6 @@ function renderStickerGrid() {
     if(tabsContainer) {
         tabsContainer.innerHTML = '';
         
-        // 🌟 终极硬保底机制：如果用户的历史数据里搞丢了"通用"分组，强行补回来！
         let commonGroup = stickerGroups.find(g => g.name === '通用');
         if (!commonGroup) {
             commonGroup = { id: 'sg_default', name: '通用', boundChars: [] };
@@ -2247,7 +2368,6 @@ function renderStickerGrid() {
         
         const renderTab = (g) => {
             const div = document.createElement('div');
-            // 如果这个药丸等于当前选中的 currentStickerGroup，就会挂上 'active' 变成黑色
             div.className = `sticker-group-tab ${currentStickerGroup === g.name ? 'active' : ''}`;
             div.innerText = g.name;
 
@@ -2283,7 +2403,6 @@ function renderStickerGrid() {
             tabsContainer.appendChild(div);
         };
 
-        // 🌟 绝对保证"通用"小药丸永远排在最左侧第一个进行渲染！
         renderTab(commonGroup);
         otherGroups.forEach(g => renderTab(g));
     }
@@ -2298,7 +2417,6 @@ function renderStickerGrid() {
         return;
     }
 
-    // 🌟 全新3行4列(一页12个)滑动网格算法
     const pagesContainer = document.createElement('div');
     pagesContainer.className = 'sticker-pages-container';
     
@@ -2335,7 +2453,6 @@ function renderStickerGrid() {
     
     container.appendChild(pagesContainer);
 
-    // 🌟 渲染滑动底部小圆点
     if (pageCount > 1) {
         const pagination = document.createElement('div');
         pagination.className = 'sticker-pagination';
@@ -2347,7 +2464,6 @@ function renderStickerGrid() {
         }
         container.appendChild(pagination);
 
-        // 监听滚动更新点
         pagesContainer.addEventListener('scroll', () => {
             const index = Math.round(pagesContainer.scrollLeft / pagesContainer.clientWidth);
             pagination.querySelectorAll('.dot').forEach((d, i) => {
@@ -2384,7 +2500,6 @@ function deleteSticker(id) {
     }
 }
 
-// ---------------- 🌟 升级版：动态挂载下拉框核心引擎 ----------------
 function renderStickerDropdown(type) {
     const dropdown = document.getElementById(`${type}-group-dropdown`);
     const display = document.getElementById(`${type}-group-display`);
@@ -2413,11 +2528,9 @@ function renderStickerDropdown(type) {
     if(commonGroup) renderItem(commonGroup);
     otherGroups.forEach(g => renderItem(g));
     
-    // 🌟 不管你曾经选择了什么，只要打开就强制复位成通用！
     display.innerText = '通用';
 }
 
-// 🌟 全局监听，点击别处时自动收起自定义下拉菜单
 document.addEventListener('click', function(e) {
     const localMenu = document.getElementById('local-group-dropdown');
     const localInput = document.getElementById('local-group-display')?.parentElement;
@@ -2432,7 +2545,6 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// ---------------- 分组管理 ----------------
 let returnToStickerUploadMode = null; 
 function openStickerGroupManager(mode = null) {
     returnToStickerUploadMode = mode;
@@ -2442,7 +2554,6 @@ function openStickerGroupManager(mode = null) {
 
 function closeStickerGroupManager() {
     document.getElementById('stickerGroupManager').classList.remove('active');
-    // 🌟 返回时，重新挂载高级下拉框
     if (returnToStickerUploadMode === 'local') {
         renderStickerDropdown('local');
         document.getElementById('stickerUploadPrompt').classList.add('active');
@@ -2462,7 +2573,6 @@ function renderStickerGroupList() {
         div.className = 'model-item-btn';
         div.style.display = 'flex'; div.style.flexDirection = 'column'; div.style.gap = '8px';
         
-        // 🌟 强化版的删除按钮，并明确标出通用不可删除
         let deleteBtnHtml = g.name !== '通用' 
             ? `<div style="background:#ffe5e5; color:#ff3b30; font-size:11px; padding:4px 10px; border-radius:6px; cursor:pointer; font-weight:800;" onclick="deleteStickerGroup('${g.id}')">删除分组</div>` 
             : `<div style="font-size:10px; color:#bbb; font-weight:800; padding:4px 0;">系统默认(不可删)</div>`;
@@ -2538,7 +2648,6 @@ function openStickerGroupBindModal(id) {
     document.getElementById('charSelectOverlay').classList.add('active');
 }
 
-// ---------------- 上传与发送 ----------------
 let tempUploadStickerBase64 = null;
 function triggerLocalStickerUpload() { document.getElementById('localStickerInput').click(); }
 
@@ -2548,13 +2657,12 @@ async function handleLocalStickerUpload(input) {
     input.value = ''; 
     document.getElementById('sticker-upload-preview').src = tempUploadStickerBase64;
     document.getElementById('sticker-name-input').value = '';
-    renderStickerDropdown('local'); // 🌟 初始化高级下拉框，并强锁定为“通用”
+    renderStickerDropdown('local');
     document.getElementById('stickerUploadPrompt').classList.add('active');
 }
 
 function confirmStickerUpload() {
     const name = document.getElementById('sticker-name-input').value.trim() || '未命名';
-    // 🌟 获取自定义下拉框中的文字作为数据源
     const groupName = document.getElementById('local-group-display').innerText || '通用';
     myStickers.push({ id: 'stk_' + Date.now(), src: tempUploadStickerBase64, name: name, group: groupName });
     saveToDB('my_stickers_data', JSON.stringify(myStickers));
@@ -2566,7 +2674,7 @@ function confirmStickerUpload() {
 }
 
 function openBatchStickerPrompt() {
-    renderStickerDropdown('batch'); // 🌟 初始化高级下拉框，并强锁定为“通用”
+    renderStickerDropdown('batch');
     document.getElementById('batchStickerInput').value = '';
     document.getElementById('batchStickerPromptOverlay').classList.add('active');
 }
@@ -2574,7 +2682,6 @@ function openBatchStickerPrompt() {
 function processBatchStickerImport() {
     const text = document.getElementById('batchStickerInput').value.trim();
     if (!text) return;
-    // 🌟 获取自定义下拉框中的文字作为数据源
     const groupName = document.getElementById('batch-group-display').innerText || '通用';
     const lines = text.split('\n'); let count = 0;
     
@@ -2609,8 +2716,16 @@ function sendStickerMessage(sticker) {
     const msgId = 'msg_' + Date.now();
     const stickerTag = `[STICKER:${sticker.name}]`; 
 
+    const newMsg = { id: msgId, sender: 'user', text: stickerTag, time: timeStr, isSticker: true };
+    
+    // 🌟 发送表情时也能附带引用回复！
+    if (activeReplyContext) {
+        newMsg.replyCtx = { ...activeReplyContext };
+        cancelReply();
+    }
+
     if (!contact.messages) contact.messages = [];
-    contact.messages.push({ id: msgId, sender: 'user', text: stickerTag, time: timeStr, isSticker: true });
+    contact.messages.push(newMsg);
 
     contact.sign = `[表情: ${sticker.name}]`;
     contact.time = timeStr;
@@ -2620,13 +2735,22 @@ function sendStickerMessage(sticker) {
     const myAvatar = getBoundUserAvatar(contact);
     let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)"`;
 
-    // 🌟 修正我方发出的表情包：时间在表情包左侧
+    let replyBubbleHtml = '';
+    if (newMsg.replyCtx) {
+        let shortContent = newMsg.replyCtx.content || '';
+        if (shortContent.length > 40) shortContent = shortContent.slice(0, 40) + '...';
+        replyBubbleHtml = `<div class="reply-tiny-bubble"><span style="opacity: 0.7; margin-right: 4px;">回复 ${newMsg.replyCtx.name}:</span>${shortContent}</div>`;
+    }
+
     const msgHtml = `
     <div class="preview-msg-row right" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
         <div class="msg-checkbox"></div>
-        <div class="image-msg-wrapper">
-            <span class="image-timestamp" style="margin-right:6px;">${timeStr}</span>
-            <img src="${sticker.src}" class="chat-sent-sticker">
+        <div class="msg-stack">
+            ${replyBubbleHtml}
+            <div class="image-msg-wrapper">
+                <span class="image-timestamp" style="margin-right:6px;">${timeStr}</span>
+                <img src="${sticker.src}" class="chat-sent-sticker">
+            </div>
         </div>
         <img src="${myAvatar}" class="preview-avatar" onclick="handleAvatarDoubleTap('${msgId || msg.id}')" style="cursor: pointer;">
     </div>`;
@@ -2636,16 +2760,31 @@ function sendStickerMessage(sticker) {
 }
 
 // ==========================================
-// 🌟 撤回系统：重新编辑与查看功能全局入口
+// 🌟 撤回系统：重新编辑与窥探暗黑弹窗引擎
 // ==========================================
 function viewRecalled(msgId) {
     if (!currentChatContactId) return;
     const contact = contactsList.find(c => c.id === currentChatContactId);
     if (!contact) return;
     const msg = contact.messages.find(m => m.id === msgId);
+    
     if (msg && msg.recalledText) {
-        alert(`对方撤回的内容是：\n\n${msg.recalledText}`);
+        // 拆解 AI 按规则返回的三段式内容，如果旧数据不符，则进行优雅降级
+        let parts = msg.recalledText.split('|');
+        let content = parts[0] || msg.recalledText;
+        let reason = parts[1] || "（大脑一片空白，没有留下具体原因...）";
+        let mood = parts[2] || "( ˘•ω•˘ )";
+
+        document.getElementById('rm-content').innerText = content.trim();
+        document.getElementById('rm-reason').innerText = reason.trim();
+        document.getElementById('rm-mood').innerText = mood.trim();
+        
+        document.getElementById('recallModalOverlay').classList.add('active');
     }
+}
+
+function closeRecallModal() {
+    document.getElementById('recallModalOverlay').classList.remove('active');
 }
 
 function restoreEdit(msgId) {
@@ -2656,7 +2795,9 @@ function restoreEdit(msgId) {
     if (msg && msg.recalledText) {
         const input = document.getElementById('chatRoomInput');
         if (input) {
-            input.value = msg.recalledText;
+            // 我方自己撤回的没有复杂格式，直接塞回去
+            let parts = msg.recalledText.split('|');
+            input.value = parts[0]; 
             input.focus();
             input.style.height = 'auto'; 
             input.style.height = input.scrollHeight + 'px';

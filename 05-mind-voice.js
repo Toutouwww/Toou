@@ -374,6 +374,9 @@ function openInnerVoice() {
     const contact = contactsList.find(c => c.id === currentChatContactId);
     if (!contact) return;
 
+    // 🌟 关闭时移除第三页模式
+    document.querySelector('.voice-layout-wrapper').classList.remove('content-mode');
+
     if (!contact.innerVoice || !contact.innerVoice.thought) {
         showMindBlackToast("当前暂无截获的内心数据。");
         return;
@@ -475,7 +478,11 @@ function checkVoiceQuiz(choiceNum) {
 }
 
 function showMindContent(contact) {
+    // 🌟 进入第三页，激活整体下压 30px
+    document.querySelector('.voice-layout-wrapper').classList.add('content-mode');
+
     document.getElementById('voice-location').innerText = contact.innerVoice.location || "未知";
+
     document.getElementById('voice-action').innerText = contact.innerVoice.action || "发呆";
     document.getElementById('voice-thought').innerText = contact.innerVoice.thought || "...";
 

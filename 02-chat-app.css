@@ -1018,16 +1018,23 @@
 /* ==========================================
    🌟 独立纸张拓展区域：十年后评论帖子样式
 ========================================== */
+/* ==========================================
+   🌟 独立纸张拓展区域：十年后评论帖子样式
+========================================== */
 #mind-content-view {
-    padding-top: 30px; 
+    /* 移除了原本丑陋的内容挤压，改用外层整体位移 */
 }
 
 .future-section-wrapper {
     width: 280px; 
     display: flex;
     flex-direction: column;
-    /* 🌟 修改：配合心声卡片的下压，把十年后卡片也同步往下多推 30px，达到整体和谐 */
-    margin-top: 30px; 
+    margin-top: 15px; /* 恢复原版紧凑的卡片间距 */
+}
+
+/* 🌟 第三页心声系统的整体下压动画 */
+.custom-prompt-overlay.active .voice-layout-wrapper.content-mode {
+    transform: translateY(30px); /* 整个组件组往下移动 30px */
 }
 
 /* 🌟 恢复的日历长方形白卡片样式 */
@@ -1047,8 +1054,6 @@
 .cal-item.active { background: #111; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
 .cal-item.active .cal-eng, .cal-item.active .cal-num { color: #ffffff; }
 .cal-item.active .cal-line { background: #ffffff; }
-
-/* 🌟 全新：朋友圈帖子卡片 */
 
 /* 🌟 全新：十年后朋友圈帖子卡片 (纯净版) */
 .future-post-card {
@@ -1079,6 +1084,43 @@
     width: 16px; height: 16px; color: #b2b2b2;
 }
 
+/* ==========================================
+   🌟 引用消息系统样式
+========================================== */
+.chat-room-input-bar { position: relative; } /* 确保悬浮条定位基准 */
+
+.reply-bar-container {
+    position: absolute;
+    bottom: 100%; left: 0; width: 100%;
+    background: rgba(245, 245, 245, 0.95);
+    backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+    padding: 8px 15px; display: none; flex-direction: row;
+    align-items: center; justify-content: space-between;
+    border-radius: 18px 18px 0 0; z-index: 20;
+    box-sizing: border-box; box-shadow: 0 -2px 10px rgba(0,0,0,0.02);
+}
+.reply-bar-container.show { display: flex; animation: slideUpFade 0.2s ease-out; }
+@keyframes slideUpFade { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.reply-bar-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; border-left: 3px solid #111; padding-left: 8px; }
+.reply-bar-title { font-size: 11px; font-weight: 800; color: #333; margin-bottom: 2px; }
+.reply-bar-text { font-size: 10px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.reply-close-btn { font-size: 18px; color: #999; cursor: pointer; padding: 0 5px; font-weight: 300; transition: color 0.2s; }
+.reply-close-btn:active { color: #333; }
+
+/* 引用消息堆叠布局 */
+.msg-stack { display: flex; flex-direction: column; max-width: 100%; }
+.preview-msg-row.right .msg-stack { align-items: flex-end; }
+.preview-msg-row.left .msg-stack { align-items: flex-start; }
+
+.reply-tiny-bubble {
+    font-size: 10px; color: #888; background-color: #f2f2f2;
+    padding: 4px 8px; border-radius: 8px; margin-bottom: 4px;
+    max-width: 100%; width: fit-content; line-height: 1.3; font-weight: 500;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    border: 1px solid rgba(0,0,0,0.02);
+}
+.preview-msg-row.right .reply-tiny-bubble { background-color: rgba(0,0,0,0.04); }
 
 /* ==========================================
    🌟 气泡长按菜单引擎 (高级磨砂浅灰玻璃)
@@ -1453,3 +1495,40 @@
     cursor: pointer; margin-left: 6px; font-weight: 700;
 }
 .recall-link:active { opacity: 0.6; }
+
+
+/* ==========================================
+   🌟 撤回消息窥探暗黑弹窗 (I WAS THINKING)
+========================================== */
+.recall-modal-box {
+    background: rgba(20, 20, 20, 0.95);
+    backdrop-filter: blur(25px) saturate(180%);
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    width: 280px;
+    border-radius: 20px;
+    padding: 30px 25px;
+    box-shadow: 0 10px 50px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.05);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(255,255,255,0.08);
+    transform: scale(0.9); opacity: 0;
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.custom-prompt-overlay.active .recall-modal-box { transform: scale(1); opacity: 1; }
+
+.glow-title {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px; font-weight: 900; letter-spacing: 4px;
+    color: #ffffff; text-align: center; margin-bottom: 25px;
+    text-transform: uppercase;
+    animation: neon-flow 2s ease-in-out infinite alternate;
+}
+@keyframes neon-flow {
+    0% { text-shadow: 0 0 2px rgba(255,255,255,0.8), 0 0 8px rgba(255,255,255,0.6), 0 0 15px rgba(200,220,255,0.3); }
+    100% { text-shadow: 0 0 5px rgba(255,255,255,1), 0 0 15px rgba(255,255,255,0.8), 0 0 25px rgba(150,200,255,0.5), 0 0 35px rgba(150,200,255,0.4); }
+}
+
+.recall-section { display: flex; flex-direction: column; margin-bottom: 18px; }
+.recall-label { font-size: 10px; font-weight: 800; color: #777; letter-spacing: 1.5px; margin-bottom: 6px; text-transform: uppercase; }
+.recall-text { font-size: 13px; color: #eee; line-height: 1.6; text-align: justify; font-weight: 500; }
+.recall-mood { font-size: 26px; color: #fff; text-align: center; margin-top: 5px; font-weight: bold; }
