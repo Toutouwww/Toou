@@ -369,7 +369,6 @@
                     <div class="screen-tab" id="tab-moments"><div class="screen-header">朋友圈</div><div class="screen-body">待开发</div></div>
                     <div class="screen-tab" id="tab-mailbox"><div class="screen-header">匿名邮箱</div><div class="screen-body">待开发</div></div>
                     <div class="screen-tab" id="tab-tbd2"><div class="screen-header">页面 5</div><div class="screen-body">待开发</div></div>
-                    <div class="screen-tab" id="tab-settings"><div class="screen-header">设置</div><div class="screen-body">待开发</div></div>
                     
                     <!-- 🚀 新建单人专属系统弹窗 (被约束在手机壳内) -->
                     <div class="wb-sheet-overlay" id="nc-sheet-overlay" onclick="closeNewContactSheet()" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); z-index: 200;"></div>
@@ -458,6 +457,63 @@
                         </div>
                     </div>
                 </div> <!-- 结束 phone-frame-wrapper -->
+
+                <!-- 🌟 【主页 5：设置页 (脱离手机壳，icity日记风)】 -->
+                <div class="screen-tab" id="tab-settings">
+                    <!-- 顶部 icity 标识 -->
+                    <div class="icity-header">
+                        <span class="icity-eng">icity</span><span class="icity-dot">·</span><span class="icity-chn">我的日记</span>
+                    </div>
+                    
+                    <!-- 内容区：日记排版 -->
+                    <div class="icity-body">
+                        <!-- icity 日记帖子大长方形卡片 -->
+                        <div class="icity-post-card">
+                            <div class="icity-post-header">
+                                <img src="https://i.pinimg.com/564x/bd/d9/39/bdd9392233f07a78c005b63001859942.jpg" class="icity-avatar">
+                                <div class="icity-user-info">
+                                    <div class="icity-nickname">Toutou</div>
+                                    <div class="icity-email">toutou@icity.com</div>
+                                </div>
+                            </div>
+                            
+                            <div class="icity-post-content">
+                                欢迎来到控制中心。<br><br>
+                                在这里，没有繁杂的参数和冰冷的开关，只有属于你的一方小天地。所有的故事与设定，都像日记一样被妥善安放。<br><br>
+                                当你准备好后，我们就可以在这里添加更多的系统级功能。
+                            </div>
+                            
+                            <div class="icity-post-time">
+                                <svg class="icity-clock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                <span>2026-03-14 23:59</span>
+                            </div>
+
+                            <div class="icity-divider"></div>
+
+                            <div class="icity-post-actions">
+                                <span class="action-btn">喜欢</span>
+                                <span class="action-sep">/</span>
+                                <span class="action-btn">小纸条</span>
+                                <span class="action-sep">/</span>
+                                <span class="action-btn">存为图片</span>
+                                <span class="action-sep">/</span>
+                                <span class="action-btn more-btn">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; margin-top: 30px; font-size: 11px; color: #ccc; font-weight: 600; letter-spacing: 1px;">
+                            - 更多设定功能开发中 -
+                        </div>
+                    </div>
+                </div> <!-- 结束 tab-settings -->
+
+            </div> <!-- 结束 app-main-content -->
+
 
             </div> <!-- 结束 app-main-content -->
 

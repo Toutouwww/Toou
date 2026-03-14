@@ -39,7 +39,8 @@ function switchTab(tabId, btnElement) {
     document.getElementById(tabId).classList.add('active');
 
     const phoneWrapper = document.getElementById('phone-frame-wrapper');
-    if (tabId === 'tab-profile') {
+    // 🌟 核心修改：让设置页 (tab-settings) 也脱离手机壳的束缚
+    if (tabId === 'tab-profile' || tabId === 'tab-settings') {
         phoneWrapper.style.display = 'none';
     } else {
         phoneWrapper.style.display = 'flex';
