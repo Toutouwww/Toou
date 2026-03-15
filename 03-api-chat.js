@@ -1572,7 +1572,8 @@ function buildSystemPrompt(contact) {
     }
 
     // 🌟 语音格式提示约束
-    let voiceRule = `\n【发语音指令】\n如果遇到语境适合发语音的情况，或者你想用语音表达情绪（带着嗯、啊等语气词），请在文本中使用 [VOICE:你要说的纯文字] 格式。`;
+    let voiceRule = `\n【发语音指令】\n如果遇到语境适合发语音的情况，或者你想用语音表达情绪，请在文本中使用 [VOICE:你要说的文字] 格式。如果需要描写语气或伴随动作，请将其放在全角括号（）内，且描写的语气词严格控制在10个字以内。例如：[VOICE:（叹气）好吧，我教你。]`;
+
 
     // 🌟 全新发图能力约束
     let photoRule = `\n【发图能力】\n格式："[PHOTO:图片内容的描述]"场景：当你想分享此刻看到的景象、自拍或物品时使用。`;
@@ -1625,11 +1626,6 @@ ${transferRule}
 - 采用“白话书面语”风格。文风为烟火气十足的日常风格，跳脱自然、随性，口语化程度高。避免毫无用处的过渡性描写。
 - 反刻板印象与真实感：拒绝标签化：冷漠≠只会说“嗯/哦”（也可以是礼貌的疏离）；傲娇≠脸红结巴（也可以是极强的自尊心攻击性）；暴躁≠无脑狂怒（也可以是缺乏耐心的躁郁）。真实语境：模拟真实打字习惯，包括断句、非正式口语、偶尔的错别字。
 - 对话不一定要讲述信息，但一定要体现个性。合理运用潜台词技巧（如受了重伤还装没事，然后突然倒下）。
-你可以参考以下情绪处理方式：
-低气压/生闷气/疲惫：回复极简、敷衍、意兴阑珊，甚至长时间不回（意念回复）。
-高亢/分享欲/高兴：话多、语速快、可能连续发送多条短消息（刷屏）、甚至出现逻辑跳跃。
-高智商/掌控者：通过反问、简短的肯定/否定、省略号或直接无视对方话题开启新话题来掌控节奏，而非通过怒吼。
-情绪失控：根据人设背景使用具有生活气息的粗口、阴阳怪气或直接冷暴力，严禁复读机式脏话。
 
 2. 反物化与尊重独立人格原则：
 - 严禁角色在对话上以物化 <User> 的方式表达占有欲（如“你是我的所有物”、“我的东西”）。
@@ -2760,26 +2756,31 @@ function executeRegenerate(msgId) {
             const deleteCount = endIndex - startIndex + 1;
             contact.messages.splice(startIndex, deleteCount);
 
-            if (contact.messages.length > 0) {
-                const lastMsg = contact.messages[contact.messages.length - 1];
-                let signText = lastMsg.text.replace(/\n/g, ' ');
-                signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音：$1]');
-                signText = signText.replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, '[图片]');
-                signText = signText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
-                contact.sign = lastMsg.type === 'image' ? '[图片]' : (lastMsg.type === 'recall' ? '有条撤回，快来看' : signText);
-                contact.time = lastMsg.time;
-            } else {
+                if (contact.messages.length > 0) {
+                    const lastMsg = contact.messages[contact.messages.length - 1];
+                    let signText = lastMsg.text.replace(/\n/g, ' ');
+                    signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音：$1]');
+                    signText = signText.replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, '[图片]');
+                    signText = signText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
+                    contact.sign = lastMsg.type === 'image' ? '[图片]' : (lastMsg.type === 'recall' ? '有条撤回，快来看' : signText);
+                    contact.time = lastMsg.time;
+                } else {
+                    contact.sign = "";
+                }
 
+                // 🌟 核心修复：连带清除旧的心声状态，确保 AI 重新生成，同时刷新 UI
+                if (contact.innerVoice) {
+                    contact.innerVoice.thought = "心声重置与连接中...";
+                    contact.innerVoice.location = "未知";
+                    contact.innerVoice.action = "等待中";
+                }
 
-                contact.sign = "";
-            }
-
-            saveToDB('contacts_data', JSON.stringify(contactsList));
-            openChatRoom(currentChatContactId); 
-            
-            setTimeout(() => {
-                triggerAiReply();
-            }, 300);
+                saveToDB('contacts_data', JSON.stringify(contactsList));
+                openChatRoom(currentChatContactId); 
+                
+                setTimeout(() => {
+                    triggerAiReply();
+                }, 300);
         }
     }
 }
