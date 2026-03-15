@@ -558,10 +558,11 @@ function openChatRoom(contactId) {
 
                 // 🌟 拦截转账类型的消息并强制接管渲染
                 if (msg.type === 'transfer') {
-                    let statusStr = msg.status === 'received' ? '已被接收' : (msg.status === 'refunded' ? '已被退还' : '待对方确认');
+                    let statusStr = msg.status === 'received' ? '已收款' : (msg.status === 'refunded' ? '已被退还' : '待对方确认');
                     if (msg.sender === 'char') {
                         statusStr = msg.status === 'received' ? '已收款' : (msg.status === 'refunded' ? '已退还' : '请收款');
                     }
+
 
                     let transferHtml = `
                     <div class="msg-stack">
@@ -1838,12 +1839,16 @@ function handleAiResponse(replyText, contact) {
             });
             text = text.replace(transferMatch[0], '').trim();
             needsReRender = true;
-            if (!text) return; // 如果这行只有转账指令，没有普通文字，就跳过常规气泡渲染
         }
+
+        // 🌟 核心修复：清理前后空格，如果此时气泡被提取完指令后只剩下空壳，必须直接拦截并 return，防止气泡残留！
+        text = text.trim();
         
         if (needsReRender) {
             setTimeout(() => openChatRoom(currentChatContactId), 100);
         }
+        
+        if (!text) return; 
 
         let aiReplyCtx = null;
         let replyMatch = text.match(/\[\s*(?:REPLY|回复|引用)\s*[:：]\s*([\s\S]+?)\]/i);
@@ -2194,11 +2199,18 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                     });
                     text = text.replace(transferMatch[0], '').trim();
                     needsReRender = true;
-                    if (!text && row) { row.remove(); return; } // 如果只有转账没有文字，删天空行
                 }
+                
+                // 🌟 核心修复：不论是处理转账指令还是收账指令，只要文字空了，统一在此处拦截销毁空 DOM 行！
+                text = text.trim();
                 
                 if (needsReRender) {
                     setTimeout(() => openChatRoom(currentChatContactId), 100);
+                }
+
+                if (!text) {
+                    if (row) row.remove();
+                    return; 
                 }
 
                 let aiReplyCtx = null;
