@@ -1955,3 +1955,101 @@
 /* 🌟 让文字图片强制向双方头像方向靠近 3px */
 .preview-msg-row.right .photo-msg-wrapper { margin-right: -6px; }
 .preview-msg-row.left .photo-msg-wrapper { margin-left: -6px; }
+
+/* ==========================================
+   🌟 错误提示持久化样式
+========================================== */
+.toast-msg.error {
+    background: rgba(255, 59, 48, 0.95);
+    box-shadow: 0 8px 25px rgba(255, 59, 48, 0.3);
+    pointer-events: auto; /* 允许点击穿透处理 */
+    cursor: pointer;
+}
+
+/* ==========================================
+   🌟 全新转账卡片专属样式 (极简内凹白黑质感)
+========================================== */
+.transfer-msg-wrapper {
+    position: relative; width: 210px; border-radius: 18px; padding: 14px 16px;
+    margin: 2px 4px; display: flex; flex-direction: column; gap: 8px;
+    cursor: pointer; user-select: none; -webkit-touch-callout: none;
+    transition: transform 0.2s, filter 0.2s; overflow: hidden;
+}
+
+/* 🌟 用户发出的转账 (纯黑高级风) */
+.preview-msg-row.right .transfer-msg-wrapper {
+    background: #111111;
+    box-shadow: none; /* 彻底去除阴影 */
+    border: 1px solid #222;
+}
+.preview-msg-row.right .transfer-icon-circle { background: rgba(255,255,255,0.1); }
+.preview-msg-row.right .transfer-icon-circle svg { color: #fff; }
+.preview-msg-row.right .transfer-amount { color: #fff; }
+.preview-msg-row.right .transfer-status { color: #aaa; }
+
+/* 🌟 角色发出的转账 (纯白清透风) */
+.preview-msg-row.left .transfer-msg-wrapper {
+    background: #ffffff;
+    box-shadow: none; /* 彻底去除阴影 */
+    border: 1px solid rgba(0,0,0,0.04);
+}
+.preview-msg-row.left .transfer-icon-circle { background: #f0f0f0; }
+.preview-msg-row.left .transfer-icon-circle svg { color: #333; }
+.preview-msg-row.left .transfer-amount { color: #111; }
+.preview-msg-row.left .transfer-status { color: #888; }
+
+/* 金额与图标区域 */
+.transfer-top-row { display: flex; align-items: center; gap: 12px; }
+.transfer-icon-circle {
+    width: 38px; height: 38px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 2px 2px 5px rgba(255,255,255,0.6);
+}
+.transfer-info-col { display: flex; flex-direction: column; }
+.transfer-amount { font-size: 18px; font-weight: 800; font-family: -apple-system, sans-serif; letter-spacing: 0.5px;}
+.transfer-status { font-size: 11px; font-weight: 600; opacity: 0.8; margin-top: 2px;}
+
+/* 🌟 底部备注文本基础颜色 */
+.transfer-note-text { font-size: 10px; margin-top: 4px; border-top: 1px dashed rgba(128,128,128,0.2); padding-top: 6px; }
+.preview-msg-row.right .transfer-note-text { color: #888; }
+.preview-msg-row.left .transfer-note-text { color: #aaa; }
+
+/* 🌟 已收款状态 (完全变为主白色/浅色毛玻璃) */
+.transfer-msg-wrapper.received {
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    box-shadow: none !important; /* 彻底去除阴影 */
+    border: 1px solid rgba(0,0,0,0.05) !important;
+}
+.transfer-msg-wrapper.received .transfer-icon-circle { background: #f5f5f5 !important; box-shadow: none; }
+.transfer-msg-wrapper.received .transfer-icon-circle svg { color: #666 !important; }
+.transfer-msg-wrapper.received .transfer-amount { color: #111 !important; }
+.transfer-msg-wrapper.received .transfer-status { color: #888 !important; }
+.transfer-msg-wrapper.received .transfer-note-text { color: #aaa !important; border-top-color: rgba(0,0,0,0.05); }
+
+/* 🌟 拒绝/退回状态 (保留原有的色彩风格，降低透明度表示失效) */
+.transfer-msg-wrapper.refunded {
+    opacity: 0.65;
+    box-shadow: none !important;
+}
+
+.transfer-msg-wrapper:active { transform: scale(0.96); filter: brightness(0.95); }
+
+
+/* ==========================================
+   🌟 转账系统：干掉输入框自带的上下箭头与外发光
+========================================== */
+#transfer-amount::-webkit-outer-spin-button,
+#transfer-amount::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+}
+#transfer-amount[type=number] {
+    -moz-appearance: textfield;
+}
+#transfer-amount:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+

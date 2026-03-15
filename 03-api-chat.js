@@ -152,7 +152,7 @@ async function fetchModelList() {
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
             const msg = err.error?.message || err.message || response.statusText || "请求失败，请检查令牌或网络状态";
-            showToast(`API报错: ${msg}`);
+            showErrorToast("API报错: " + msg);
             btn.innerText = oldText; return;
         }
         
@@ -163,9 +163,10 @@ async function fetchModelList() {
         } else {
             showToast("错误: 接口返回数据不包含模型列表");
         }
-    } catch (e) { showToast("网络请求失败: " + e.message); }
+    } catch (e) { showErrorToast("网络请求失败: " + e.message); }
     btn.innerText = oldText;
 }
+
 
 function showModelSelectModal(models) {
     const container = document.getElementById('modelListContent');
@@ -541,8 +542,40 @@ function openChatRoom(contactId) {
                     continue; 
                 }
 
+                // 🌟 拦截转账类型的消息并强制接管渲染
+                if (msg.type === 'transfer') {
+                    let statusStr = msg.status === 'received' ? '已被接收' : (msg.status === 'refunded' ? '已被退还' : '待对方确认');
+                    if (msg.sender === 'char') {
+                        statusStr = msg.status === 'received' ? '已收款' : (msg.status === 'refunded' ? '已退还' : '请收款');
+                    }
+
+                    let transferHtml = `
+                    <div class="msg-stack">
+                        <div class="transfer-msg-wrapper ${msg.status}" onclick="handleTransferClick('${msg.id}')">
+                            <div class="transfer-top-row">
+                                <div class="transfer-icon-circle">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+                                </div>
+                                <div class="transfer-info-col">
+                                    <span class="transfer-amount">¥${msg.amount}</span>
+                                    <span class="transfer-status">${statusStr}</span>
+                                </div>
+                            </div>
+                            <div class="transfer-note-text">${msg.note || '转账'}</div>
+                        </div>
+                    </div>`;
+
+
+                    if (msg.sender === 'user') {
+                        htmlStr += `<div class="preview-msg-row right" id="row-${msg.id}" onclick="handleMsgClickInMultiMode('${msg.id}', this)" ${touchEvents}><div class="msg-checkbox"></div>${transferHtml}<img src="${myAvatar}" class="preview-avatar" onclick="event.stopPropagation(); handleAvatarDoubleTap('${msg.id}')" style="cursor: pointer;"></div>`;
+                    } else {
+                        htmlStr += `<div class="preview-msg-row left" id="row-${msg.id}" onclick="handleMsgClickInMultiMode('${msg.id}', this)" ${touchEvents}><img src="${charAvatar}" class="preview-avatar">${transferHtml}<div class="msg-checkbox"></div></div>`;
+                    }
+                    continue;
+                }
 
                 let replyBubbleHtml = ''; let replyInBubbleHtml = '';
+
                 if (msg.replyCtx) {
                     let shortContent = msg.replyCtx.content || '';
                     if (shortContent.length > 40) shortContent = shortContent.slice(0, 40) + '...';
@@ -751,6 +784,20 @@ function openChatSettings() {
     } else {
         setTransMode('show');
     }
+    // 🌟 十年后概率回显
+    if(contact.futureRateEnabled) {
+        document.getElementById('cs-futureToggleSwitch').classList.add('active');
+        document.getElementById('cs-future-rate-config').style.display = 'block';
+    } else {
+        document.getElementById('cs-futureToggleSwitch').classList.remove('active');
+        document.getElementById('cs-future-rate-config').style.display = 'none';
+    }
+    
+    let defaultCloseRate = contact.futureCloseRate !== undefined ? contact.futureCloseRate : 50;
+    document.getElementById('slider-future-rate').value = defaultCloseRate;
+    document.getElementById('val-future-close').innerText = defaultCloseRate;
+    document.getElementById('val-future-far').innerText = 100 - defaultCloseRate;
+
 
 
     csSelectedGroup = contact.group || '未分组';
@@ -777,6 +824,27 @@ function openChatSettings() {
 function closeChatSettings() {
     document.getElementById('chatSettingsScreen').classList.remove('active');
 }
+
+// 🌟 十年后心声设定面板开关与数值联动
+function toggleCsFutureRate() {
+    const sw = document.getElementById('cs-futureToggleSwitch');
+    const configPanel = document.getElementById('cs-future-rate-config');
+    sw.classList.toggle('active');
+    
+    if (sw.classList.contains('active')) {
+        configPanel.style.display = 'block';
+    } else {
+        configPanel.style.display = 'none';
+    }
+}
+
+function updateFutureRateVal(slider) {
+    const closeVal = parseInt(slider.value);
+    const farVal = 100 - closeVal;
+    document.getElementById('val-future-close').innerText = closeVal;
+    document.getElementById('val-future-far').innerText = farVal;
+}
+
 
 // 🌟 翻译开关控制 (联动手风琴面板)
 function toggleCsTranslate() {
@@ -867,6 +935,10 @@ function saveChatSettings() {
     contactsList[contactIndex].transFrom = document.getElementById('cs-trans-from').value.trim();
     contactsList[contactIndex].transTo = document.getElementById('cs-trans-to').value.trim();
     contactsList[contactIndex].transDisplayMode = document.getElementById('trans-mode-hide').classList.contains('active') ? 'hide' : 'show';
+    // 🌟 保存十年后概率状态
+    contactsList[contactIndex].futureRateEnabled = document.getElementById('cs-futureToggleSwitch').classList.contains('active');
+    contactsList[contactIndex].futureCloseRate = parseInt(document.getElementById('slider-future-rate').value);
+
 
 
     contactsList[contactIndex].details = {
@@ -1485,6 +1557,18 @@ function buildSystemPrompt(contact) {
     // 🌟 全新发图能力约束
     let photoRule = `\n【发图能力】\n格式："[PHOTO:图片内容的描述]"场景：当你想分享此刻看到的景象、自拍或物品时使用。`;
 
+    // 🌟 转账能力
+    let transferRule = `\n【转账与红包能力】\n如果你想主动给用户转账或发红包（例如：表达心意、还钱、安慰、恋爱期日常发等情况），请在文本中单独包含指令：[TRANSFER:金额:备注]（例如：[TRANSFER:520:拿去买糖吃] 或 [TRANSFER:66.66:祝你顺利]）。注意金额必须是纯数字。`;
+
+    const pendingTransfers = contact.messages ? contact.messages.filter(m => m.type === 'transfer' && m.sender === 'user' && m.status === 'pending') : [];
+    if (pendingTransfers.length > 0) {
+        transferRule += `\n\n【待处理事项 - 收到转账】：\n你收到了用户的转账，目前处于"待确认"状态，请在本次回复中决定是收下还是退还。\n待处理列表：`;
+        pendingTransfers.forEach(pt => {
+            transferRule += `\n- 账单ID: ${pt.id}, 金额: ¥${pt.amount}, 备注: ${pt.note}`;
+        });
+        transferRule += `\n请务必在回复文本中插入以下指令来执行操作：\n- 收下转账：[TRANSFER_OP:${pendingTransfers[0].id}:RECEIVE]\n- 退还转账：[TRANSFER_OP:${pendingTransfers[0].id}:REFUND]\n注意：指令必须且只能二选一。`;
+    }
+
     // 🌟 翻译协议判断 (读取用户自定义的语言选项)
     let translateProtocol = "";
     if (contact.autoTranslate) {
@@ -1493,10 +1577,19 @@ function buildSystemPrompt(contact) {
         translateProtocol = `\n\n【⚠️系统最高优先级指令：双语翻译协议】\n用户已强制开启实时翻译模式。你的每一次正常说话聊天内容，必须且只能遵循以下格式进行拼装：\n【${tFrom}】原文内容${TRANS_SPLIT}【${tTo}】翻译内容\n\n❌ 严禁将原文和翻译拆分成两个气泡！\n❌ 严禁只发原文不带翻译，或只发翻译不带原文。\n✅ 标准输出样例：I miss you so much.${TRANS_SPLIT}我好想你。`;
     }
 
+    // 💡 动态读取你在设置页自定义的概率
+    let closeRate = 50;
+    let farRate = 50;
+    if (contact.futureRateEnabled && contact.futureCloseRate !== undefined) {
+        closeRate = parseInt(contact.futureCloseRate);
+        farRate = 100 - closeRate;
+    }
+
     return `你需要扮演 {char}，模拟真实生活中的聊天软件来回复我 {user}。严禁复述、扩写{user} 的话！
 ${stickerRule}
 ${voiceRule}
 ${photoRule}
+${transferRule}
 
 【高级交互指令 (引用回复)】
 如果你需要针对我很久之前的一句话进行明确的反驳或澄清，可以在你要说的那句话开头加入引用指令：[REPLY:我曾经说过的原话]。
@@ -1531,15 +1624,14 @@ ${photoRule}
 4. 标点符号与撤回格式：
 - 必须正常且正确地使用逗号（，），严禁使用空格代替逗号作为停顿！至于句号（。）则可有可无，完全取决于你当前的说话语气与习惯。
 - 作为真实聊天软件，对方会撤回消息，你作为角色也同样拥有撤回消息的能力。如果你觉得刚才说的话不合适想要反悔，请在一个独立气泡中发送格式 [RECALL:撤回的具体内容|撤回的原因|此时的心情颜文字]。
-(例如：[RECALL:你今天真好看|觉得太直接了有点害羞|(*/ω＼*)])，系统会自动将其转换成撤回状态。
+(例如：[RECALL:你今天真好看|觉得太直接了有点害羞|(*/ω＼*)])，系统会自动将其转换成撤回状态。注意：严禁连续多轮回复都撤回。
 
 【最终输出格式严格协议】
 严禁返回纯文本，严禁包含任何解释性文字。
 原则：模拟真实人类聊天的气泡发送习惯，使用 || 作为唯一的气泡分割符。
-- 【平衡与真实感】：严禁把好几句完整的话塞进同一个大段落气泡里，显得极其臃肿像写小作文；但也绝对禁止每次都把一句没说完的话强行拆碎成多个气泡！
-- 【分割时机】：在“话题转换”、“明显语气停顿”或“一句话完整说完”时强制性的必须使用 || 换气泡。做到错落有致，既不长篇大论堆砌，也不细碎刷屏，追求呼吸感。
+- 【严禁把好几句完整的话塞进同一个大段落气泡里，显得极其臃肿像写小作文；但也绝对禁止每次都把一句没说完的话强行拆碎成多个气泡！
+- 在“话题转换”、“明显语气停顿”或“一句话完整说完”时强制性的必须使用 || 换气泡。做到错落有致，既不长篇大论堆砌，也不细碎刷屏，追求呼吸感。
 记住，|| 是分割多条消息的唯一识别符，严禁使用普通的换行符充当气泡分割！${translateProtocol}
-
 
 最终提问：你已经读取所有提示词，确定会遵守吗？
 
@@ -1555,9 +1647,9 @@ ${wbStr}
 
     格式严格如下（必须放在整个回复的最末尾，包裹在 <voice> 标签内）：
     <voice>
-    <location>角色当前所处的具体地点（如：办公室 / 被窝里）</location>
-    <action>角色当前正在做的小动作（如：烦躁地咬着笔头 /盯着屏幕傻笑）- 严禁通过堆砌形容词或名词（如脸色、外貌、眼神、情绪等）来反应这是个什么样的人。必须通过“他正在做什么”、“他会怎么做”、“他在想什么”来刻画。绝不在一句话里使用 2-4 个连续的修饰语（如“xx的、xx的”、“xx地、xx地”）。对类似“露出笑容”这种动作的表述必须极简化，绝不能超过 20 字。</action>
-    <thought>角色当前最真实、最私密的内心情感活动（20字以内，符合人设的腹诽或真实情绪）</thought>
+    <location>角色当前所处的具体地点</location>
+    <action>角色当前正在做的小动作</action>
+    <thought>角色当前最真实、最私密的内心情感活动</thought>
     <quiz>
     <question>根据历史聊天内容，出1个单项选择题，只能关于你们的共同经历。必须使用大白话、绝对符合角色性格语气来写！</question>
     <option1>选项A内容</option1>
@@ -1566,7 +1658,7 @@ ${wbStr}
     <answer>正确的选项序号，只填数字（如: 1 或 2 或 3）</answer>
     </quiz>
     <future>
-    <identity>十年后你现在的身份（50%概率是亲密关系如丈夫/交往五年的男友等，50%概率是疏远关系如分手后的前任/多年不联系的陌生人等，请严格执行50%的随机对半概率决定）</identity>
+    <identity>十年后你现在的身份（${closeRate}%概率是亲密关系如丈夫/交往五年的男友等，${farRate}%概率是淡淡的疏远关系如分手后的前任/多年不联系的陌生人等，请严格按照此概率比例决定）</identity>
     <content>想象一下：十年后的你收拾东西时，在一部破旧的老手机中偶然翻到了【当前这一轮聊天记录】。请写出你在十年后看到聊天记录时想对 user 说的话。字数30-60字左右，必须极具跨越十年。</content>
     </future>
     </voice>`;
@@ -1654,7 +1746,7 @@ async function triggerAiReply() {
 
     } catch (error) {
         titleEl.innerText = originalName;
-        showToast("API 错误: " + error.message);
+showErrorToast("API 错误: " + error.message); 
     }
 
     isAiReplying = false;
@@ -1702,8 +1794,39 @@ function handleAiResponse(replyText, contact) {
             return; 
         }
 
+        // 🌟 解析处理：AI 处理收到的转账
+        let needsReRender = false;
+        text = text.replace(/\[TRANSFER_OP:(msg_[0-9_]+):([A-Z]+)\]/gi, (match, id, action) => {
+            const targetMsg = contact.messages.find(m => m.id === id);
+            if (targetMsg && targetMsg.status === 'pending') {
+                targetMsg.status = (action.toUpperCase() === 'RECEIVE') ? 'received' : 'refunded';
+                needsReRender = true;
+            }
+            return '';
+        });
+
+        // 🌟 解析处理：AI 主动发起转账
+        let transferMatch = text.match(/\[\s*(?:TRANSFER|转账)\s*[:：]\s*([0-9.]+)\s*[:：]\s*(.*?)\]/i);
+        if (transferMatch) {
+            const amount = parseFloat(transferMatch[1]).toFixed(2);
+            const note = transferMatch[2].trim();
+            const tMsgId = 'msg_' + Date.now() + Math.random().toString().slice(2, 6);
+            contact.messages.push({
+                id: tMsgId, sender: 'char', type: 'transfer', amount: amount, note: note, status: 'pending',
+                time: timeStr, text: `[转账] ¥${amount}`
+            });
+            text = text.replace(transferMatch[0], '').trim();
+            needsReRender = true;
+            if (!text) return; // 如果这行只有转账指令，没有普通文字，就跳过常规气泡渲染
+        }
+        
+        if (needsReRender) {
+            setTimeout(() => openChatRoom(currentChatContactId), 100);
+        }
+
         let aiReplyCtx = null;
         let replyMatch = text.match(/\[\s*(?:REPLY|回复|引用)\s*[:：]\s*([\s\S]+?)\]/i);
+
         if (replyMatch) {
             let q = replyMatch[1].trim();
             if (q.length > 40) q = q.slice(0, 40) + '...';
@@ -2024,8 +2147,39 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                 const msgId = 'msg_' + Date.now() + '_' + idx;
                 const row = rowList[idx];
 
+                // 🌟 流式结束时解析：AI 处理收到的转账
+                let needsReRender = false;
+                text = text.replace(/\[TRANSFER_OP:(msg_[0-9_]+):([A-Z]+)\]/gi, (match, id, action) => {
+                    const targetMsg = contact.messages.find(m => m.id === id);
+                    if (targetMsg && targetMsg.status === 'pending') {
+                        targetMsg.status = (action.toUpperCase() === 'RECEIVE') ? 'received' : 'refunded';
+                        needsReRender = true;
+                    }
+                    return '';
+                });
+
+                // 🌟 流式结束时解析：AI 主动发起转账
+                let transferMatch = text.match(/\[\s*(?:TRANSFER|转账)\s*[:：]\s*([0-9.]+)\s*[:：]\s*(.*?)\]/i);
+                if (transferMatch) {
+                    const amount = parseFloat(transferMatch[1]).toFixed(2);
+                    const note = transferMatch[2].trim();
+                    const tMsgId = 'msg_' + Date.now() + Math.random().toString().slice(2, 6);
+                    contact.messages.push({
+                        id: tMsgId, sender: 'char', type: 'transfer', amount: amount, note: note, status: 'pending',
+                        time: timeStr, text: `[转账] ¥${amount}`
+                    });
+                    text = text.replace(transferMatch[0], '').trim();
+                    needsReRender = true;
+                    if (!text && row) { row.remove(); return; } // 如果只有转账没有文字，删天空行
+                }
+                
+                if (needsReRender) {
+                    setTimeout(() => openChatRoom(currentChatContactId), 100);
+                }
+
                 let aiReplyCtx = null;
                 if (row && row.dataset.replyName) {
+
                     aiReplyCtx = { name: row.dataset.replyName, content: row.dataset.replyContent };
                     text = text.replace(/\[\s*(?:REPLY|回复|引用)\s*[:：]\s*([\s\S]+?)\]/gi, '').trim();
                 } else {
@@ -2200,7 +2354,7 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
     } catch (error) {
         networkDone = true;
         titleEl.innerText = originalName;
-        showToast("API 错误: " + error.message);
+showErrorToast("API 错误: " + error.message); 
     }
 }
 
@@ -3544,3 +3698,110 @@ window.closePhotoDesc = function() {
         overlay.classList.remove('active');
     }
 };
+
+// ==========================================
+// 🌟 资金转账系统底层核心引擎
+// ==========================================
+
+window.openTransferModal = function() {
+    closeChatPlusMenu();
+    document.getElementById('transfer-amount').value = '';
+    document.getElementById('transfer-note').value = '';
+    document.getElementById('transfer-input-overlay').classList.add('active');
+    setTimeout(() => document.getElementById('transfer-amount').focus(), 100);
+};
+
+window.closeTransferModal = function() {
+    document.getElementById('transfer-input-overlay').classList.remove('active');
+    document.getElementById('transfer-action-overlay').classList.remove('active');
+};
+
+window.confirmSendTransfer = function() {
+    const amountVal = document.getElementById('transfer-amount').value;
+    const noteVal = document.getElementById('transfer-note').value.trim() || "转账给你";
+    
+    if (!amountVal || parseFloat(amountVal) <= 0) {
+        showErrorToast("请输入正确的转账金额");
+        return;
+    }
+
+    if (!currentChatContactId) return;
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    if (!contact) return;
+
+    const amountFixed = parseFloat(amountVal).toFixed(2);
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const msgId = 'msg_' + Date.now();
+
+    const msg = {
+        id: msgId, type: 'transfer', sender: 'user', time: timeStr,
+        amount: amountFixed, note: noteVal, status: 'pending', text: `[转账] ¥${amountFixed}` 
+    };
+
+    if (!contact.messages) contact.messages = [];
+    contact.messages.push(msg);
+    
+    contact.sign = `[转账] ¥${amountFixed}`;
+    contact.time = timeStr;
+    saveToDB('contacts_data', JSON.stringify(contactsList));
+    
+    closeTransferModal();
+    openChatRoom(currentChatContactId);
+    renderMsgList();
+};
+
+let currentOperatingTransferId = null;
+
+window.handleTransferClick = function(msgId) {
+    if (isMultiSelectMode) return;
+    if (!currentChatContactId) return;
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    if (!contact) return;
+    
+    const msg = contact.messages.find(m => m.id === msgId);
+    if (!msg) return;
+
+    // 我发出去的
+    if (msg.sender === 'user') {
+        let statusStr = "等待对方确认";
+        if (msg.status === 'received') statusStr = "对方已收款";
+        if (msg.status === 'refunded') statusStr = "已被退还";
+        showToast(`当前状态：${statusStr}`);
+        return;
+    }
+
+    // AI发给我的
+    if (msg.sender === 'char') {
+        if (msg.status !== 'pending') {
+            showToast(`该转账${msg.status === 'received' ? '已收款' : '已退还'}`);
+            return;
+        }
+        
+        currentOperatingTransferId = msgId;
+        document.getElementById('transfer-action-title').innerText = `收到 ${contact.realName || contact.name} 的转账`;
+        document.getElementById('transfer-action-amount').innerText = msg.amount;
+        document.getElementById('transfer-action-note').innerText = msg.note || "转账";
+        document.getElementById('transfer-action-overlay').classList.add('active');
+    }
+};
+
+window.handleTransferDecision = function(action) {
+    if (!currentOperatingTransferId || !currentChatContactId) return;
+    
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    const msg = contact.messages.find(m => m.id === currentOperatingTransferId);
+    
+    if (msg && msg.status === 'pending') {
+        msg.status = action === 'receive' ? 'received' : 'refunded';
+        saveToDB('contacts_data', JSON.stringify(contactsList));
+        openChatRoom(currentChatContactId);
+        
+        const actStr = action === 'receive' ? '收下' : '退还';
+        showToast(`已${actStr}转账`);
+    }
+    
+    closeTransferModal();
+    currentOperatingTransferId = null;
+};
+

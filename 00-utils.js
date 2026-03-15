@@ -130,3 +130,25 @@ function getZodiacSign(day, month) {
     if ((month == 12 && day >= 22) || (month == 1 && day <= 19)) return "摩羯座";
     return "-";
 }
+
+// 🌟 错误或警告专用的持久化 Toast 弹窗 (点击屏幕任意处关闭)
+function showErrorToast(msg) {
+    let toast = document.getElementById('errorToast');
+    if(!toast) {
+        toast = document.createElement('div');
+        toast.id = 'errorToast';
+        toast.className = 'toast-msg error';
+        document.body.appendChild(toast);
+    }
+    toast.innerText = msg;
+    toast.classList.add('show');
+    
+    const dismiss = () => {
+        toast.classList.remove('show');
+        document.removeEventListener('click', dismiss);
+    };
+    // 延迟绑定，防止当前的点击事件立刻触发关闭
+    setTimeout(() => {
+        document.addEventListener('click', dismiss);
+    }, 100);
+}
