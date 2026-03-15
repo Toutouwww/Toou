@@ -17,23 +17,22 @@ function generatePhotoHtml(content, charName) {
             </div>`;
 }
 
-// 🌟 【全新动态声波渲染引擎】：智能计算宽度与波浪线数量
-function generateVoiceHtml(content, isActive = false) {
-
+// 🌟 【全新动态声波渲染引擎】：支持音频绑定
+function generateVoiceHtml(content, isActive = false, audio64 = null) {
     let vDuration = Math.min(60, Math.max(1, Math.ceil(content.length / 3)));
-    let widthPx = Math.min(200, 60 + vDuration * 2.5); // 基础长度 60px，最长 200px
-    
-    // 智能计算能放下多少根波浪线 (每根线宽2.5px+间距2.5px=5px，给数字留出25px缓冲)
+    let widthPx = Math.min(200, 60 + vDuration * 2.5); 
     let maxLines = Math.floor((widthPx - 25) / 5); 
     let activeClass = isActive ? ' active' : '';
-    
     let linesHtml = '';
     for(let j=0; j<maxLines; j++){
-        let delay = (Math.random() * 0.8).toFixed(2); // 0~0.8秒随机错落跳动
+        let delay = (Math.random() * 0.8).toFixed(2);
         linesHtml += `<div class="voice-line${activeClass}" style="animation-delay: ${delay}s;"></div>`;
     }
     
-    return `<div class="voice-inner-container" onclick="toggleVoiceText(this, event)">
+    const audioAttr = audio64 ? `data-audio="${audio64}"` : '';
+    const contentEncoded = encodeURIComponent(content);
+    
+    return `<div class="voice-inner-container" data-voice-content="${contentEncoded}" ${audioAttr} onclick="toggleVoiceText(this, event)">
                 <div class="voice-main-row" style="width: ${widthPx}px; justify-content: space-between;">
                     <div class="voice-animate-icon">${linesHtml}</div>
                     <span class="voice-duration">${vDuration}"</span>
@@ -107,9 +106,14 @@ function getCurrentApiUIData() {
         freq: document.getElementById('slider-freq').value,
         pres: document.getElementById('slider-pres').value,
         topp: document.getElementById('slider-topp').value,
-        stream: document.getElementById('stream-toggle-btn').classList.contains('active')
+        stream: document.getElementById('stream-toggle-btn').classList.contains('active'),
+        mmGroupId: document.getElementById('api-mm-group-input') ? document.getElementById('api-mm-group-input').value.trim() : '',
+        mmApiKey: document.getElementById('api-mm-key-input') ? document.getElementById('api-mm-key-input').value.trim() : '',
+        mmModel: document.getElementById('api-mm-model-input') ? document.getElementById('api-mm-model-input').value.trim() : 'speech-01-240228',
+        mmSpeed: document.getElementById('slider-mm-speed') ? document.getElementById('slider-mm-speed').value : '1.0'
     };
 }
+
 
 function syncUIWithApiPlanData(data) {
     if(data.baseUrl !== undefined) document.getElementById('api-base-url-input').value = data.baseUrl;
@@ -121,10 +125,20 @@ function syncUIWithApiPlanData(data) {
     if(data.pres !== undefined) { document.getElementById('slider-pres').value = data.pres; updateSliderVal(document.getElementById('slider-pres'), 'val-pres'); }
     if(data.topp !== undefined) { document.getElementById('slider-topp').value = data.topp; updateSliderVal(document.getElementById('slider-topp'), 'val-topp'); }
     
+    if(document.getElementById('api-mm-group-input')) document.getElementById('api-mm-group-input').value = data.mmGroupId || '';
+    if(document.getElementById('api-mm-key-input')) document.getElementById('api-mm-key-input').value = data.mmApiKey || '';
+    if(document.getElementById('api-mm-model-input')) document.getElementById('api-mm-model-input').value = data.mmModel || 'speech-01-240228';
+    
+    if(data.mmSpeed !== undefined && document.getElementById('slider-mm-speed')) { 
+        document.getElementById('slider-mm-speed').value = data.mmSpeed; 
+        updateSliderVal(document.getElementById('slider-mm-speed'), 'val-mm-speed'); 
+    }
+
     const btn = document.getElementById('stream-toggle-btn');
     if(data.stream) btn.classList.add('active');
     else btn.classList.remove('active');
 }
+
 
 function toggleUrlMenu() { document.getElementById('urlDropdownMenu').classList.toggle('active'); }
 
@@ -609,9 +623,11 @@ function openChatRoom(contactId) {
                         return generatePhotoHtml(content, charName); 
                     });
 
-                    parsedText = parsedText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
-                        return generateVoiceHtml(content, true); 
-                    });
+            parsedText = parsedText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
+                const audio64 = (msg.audioMap && msg.audioMap[content]) ? msg.audioMap[content] : null;
+                return generateVoiceHtml(content, true, audio64); 
+            });
+
 
                     let hasStickerOrPhoto = false;
                     let checkRawText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, () => { hasStickerOrPhoto = true; return ''; })
@@ -756,6 +772,7 @@ function openChatSettings() {
     
     document.getElementById('cs-tag1').value = details.tag1 || '';
     document.getElementById('cs-secret-file').value = details.secretFile || '';
+
 
     if(details.secretMode) {
         document.getElementById('cs-secretToggleSwitch').classList.add('active');
@@ -929,6 +946,7 @@ function saveChatSettings() {
     contactsList[contactIndex].name = finalDisplayName; 
     contactsList[contactIndex].boundProfileId = tempBoundProfileId; 
     contactsList[contactIndex].group = csSelectedGroup; 
+
 
     // 🌟 保存翻译开关状态及设定的具体语种
     contactsList[contactIndex].autoTranslate = document.getElementById('cs-translateToggleSwitch').classList.contains('active');
@@ -1342,9 +1360,10 @@ function sendChatMessage() {
         return generatePhotoHtml(content, charName); 
     });
 
-    parsedText = parsedText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
-        return generateVoiceHtml(content, true); 
-    });
+            parsedText = parsedText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
+                const audio64 = (msg.audioMap && msg.audioMap[content]) ? msg.audioMap[content] : null;
+                return generateVoiceHtml(content, true, audio64); 
+            });
 
     let hasStickerOrPhoto = false;
     let checkRawText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, () => { hasStickerOrPhoto = true; return ''; })
@@ -1753,9 +1772,11 @@ showErrorToast("API 错误: " + error.message);
 
     const chatBody = document.getElementById('chatRoomBody');
     if (chatBody) {
-        setTimeout(() => {
-            chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
-        }, 50);
+    setTimeout(() => {
+        chatBody.scrollTop = chatBody.scrollHeight;
+    }, 50);
+
+
     }
 
     if(typeof checkAndTriggerAutoSummary === 'function') {
@@ -1855,9 +1876,10 @@ function handleAiResponse(replyText, contact) {
             return generatePhotoHtml(content, charName); 
         });
 
-        parsedText = parsedText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
-            return generateVoiceHtml(content, true); 
-        });
+            parsedText = parsedText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
+                const audio64 = (msg.audioMap && msg.audioMap[content]) ? msg.audioMap[content] : null;
+                return generateVoiceHtml(content, true, audio64); 
+            });
 
         let hasStickerOrPhoto = false;
         let checkRawText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, () => { hasStickerOrPhoto = true; return ''; })
@@ -1936,8 +1958,9 @@ function handleAiResponse(replyText, contact) {
     renderMsgList();
     
     setTimeout(() => {
-        chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+        chatBody.scrollTop = chatBody.scrollHeight;
     }, 50);
+
 }
 
 async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, originalName) {
@@ -1955,10 +1978,11 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
     function scrollToBottom() {
         if (scrollTimer) return;
         scrollTimer = setTimeout(() => {
-            chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+            chatBody.scrollTop = chatBody.scrollHeight; // 🌟 核心：无视动画瞬间锁死底部，绝杀一切抽搐
             scrollTimer = null;
-        }, 50);
+        }, 30);
     }
+
 
      let rowList = []; 
     function spawnBubble() {
@@ -2218,6 +2242,33 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                     if (transText) msgObj.transText = transText; 
                     if (aiReplyCtx) msgObj.replyCtx = aiReplyCtx;
                     contact.messages.push(msgObj);
+
+                    // 🌟 触发后台静默生成 MiniMax 真实语音 (全局绑定管理版)
+                    const voiceMatches = [...text.matchAll(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi)];
+                    if (voiceMatches.length > 0) {
+                        db.settings.get('mm_voice_bindings').then(data => {
+                            let bindings = data && data.value ? JSON.parse(data.value) : [];
+                            let charName = contact.realName || contact.name;
+                            let binding = bindings.find(b => b.charName === charName);
+                            
+                            // 只有在名单里且开关打开的状态下，才会触发真实请求
+                            if (binding && binding.enabled && binding.voiceId) {
+                                msgObj.audioMap = msgObj.audioMap || {};
+                                voiceMatches.forEach(async match => {
+                                    const content = match[1];
+                                    const audio64 = await fetchMiniMaxTTS(content, binding.voiceId);
+                                    if (audio64) {
+                                        msgObj.audioMap[content] = audio64;
+                                        saveToDB('contacts_data', JSON.stringify(contactsList));
+                                        const domEls = document.querySelectorAll(`[data-voice-content="${encodeURIComponent(content)}"]`);
+                                        domEls.forEach(el => el.setAttribute('data-audio', audio64));
+                                    }
+                                });
+                            }
+                        }).catch(()=>{});
+                    }
+
+
 
 
                     if (row) {
@@ -3589,6 +3640,13 @@ function toggleVoiceText(el, e) {
     if (e) e.stopPropagation();
     if (isMultiSelectMode) return;
     
+    // 🌟 新增：如果有真实音频，直接播放
+    const audioSrc = el.getAttribute('data-audio');
+    if (audioSrc) {
+        const audio = new Audio(audioSrc);
+        audio.play();
+    }
+
     const lines = el.querySelectorAll('.voice-line');
     lines.forEach(l => l.classList.add('active'));
     setTimeout(() => lines.forEach(l => l.classList.remove('active')), 800);
@@ -3596,6 +3654,7 @@ function toggleVoiceText(el, e) {
     const resultBox = el.querySelector('.voice-trans-result');
     if (resultBox) resultBox.classList.toggle('show');
 }
+
 
 // ==========================================
 // 🌟 文字图片发送与弹窗交互逻辑
@@ -3804,4 +3863,141 @@ window.handleTransferDecision = function(action) {
     closeTransferModal();
     currentOperatingTransferId = null;
 };
+
+
+// ==========================================
+// 🌟 MiniMax TTS 真实语音底层请求引擎
+// ==========================================
+async function fetchMiniMaxTTS(text, voiceId) {
+    if (!activeApiPlanId || apiPlans.length === 0) return null;
+    const apiConfig = apiPlans.find(p => p.id === activeApiPlanId)?.data;
+    if (!apiConfig || !apiConfig.mmGroupId || !apiConfig.mmApiKey || !voiceId) return null;
+
+    const url = `https://api.minimax.chat/v1/text_to_speech?GroupId=${apiConfig.mmGroupId}`;
+    try {
+        const reqModel = apiConfig.mmModel || "speech-01-240228";
+        const reqSpeed = parseFloat(apiConfig.mmSpeed || 1.0);
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${apiConfig.mmApiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ voice_id: voiceId, text: text, model: reqModel, speed: reqSpeed, vol: 1.0, pitch: 0 })
+        });
+        if (!response.ok) throw new Error("TTS API Error");
+        const blob = await response.blob();
+        return await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (e) {
+        console.error("MiniMax TTS 请求失败:", e);
+        return null;
+    }
+}
+
+// ==========================================
+// 🌟 MiniMax 音色绑定与启停管理系统
+// ==========================================
+let mmVoiceBindings = [];
+
+// 初始化加载大名单
+async function loadMmVoiceBindings() {
+    try {
+        const data = await db.settings.get('mm_voice_bindings');
+        if (data && data.value) mmVoiceBindings = JSON.parse(data.value);
+    } catch(e) {}
+}
+document.addEventListener('DOMContentLoaded', loadMmVoiceBindings);
+
+// 1. 点击“保存绑定” -> 选择要绑定的角色
+function openMmVoiceBindModal() {
+    const voiceId = document.getElementById('api-mm-voice-input').value.trim();
+    if (!voiceId) {
+        showErrorToast("请先在上方输入 Voice ID");
+        return;
+    }
+    
+    // 复用已有的角色选择界面
+    const list = document.getElementById('charSelectList'); 
+    list.innerHTML = '';
+    document.querySelector('#charSelectOverlay .custom-prompt-title').innerText = '请选择要绑定此音色的角色';
+    
+    const availableChars = [...new Set(contactsList.map(c => c.realName || c.name))].filter(n => n);
+    if (availableChars.length === 0) {
+        list.innerHTML = `<div style="text-align:center; padding: 20px 10px; color:#999; font-size:13px;">暂无角色，请去通讯录创建</div>`;
+    } else {
+        availableChars.forEach(char => {
+            const item = document.createElement('div');
+            item.className = 'model-item-btn'; 
+            item.innerText = char;
+            item.onclick = async () => {
+                await loadMmVoiceBindings();
+                let existing = mmVoiceBindings.find(b => b.charName === char);
+                if (existing) {
+                    existing.voiceId = voiceId;
+                    existing.enabled = true; // 重新绑定默认开启
+                } else {
+                    mmVoiceBindings.push({ charName: char, voiceId: voiceId, enabled: true });
+                }
+                saveToDB('mm_voice_bindings', JSON.stringify(mmVoiceBindings));
+                showToast(`已成功将音色绑定给 ${char}`);
+                closeCharSelectModal();
+                document.getElementById('api-mm-voice-input').value = ''; // 绑完清空输入框
+            };
+            list.appendChild(item);
+        });
+    }
+    document.getElementById('charSelectOverlay').classList.add('active');
+}
+
+// 2. 点击“管理” -> 弹出音色大名单控制台
+async function openMmVoiceManageModal() {
+    await loadMmVoiceBindings();
+    const list = document.getElementById('mm-voice-list');
+    list.innerHTML = '';
+    
+    if (mmVoiceBindings.length === 0) {
+        list.innerHTML = `<div style="text-align:center; color:#999; font-size:12px; padding:20px 0;">暂无绑定的角色音色</div>`;
+    } else {
+        mmVoiceBindings.forEach(b => {
+            const div = document.createElement('div');
+            div.style.cssText = "background: #f5f5f5; padding: 12px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee;";
+            div.innerHTML = `
+                <div style="display:flex; flex-direction:column; gap:4px; max-width: 140px;">
+                    <span style="font-size:14px; font-weight:800; color:#111; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${b.charName}</span>
+                    <span style="font-size:11px; color:#666; font-family:monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${b.voiceId}</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div class="secret-switch ${b.enabled ? 'active' : ''}" onclick="toggleMmVoiceStatus('${b.charName}')" style="box-shadow:none; width:36px; height:20px; border-radius:10px;">
+                        <div class="switch-knob" style="width:16px; height:16px;"></div>
+                    </div>
+                    <span style="color:#ff3b30; font-size:12px; font-weight:800; cursor:pointer; margin-left: 4px;" onclick="deleteMmVoiceBinding('${b.charName}')">删除</span>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
+    document.getElementById('mmVoiceManageOverlay').classList.add('active');
+}
+
+// 3. 黑白药丸状态切换
+async function toggleMmVoiceStatus(charName) {
+    let existing = mmVoiceBindings.find(b => b.charName === charName);
+    if (existing) {
+        existing.enabled = !existing.enabled;
+        await saveToDB('mm_voice_bindings', JSON.stringify(mmVoiceBindings));
+        openMmVoiceManageModal(); // 瞬间重绘刷新状态
+    }
+}
+
+// 4. 彻底删除绑定
+async function deleteMmVoiceBinding(charName) {
+    if (confirm(`确定要删除 [${charName}] 的音色绑定吗？\n删除后该角色将停止发送语音。`)) {
+        mmVoiceBindings = mmVoiceBindings.filter(b => b.charName !== charName);
+        await saveToDB('mm_voice_bindings', JSON.stringify(mmVoiceBindings));
+        openMmVoiceManageModal(); // 瞬间重绘
+    }
+}
 

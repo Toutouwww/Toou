@@ -673,6 +673,7 @@
                         </div>
                     </div>
 
+
                     <div class="settings-white-card">
                         <div class="detail-row-group">
                             <div class="detail-col-item"><div class="detail-label-stack"><span class="eng">Gender</span><span class="chn">/ 性别</span></div><input type="text" class="inline-detail-input" id="cs-gender" placeholder="-"></div>
@@ -910,6 +911,39 @@
                     <input type="range" class="api-range" id="slider-topp" min="0.0" max="1.0" step="0.05" value="0.9" oninput="updateSliderVal(this, 'val-topp')">
                 </div>
             </div>
+
+            <!-- 🌟 新增：MiniMax TTS 配置卡片 -->
+            <div class="api-card" style="padding-top: 15px; padding-bottom: 5px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                    <span style="font-size: 11px; font-weight: 800; color: #a0a0a0; letter-spacing: 1.5px; text-transform: uppercase;">MiniMax 配置</span>
+                </div>
+                <div class="api-input-group">
+                    <label>GROUP ID</label>
+                    <input type="text" class="api-input" id="api-mm-group-input" placeholder="输入账户 Group ID">
+                </div>
+                <div class="api-input-group">
+                    <label>API KEY</label>
+                    <input type="password" class="api-input" id="api-mm-key-input" placeholder="eyJh...">
+                </div>
+                <div class="api-input-group">
+                    <label>MODEL</label>
+                    <input type="text" class="api-input" id="api-mm-model-input" value="speech-01-240228" placeholder="默认: speech-01-240228">
+                </div>
+                <div class="api-slider-group">
+                    <div class="slider-header"><span class="slider-label">Speed (语速)</span><span class="slider-val" id="val-mm-speed">1.0</span></div>
+                    <input type="range" class="api-range" id="slider-mm-speed" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateSliderVal(this, 'val-mm-speed')">
+                </div>
+                <div class="api-input-group" style="margin-top: 5px;">
+                    <label>VOICE ID</label>
+                    <input type="text" class="api-input" id="api-mm-voice-input" placeholder="例如: female-shaonv">
+                </div>
+                <!-- 🌟 修复：去除了强加的黑色，恢复原生全局设置的浅灰文字质感 -->
+                <div style="display:flex; gap:12px; width:100%; margin-top: 15px; padding-bottom: 5px;">
+                    <div class="inset-btn" style="padding:12px 0;" onclick="openMmVoiceBindModal()">保存</div>
+                    <div class="inset-btn" style="padding:12px 0;" onclick="openMmVoiceManageModal()">管理</div>
+                </div>
+            </div>
+
 
             <div class="api-card" style="padding-top: 15px; padding-bottom: 5px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
@@ -1164,6 +1198,20 @@
             </div>
         </div>
     </div>
+
+    <!-- MiniMax 音色绑定管理大半屏弹窗 -->
+    <div class="custom-prompt-overlay" id="mmVoiceManageOverlay" style="z-index: 4500;">
+        <div class="custom-prompt-box" style="width: 320px; padding: 25px 20px; border-radius: 20px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);">
+            <div class="custom-prompt-title">音色绑定管理</div>
+            <div id="mm-voice-list" style="max-height: 320px; overflow-y: auto; width: 100%; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                <!-- JS 动态渲染绑定的角色列表 -->
+            </div>
+            <div class="custom-prompt-actions">
+                <div class="prompt-btn cancel" onclick="document.getElementById('mmVoiceManageOverlay').classList.remove('active')">关闭面板</div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- 黑色报错小弹窗 -->
     <div id="mind-black-toast" class="mind-black-toast"></div>
@@ -1516,6 +1564,7 @@
 
         </div>
     </div>
+
 
 
 </body>

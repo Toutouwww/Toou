@@ -1037,7 +1037,14 @@
     margin-top: calc(2vh - 110px); /* 🌟 修复：精准上移，回调到 -110px，防止顶破屏幕 */
     opacity: 0; transform: translateY(10px);
     transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    
+    /* 🌟 新增：限制最大高度并激活内部滚动条，超长心声与十年后卡片再多也能丝滑上下滑动 */
+    max-height: 85vh;
+    overflow-y: auto;
+    padding-bottom: 40px; 
+    -webkit-overflow-scrolling: touch;
 }
+.voice-layout-wrapper::-webkit-scrollbar { display: none; }
 
 
 
