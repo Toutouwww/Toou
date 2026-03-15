@@ -120,7 +120,7 @@ async function loadApiPlansData() {
                 id: 'api_plan_' + Date.now(),
                 name: '默认配置',
                 data: {
-                    baseUrl: 'https://api2.qiandao.mom/v1', apiKey: '', model: '[千岛-C Cli]gemini-3.1-pro-preview',
+                    baseUrl: 'https://api2.qiandao.mom/v1', apiKey: '', model: '[千岛-自营]gemini-3.1-pro-preview',
                     temp: '1.0', freq: '0.0', pres: '0.0', topp: '0.9', stream: false
                 }
             };
