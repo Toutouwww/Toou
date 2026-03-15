@@ -592,7 +592,9 @@ function openChatRoom(contactId) {
                         return `<span style="color:#aaa;font-size:12px;">[${sName}]</span>`;
                     });
 
-                    let isPureWidget = (hasStickerOrPhoto && checkRawText.trim() === '');
+                    // 🌟 核心脱壳防爆修复：无视换行符与隐形空格，强制剥离气泡外壳
+                    let isPureWidget = (hasStickerOrPhoto && checkRawText.replace(/<[^>]*>/g, '').trim() === '');
+
 
                     
                     let finalContentText = `<div class="msg-main-text" ${msg.transText ? `onclick="toggleTransDisplay('${msg.id}')"` : ''}>${parsedText}</div>${transHtml}`;
@@ -1275,7 +1277,9 @@ function sendChatMessage() {
     let hasStickerOrPhoto = false;
     let checkRawText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, () => { hasStickerOrPhoto = true; return ''; })
                                .replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, () => { hasStickerOrPhoto = true; return ''; });
-    let isPureWidget = (hasStickerOrPhoto && checkRawText.trim() === '');
+                    // 🌟 核心脱壳防爆修复：无视换行符与隐形空格，强制剥离气泡外壳
+                    let isPureWidget = (hasStickerOrPhoto && checkRawText.replace(/<[^>]*>/g, '').trim() === '');
+
 
     parsedText = parsedText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
         const sName = name.trim();
@@ -1476,12 +1480,10 @@ function buildSystemPrompt(contact) {
     }
 
     // 🌟 语音格式提示约束
-    let voiceRule = `\n【重要：发语音指令】\n如果遇到语境适合发语音的情况，或者你想用语音表达情绪（带着嗯、啊等语气词），请在文本中使用 [VOICE:你要说的纯文字] 格式。系统会自动把它转换成语音条发给用户。例如：[VOICE:哎呀，我刚刚出门太急了，你在哪儿呢？]`;
+    let voiceRule = `\n【发语音指令】\n如果遇到语境适合发语音的情况，或者你想用语音表达情绪（带着嗯、啊等语气词），请在文本中使用 [VOICE:你要说的纯文字] 格式。`;
 
     // 🌟 全新发图能力约束
-    let photoRule = `\n【发图能力】：
-    - 格式："[PHOTO:图片内容的描述]"
-    - 场景：当你想分享此刻看到的景象、自拍或物品时使用。`;
+    let photoRule = `\n【发图能力】\n格式："[PHOTO:图片内容的描述]"场景：当你想分享此刻看到的景象、自拍或物品时使用。`;
 
     // 🌟 翻译协议判断 (读取用户自定义的语言选项)
     let translateProtocol = "";
@@ -1737,7 +1739,9 @@ function handleAiResponse(replyText, contact) {
         let hasStickerOrPhoto = false;
         let checkRawText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, () => { hasStickerOrPhoto = true; return ''; })
                                    .replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, () => { hasStickerOrPhoto = true; return ''; });
-        let isPureWidget = (hasStickerOrPhoto && checkRawText.trim() === '');
+                    // 🌟 核心脱壳防爆修复：无视换行符与隐形空格，强制剥离气泡外壳
+                    let isPureWidget = (hasStickerOrPhoto && checkRawText.replace(/<[^>]*>/g, '').trim() === '');
+
 
         parsedText = parsedText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
             const sName = name.trim();

@@ -1950,3 +1950,8 @@
     text-shadow: none; /* 🌟 彻底去除文字阴影 */
     letter-spacing: 1px;
 }
+
+
+/* 🌟 让文字图片强制向双方头像方向靠近 3px */
+.preview-msg-row.right .photo-msg-wrapper { margin-right: -3px; }
+.preview-msg-row.left .photo-msg-wrapper { margin-left: -3px; }
