@@ -1988,12 +1988,17 @@
     border: 1px solid #222;
 }
 
+/* 🌟 核心修复：使用负边距强制让转账卡片分别向发出方的头像贴近 */
+.preview-msg-row.right .transfer-msg-wrapper { margin-right: -6px; }
+.preview-msg-row.left .transfer-msg-wrapper { margin-left: -6px; }
+
 .transfer-icon-circle { 
     width: 38px; height: 38px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     box-shadow: inset 2px 2px 5px rgba(255,255,255,0.6);
     background: rgba(255,255,255,0.1); 
 }
+
 .transfer-icon-circle svg { color: #fff; }
 .transfer-amount { color: #fff; font-size: 18px; font-weight: 800; font-family: -apple-system, sans-serif; letter-spacing: 0.5px;}
 .transfer-status { color: #aaa; font-size: 11px; font-weight: 600; opacity: 0.8; margin-top: 2px;}
