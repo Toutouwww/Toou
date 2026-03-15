@@ -1901,3 +1901,52 @@
 
 /* 🌟 翻转后，让波浪靠右显示，紧贴着时间数字 */
 .Toutou-TT.user .voice-animate-icon { justify-content: flex-end; }
+
+/* ==========================================
+   🌟 文字图片(PHOTO)系统专属高级样式 (极简清透毛玻璃版)
+========================================== */
+.photo-msg-wrapper {
+    position: relative;
+    width: 140px;
+    height: 140px; /* 🌟 强制变成1:1完美正方形 */
+    border-radius: 16px; /* 边缘更圆润，贴合iOS原生质感 */
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: none; /* 🌟 彻底剥除多余的阴影 */
+    margin: 2px 4px;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    transition: transform 0.2s, background 0.2s;
+    
+    /* 🌟 核心：接近白色的浅灰，配合强烈的毛玻璃背景虚化效果 */
+    background: rgba(248, 248, 248, 0.75); 
+    backdrop-filter: blur(20px) saturate(150%); 
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid rgba(0,0,0,0.03); /* 极细微的一圈描边勾勒出轮廓 */
+}
+.photo-msg-wrapper:active {
+    transform: scale(0.96);
+    background: rgba(235, 235, 235, 0.85); /* 按压时轻微变暗 */
+}
+.photo-base-img {
+    display: none; /* 🌟 彻底干掉底层的实体相纸图片，追求极致清爽 */
+}
+.photo-overlay-glass {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: transparent; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    text-align: center;
+}
+.photo-overlay-text {
+    font-size: 12px;
+    font-weight: 700;
+    color: #888888; /* 🌟 极简的高级浅灰色文字 */
+    line-height: 1.5;
+    text-shadow: none; /* 🌟 彻底去除文字阴影 */
+    letter-spacing: 1px;
+}

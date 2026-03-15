@@ -5,8 +5,21 @@
 let activeReplyContext = null; 
 const TRANS_SPLIT = "@@@TRANS@@@"; // 🌟 【翻译核心引擎】全局翻译分隔符
 
+// 🌟 【全新文字图片渲染引擎】
+function generatePhotoHtml(content, charName) {
+    const fixedImgUrl = "https://img.heliar.top/file/1767108859529_IMG_9793.jpeg"; 
+    const safeContent = content.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    return `<div class="photo-msg-wrapper" onclick="showPhotoDescription('${safeContent}', event)">
+                <img src="${fixedImgUrl}" class="photo-base-img">
+                <div class="photo-overlay-glass">
+                    <div class="photo-overlay-text">图片被 ${charName} 吃掉了呢。</div>
+                </div>
+            </div>`;
+}
+
 // 🌟 【全新动态声波渲染引擎】：智能计算宽度与波浪线数量
 function generateVoiceHtml(content, isActive = false) {
+
     let vDuration = Math.min(60, Math.max(1, Math.ceil(content.length / 3)));
     let widthPx = Math.min(200, 60 + vDuration * 2.5); // 基础长度 60px，最长 200px
     
@@ -557,24 +570,29 @@ function openChatRoom(contactId) {
                         </div>
                     </div>`;
                 } else {
-                    // 🌟 核心拦截语音格式
-        // 🌟 注入动态声波引擎
-        safeText = safeText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
-            return generateVoiceHtml(content, true); 
-        });
+                    let charName = contact.realName || contact.name || '某某';
 
+                    let parsedText = safeText.replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
+                        return generatePhotoHtml(content, charName); 
+                    });
 
-                    let hasSticker = false;
-                    let parsedText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
-                        hasSticker = true; const sName = name.trim();
+                    parsedText = parsedText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
+                        return generateVoiceHtml(content, true); 
+                    });
+
+                    let hasStickerOrPhoto = false;
+                    let checkRawText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, () => { hasStickerOrPhoto = true; return ''; })
+                                               .replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, () => { hasStickerOrPhoto = true; return ''; });
+
+                    parsedText = parsedText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
+                        const sName = name.trim();
                         let sticker = myStickers.find(s => s.name === sName) || myStickers.find(s => s.name.includes(sName));
-                        if (sticker) return `<img src="${sticker.src}" class="chat-sent-sticker">`;
-                        if (myStickers.length > 0) return `<img src="${myStickers[Math.floor(Math.random() * myStickers.length)].src}" class="chat-sent-sticker">`;
+                        if (sticker) return `<img src="${sticker.src}" class="chat-sent-sticker" style="margin: 2px 0;">`;
+                        if (myStickers.length > 0) return `<img src="${myStickers[Math.floor(Math.random() * myStickers.length)].src}" class="chat-sent-sticker" style="margin: 2px 0;">`;
                         return `<span style="color:#aaa;font-size:12px;">[${sName}]</span>`;
                     });
-                    
-                    // 🌟 修复：只允许纯表情包脱去气泡外壳，语音绝不能脱壳！
-                    let isPureWidget = (hasSticker && parsedText.replace(/<img[^>]*>/g, '').trim() === '');
+
+                    let isPureWidget = (hasStickerOrPhoto && checkRawText.trim() === '');
 
                     
                     let finalContentText = `<div class="msg-main-text" ${msg.transText ? `onclick="toggleTransDisplay('${msg.id}')"` : ''}>${parsedText}</div>${transHtml}`;
@@ -1243,31 +1261,29 @@ function sendChatMessage() {
         replyInBubbleHtml = `<div class="reply-in-bubble"><div class="reply-name">回复 ${newMsg.replyCtx.name}</div><div class="reply-text">${shortContent}</div></div>`;
     }
 
-    // 🌟 同步发送时的渲染逻辑：解析手动输入的表情包与语音协议
-    let parsedText = safeText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
-                    let vDuration = Math.min(60, Math.max(1, Math.ceil(content.length / 3)));
-                    let widthPx = Math.min(200, 60 + vDuration * 2.5); // 🌟 算法：基础长度 60px，根据秒数变长，封顶 200px
-                    return `<div class="voice-inner-container" onclick="toggleVoiceText(this, event)">
-                                <div class="voice-main-row" style="width: ${widthPx}px; justify-content: space-between;">
-                                    <div class="voice-animate-icon"><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div></div>
-                                    <span class="voice-duration">${vDuration}"</span>
-                                </div>
-                                <div class="voice-trans-result">${content}</div>
-                            </div>`;
-
+    // 🌟 同步发送时的渲染逻辑
+    let charName = contact.realName || contact.name || '某某';
+    
+    let parsedText = safeText.replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
+        return generatePhotoHtml(content, charName); 
     });
 
-    let hasSticker = false;
+    parsedText = parsedText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
+        return generateVoiceHtml(content, true); 
+    });
+
+    let hasStickerOrPhoto = false;
+    let checkRawText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, () => { hasStickerOrPhoto = true; return ''; })
+                               .replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, () => { hasStickerOrPhoto = true; return ''; });
+    let isPureWidget = (hasStickerOrPhoto && checkRawText.trim() === '');
+
     parsedText = parsedText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
-        hasSticker = true; const sName = name.trim();
+        const sName = name.trim();
         let sticker = myStickers.find(s => s.name === sName) || myStickers.find(s => s.name.includes(sName));
         if (sticker) return `<img src="${sticker.src}" class="chat-sent-sticker">`;
         if (myStickers.length > 0) return `<img src="${myStickers[Math.floor(Math.random() * myStickers.length)].src}" class="chat-sent-sticker">`;
         return `<span style="color:#aaa;font-size:12px;">[${sName}]</span>`;
     });
-
-    // 🌟 修复：只允许纯表情包脱去气泡外壳，语音绝不能脱壳！
-    let isPureWidget = (hasSticker && parsedText.replace(/<img[^>]*>/g, '').trim() === '');
 
 
     let contentHtml = '';
@@ -1305,6 +1321,7 @@ function sendChatMessage() {
 
     let signText = text.replace(/\n/g, ' ');
     signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音：$1]');
+signText = signText.replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, '[图片]');
     signText = signText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
     contact.sign = signText;
     contact.time = timeStr;
@@ -1461,6 +1478,10 @@ function buildSystemPrompt(contact) {
     // 🌟 语音格式提示约束
     let voiceRule = `\n【重要：发语音指令】\n如果遇到语境适合发语音的情况，或者你想用语音表达情绪（带着嗯、啊等语气词），请在文本中使用 [VOICE:你要说的纯文字] 格式。系统会自动把它转换成语音条发给用户。例如：[VOICE:哎呀，我刚刚出门太急了，你在哪儿呢？]`;
 
+    // 🌟 全新发图能力约束
+    let photoRule = `\n【发图能力】：
+    - 格式："[PHOTO:图片内容的描述]"
+    - 场景：当你想分享此刻看到的景象、自拍或物品时使用。`;
 
     // 🌟 翻译协议判断 (读取用户自定义的语言选项)
     let translateProtocol = "";
@@ -1473,6 +1494,7 @@ function buildSystemPrompt(contact) {
     return `你需要扮演 {char}，模拟真实生活中的聊天软件来回复我 {user}。严禁复述、扩写{user} 的话！
 ${stickerRule}
 ${voiceRule}
+${photoRule}
 
 【高级交互指令 (引用回复)】
 如果你需要针对我很久之前的一句话进行明确的反驳或澄清，可以在你要说的那句话开头加入引用指令：[REPLY:我曾经说过的原话]。
@@ -1702,17 +1724,23 @@ function handleAiResponse(replyText, contact) {
         
         let safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
         
-        // 🌟 核心拦截语音格式：把 AI 发的 [VOICE:xxx] 转换成语音胶囊
-        // 🌟 注入动态声波引擎
-        safeText = safeText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
+        let charName = contact.realName || contact.name || '某某';
+
+        let parsedText = safeText.replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
+            return generatePhotoHtml(content, charName); 
+        });
+
+        parsedText = parsedText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
             return generateVoiceHtml(content, true); 
         });
 
+        let hasStickerOrPhoto = false;
+        let checkRawText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, () => { hasStickerOrPhoto = true; return ''; })
+                                   .replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, () => { hasStickerOrPhoto = true; return ''; });
+        let isPureWidget = (hasStickerOrPhoto && checkRawText.trim() === '');
 
-        let hasSticker = false;
-        let parsedText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
-
-            hasSticker = true; const sName = name.trim();
+        parsedText = parsedText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
+            const sName = name.trim();
             let sticker = myStickers.find(s => s.name === sName) || myStickers.find(s => s.name.includes(sName));
             if (sticker) return `<img src="${sticker.src}" class="chat-sent-sticker" style="margin: 2px 0;">`;
             if (myStickers.length > 0) return `<img src="${myStickers[Math.floor(Math.random() * myStickers.length)].src}" class="chat-sent-sticker" style="margin: 2px 0;">`;
@@ -1739,10 +1767,6 @@ function handleAiResponse(replyText, contact) {
             replyInBubbleHtml = `<div class="reply-in-bubble"><div class="reply-name">回复 ${aiReplyCtx.name}</div><div class="reply-text">${shortContent}</div></div>`;
         }
 
-    // 🌟 修复：只允许纯表情包脱去气泡外壳，语音绝不能脱壳！
-    let isPureWidget = (hasSticker && parsedText.replace(/<img[^>]*>/g, '').trim() === '');
-
-        
         let contentHtml = '';
         if (isPureWidget) {
             contentHtml = `
@@ -1763,7 +1787,6 @@ function handleAiResponse(replyText, contact) {
             </div>`;
         }
 
-
         const msgHtml = `
         <div class="preview-msg-row left" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
             <img src="${charAvatar}" class="preview-avatar">
@@ -1776,12 +1799,11 @@ function handleAiResponse(replyText, contact) {
     if (bubbles.length > 0) {
         let signText = bubbles[bubbles.length - 1].replace(/\n/g, ' ');
         signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音：$1]');
+        signText = signText.replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, '[图片]');
         signText = signText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
         contact.sign = signText;
         contact.time = timeStr;
     }
-
-
     
     saveToDB('contacts_data', JSON.stringify(contactsList));
     renderMsgList();
@@ -1869,16 +1891,21 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                 }
             }
 
-            // 🌟 核心拦截语音格式：把 AI 发的 [VOICE:xxx] 转换成语音胶囊
-        // 🌟 注入动态声波引擎
-        safeText = safeText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
-            return generateVoiceHtml(content, true); 
-        });
+            let charName = contact.realName || contact.name || '某某';
 
+            safeText = safeText.replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
+                return generatePhotoHtml(content, charName); 
+            });
 
-            let hasSticker = false;
+            safeText = safeText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, (match, content) => {
+                return generateVoiceHtml(content, true); 
+            });
+
+            let hasStickerOrPhoto = false;
+            let checkRawText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, () => { hasStickerOrPhoto = true; return ''; })
+                                       .replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, () => { hasStickerOrPhoto = true; return ''; });
+
             safeText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
-                hasSticker = true;
                 const sName = name.trim();
                 let sticker = myStickers.find(s => s.name === sName) || myStickers.find(s => s.name.includes(sName));
                 if (sticker) return `<img src="${sticker.src}" class="chat-sent-sticker" style="margin: 2px 0;">`;
@@ -1898,7 +1925,7 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                     if (avatarEl) avatarEl.style.display = 'none';
                     rowEl.style.justifyContent = 'center';
                 }
-            } else if (hasSticker && safeText.replace(/<img[^>]*>/g, '').trim() === '') {
+            } else if (hasStickerOrPhoto && checkRawText.trim() === '') {
                 currentBubbleEl.style.background = 'transparent';
                 currentBubbleEl.style.boxShadow = 'none';
                 currentBubbleEl.style.border = 'none';
@@ -2047,6 +2074,7 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
         if (allFinishedBubbleTexts.length > 0) {
             let signText = allFinishedBubbleTexts[allFinishedBubbleTexts.length - 1].replace(/\n/g, ' ');
             signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音：$1]');
+            signText = signText.replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, '[图片]');
             signText = signText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
             contact.sign = signText;
             contact.time = timeStr;
@@ -2401,6 +2429,7 @@ function bubbleAction(action) {
             const lastMsg = contact.messages[contact.messages.length - 1];
             let signText = lastMsg.text.replace(/\n/g, ' ');
             signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音：$1]');
+            signText = signText.replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, '[图片]');
             signText = signText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
             contact.sign = lastMsg.type === 'image' ? '[图片]' : (lastMsg.type === 'recall' ? '有条撤回，快来看' : signText);
             contact.time = lastMsg.time;
@@ -2442,7 +2471,9 @@ function bubbleAction(action) {
         else if (msg.type === 'recall') previewText = '[撤回的消息]';
         else previewText = msg.text.replace(/<div class="msg-trans-line">[\s\S]*/, '').replace(/<[^>]+>/g, '')
                                   .replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]')
+                                  .replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, '[图片]')
                                   .replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音] $1');
+
 
 
         activeReplyContext = {
@@ -2507,6 +2538,7 @@ function executeRegenerate(msgId) {
                 const lastMsg = contact.messages[contact.messages.length - 1];
                 let signText = lastMsg.text.replace(/\n/g, ' ');
                 signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音：$1]');
+                signText = signText.replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, '[图片]');
                 signText = signText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
                 contact.sign = lastMsg.type === 'image' ? '[图片]' : (lastMsg.type === 'recall' ? '有条撤回，快来看' : signText);
                 contact.time = lastMsg.time;
@@ -3401,3 +3433,105 @@ function toggleVoiceText(el, e) {
     const resultBox = el.querySelector('.voice-trans-result');
     if (resultBox) resultBox.classList.toggle('show');
 }
+
+// ==========================================
+// 🌟 文字图片发送与弹窗交互逻辑
+// ==========================================
+
+function openPhotoModal() {
+    closeChatPlusMenu();
+    document.getElementById('photo-desc-input').value = '';
+    document.getElementById('photo-overlay').classList.add('active');
+}
+
+function closePhotoModal() {
+    document.getElementById('photo-overlay').classList.remove('active');
+}
+
+function sendPhotoMsg() {
+    const descInput = document.getElementById('photo-desc-input');
+    const text = descInput.value.trim();
+    if (!text) {
+        showToast("图片里的文字不能为空哦");
+        return;
+    }
+    
+    if (!currentChatContactId) return;
+    const contact = contactsList.find(c => c.id === currentChatContactId);
+    if (!contact) return;
+    
+    closePhotoModal();
+    
+    const chatBody = document.getElementById('chatRoomBody');
+    const myAvatar = getBoundUserAvatar(contact);
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const msgId = 'msg_' + Date.now();
+    
+    // 直接包装成核心文本协议
+    const photoTag = `[PHOTO:${text}]`;
+    const newMsg = { id: msgId, sender: 'user', text: photoTag, time: timeStr };
+    
+    if (activeReplyContext) {
+        newMsg.replyCtx = { ...activeReplyContext };
+        cancelReply();
+    }
+    
+    if (!contact.messages) contact.messages = [];
+    contact.messages.push(newMsg);
+    
+    let charName = contact.realName || contact.name || '某某';
+    let parsedHtml = generatePhotoHtml(text, charName);
+    
+    let touchEvents = `ontouchstart="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" ontouchend="bubbleTouchEnd(event)" ontouchmove="bubbleTouchEnd(event)" onmousedown="bubbleTouchStart(event, '${msgId}', 'user', '${timeStr}')" onmouseup="bubbleTouchEnd(event)" onmouseleave="bubbleTouchEnd(event)"`;
+
+    let replyBubbleHtml = '';
+    if (newMsg.replyCtx) {
+        let shortContent = newMsg.replyCtx.content || '';
+        if (shortContent.length > 40) shortContent = shortContent.slice(0, 40) + '...';
+        replyBubbleHtml = `<div class="reply-tiny-bubble"><span style="opacity: 0.7; margin-right: 4px;">回复 ${newMsg.replyCtx.name}:</span>${shortContent}</div>`;
+    }
+
+    const msgHtml = `
+    <div class="preview-msg-row right" id="row-${msgId}" onclick="handleMsgClickInMultiMode('${msgId}', this)" ${touchEvents}>
+        <div class="msg-checkbox"></div>
+        <div class="msg-stack">
+            ${replyBubbleHtml}
+            <div class="image-msg-wrapper">
+                <span class="image-timestamp" style="margin-right:6px;">${timeStr}</span>
+                ${parsedHtml}
+            </div>
+        </div>
+        <img src="${myAvatar}" class="preview-avatar" onclick="handleAvatarDoubleTap('${msgId}')" style="cursor: pointer;">
+    </div>`;
+    
+    chatBody.insertAdjacentHTML('beforeend', msgHtml);
+    setTimeout(() => chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' }), 10);
+    
+    contact.sign = `[图片]`;
+    contact.time = timeStr;
+    saveToDB('contacts_data', JSON.stringify(contactsList));
+    renderMsgList();
+}
+
+window.showPhotoDescription = function(desc, event) {
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
+    const content = desc || "无文字描述";
+    const overlay = document.getElementById('photo-desc-overlay');
+    const contentEl = document.getElementById('photo-desc-content');
+    
+    if (overlay && contentEl) {
+        contentEl.innerHTML = content.replace(/\n/g, '<br>');
+        overlay.classList.add('active');
+    }
+};
+
+window.closePhotoDesc = function() {
+    const overlay = document.getElementById('photo-desc-overlay');
+    if (overlay) {
+        overlay.classList.remove('active');
+    }
+};
