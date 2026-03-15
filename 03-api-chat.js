@@ -1303,7 +1303,10 @@ function sendChatMessage() {
         chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
     }, 10);
 
-    contact.sign = text.replace(/\n/g, ' ');
+    let signText = text.replace(/\n/g, ' ');
+    signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音：$1]');
+    signText = signText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
+    contact.sign = signText;
     contact.time = timeStr;
     saveToDB('contacts_data', JSON.stringify(contactsList));
     renderMsgList();
@@ -1539,8 +1542,8 @@ ${wbStr}
     <answer>正确的选项序号，只填数字（如: 1 或 2 或 3）</answer>
     </quiz>
     <future>
-    <identity>十年后你现在的身份（请根据当前聊天进展随机或推演设定，例如：交往五年的男友 / 许久不联系的陌生人 等）</identity>
-    <content>想象一下：十年后的你偶然翻到了【当前这一轮聊天记录】。请写出你在十年后看到聊天记录时想对 user 说的话。字数30-60字左右，必须极具跨越十年。</content>
+    <identity>十年后你现在的身份（50%概率是亲密关系如丈夫/交往五年的男友等，50%概率是疏远关系如分手后的前任/多年不联系的陌生人等，请严格执行50%的随机对半概率决定）</identity>
+    <content>想象一下：十年后的你收拾东西时，在一部破旧的老手机中偶然翻到了【当前这一轮聊天记录】。请写出你在十年后看到聊天记录时想对 user 说的话。字数30-60字左右，必须极具跨越十年。</content>
     </future>
     </voice>`;
 }
@@ -1772,12 +1775,12 @@ function handleAiResponse(replyText, contact) {
 
     if (bubbles.length > 0) {
         let signText = bubbles[bubbles.length - 1].replace(/\n/g, ' ');
-        // 🌟 修复：外面列表只显示干净的 [语音] 提示
-        signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音] $1');
+        signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音：$1]');
         signText = signText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
         contact.sign = signText;
         contact.time = timeStr;
     }
+
 
     
     saveToDB('contacts_data', JSON.stringify(contactsList));
@@ -2043,12 +2046,12 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
 
         if (allFinishedBubbleTexts.length > 0) {
             let signText = allFinishedBubbleTexts[allFinishedBubbleTexts.length - 1].replace(/\n/g, ' ');
-            // 🌟 修复：外面列表只显示干净的 [语音] 提示
-            signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音] $1');
+            signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音：$1]');
             signText = signText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
             contact.sign = signText;
             contact.time = timeStr;
         }
+
 
         saveToDB('contacts_data', JSON.stringify(contactsList));
         renderMsgList();
@@ -2397,9 +2400,9 @@ function bubbleAction(action) {
         if (contact.messages.length > 0) {
             const lastMsg = contact.messages[contact.messages.length - 1];
             let signText = lastMsg.text.replace(/\n/g, ' ');
-            signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音] $1');
+            signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音：$1]');
             signText = signText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
-            contact.sign = lastMsg.type === 'image' ? '[图片]' : (lastMsg.type === 'recall' ? '撤回了一条消息' : signText);
+            contact.sign = lastMsg.type === 'image' ? '[图片]' : (lastMsg.type === 'recall' ? '有条撤回，快来看' : signText);
             contact.time = lastMsg.time;
         } else {
             contact.sign = "";
@@ -2500,14 +2503,16 @@ function executeRegenerate(msgId) {
             const deleteCount = endIndex - startIndex + 1;
             contact.messages.splice(startIndex, deleteCount);
 
-                if (contact.messages.length > 0) {
-                    const lastMsg = contact.messages[contact.messages.length - 1];
-                    let signText = lastMsg.text.replace(/\n/g, ' ');
-                    signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音] $1');
-                    signText = signText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
-                    contact.sign = lastMsg.type === 'image' ? '[图片]' : (lastMsg.type === 'recall' ? '撤回了一条消息' : signText);
-                    contact.time = lastMsg.time;
-                } else {
+            if (contact.messages.length > 0) {
+                const lastMsg = contact.messages[contact.messages.length - 1];
+                let signText = lastMsg.text.replace(/\n/g, ' ');
+                signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音：$1]');
+                signText = signText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
+                contact.sign = lastMsg.type === 'image' ? '[图片]' : (lastMsg.type === 'recall' ? '有条撤回，快来看' : signText);
+                contact.time = lastMsg.time;
+            } else {
+
+
                 contact.sign = "";
             }
 
@@ -3376,7 +3381,7 @@ function executeSendMultiVoice() {
 
             // 发完不再强制 AI 回复，交由用户点击飞机按钮控制
             if (i === validRows.length - 1) {
-                contact.sign = '[语音]';
+                contact.sign = `[语音：${text}]`;
                 contact.time = timeStr;
                 saveToDB('contacts_data', JSON.stringify(contactsList));
                 renderMsgList();

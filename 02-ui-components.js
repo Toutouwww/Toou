@@ -192,7 +192,10 @@ function confirmCustomPrompt() {
                 // 重新校准列表页显示的“最后一条消息”
                 if (contact.messages.length > 0) {
                     const lastMsg = contact.messages[contact.messages.length - 1];
-                    contact.sign = lastMsg.text.replace(/\n/g, ' ');
+                    let signText = lastMsg.text.replace(/\n/g, ' ');
+                    signText = signText.replace(/\[\s*(?:VOICE|语音)\s*[:：]\s*(.*?)\]/gi, '[语音：$1]');
+                    signText = signText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, '[表情]');
+                    contact.sign = lastMsg.type === 'image' ? '[图片]' : (lastMsg.type === 'recall' ? '有条撤回，快来看' : signText);
                     contact.time = lastMsg.time;
                 } else {
                     contact.sign = "";
