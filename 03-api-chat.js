@@ -1869,6 +1869,9 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
             
             let safeText = text.trimStart().replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
             
+            // 💡 新增：在替换翻译标记和大量 HTML 之前，先提纯出专用于气泡脱壳判断的基础字符串
+            let pureCheckText = safeText.split(TRANS_SPLIT)[0]; 
+
             // 🌟 流式文本替换翻译标记
             safeText = safeText.split(TRANS_SPLIT).join('</div><div class="msg-trans-line"></div><div class="msg-trans-text">');
 
@@ -1906,7 +1909,8 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
             });
 
             let hasStickerOrPhoto = false;
-            let checkRawText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, () => { hasStickerOrPhoto = true; return ''; })
+            // 💡 核心修复 1：利用 pureCheckText，无视了翻译系统的 HTML 层注入
+            let checkRawText = pureCheckText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, () => { hasStickerOrPhoto = true; return ''; })
                                        .replace(/\[\s*(?:PHOTO|照片|图片)\s*[:：]\s*(.*?)\]/gi, () => { hasStickerOrPhoto = true; return ''; });
 
             safeText = safeText.replace(/\[\s*(?:STICKER|表情)\s*[:：]\s*(.*?)\]/gi, (match, name) => {
@@ -1929,7 +1933,8 @@ async function handleStreamReply(apiConfig, contact, messagesPayload, titleEl, o
                     if (avatarEl) avatarEl.style.display = 'none';
                     rowEl.style.justifyContent = 'center';
                 }
-            } else if (hasStickerOrPhoto && checkRawText.trim() === '') {
+            // 💡 核心修复 2：补上对 <br> 与隐形实体的正则剥离处理
+            } else if (hasStickerOrPhoto && checkRawText.replace(/<[^>]*>/g, '').trim() === '') {
                 currentBubbleEl.style.background = 'transparent';
                 currentBubbleEl.style.boxShadow = 'none';
                 currentBubbleEl.style.border = 'none';
